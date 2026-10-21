@@ -1,5 +1,14 @@
 # Changelog
 
+## 26.10.21.11
+
+- Add `domain update`, `domain -update`, and `domain --update` to refresh IANA DNS bootstrap data immediately, regardless of cache age.
+- Validate downloads before atomically replacing the cache, report explicit update failures, and preserve the existing file when a refresh fails.
+- Support zero, one, or two leading hyphens consistently for update, help, and version commands, with localized output and language selectors.
+- Fix standalone and empty WHOIS contact labels being mistaken for registrant values, including `Address` in `.im` responses.
+- Prevent a later manager's details from replacing a redacted owner, recover domain expiry dates after contact sections, and normalize `.im` day-first timestamps.
+- Expand regression tests for forced updates, failure preservation, contact boundaries, redacted values, and dates supplied on separate lines.
+
 ## 26.10.21.10
 
 - Broaden WHOIS field matching across registry formats for ASCII top-level domains without RDAP, including dot leaders, bracketed labels, colonless dates, bundled domain names, and multiline records.

@@ -26,7 +26,7 @@ func formatWHOISTime(tld, value string) string {
 	}
 	// Numeric day-first dates are enabled only for registries whose format
 	// specifies that order; generic ambiguous dates keep their original text.
-	if strings.Contains(" ax hk mw mk ls ve rs sm tn il pt ", " "+tld+" ") {
+	if strings.Contains(" ax hk mw mk ls ve rs sm tn il pt im ", " "+tld+" ") {
 		date := value
 		zone := ""
 		if index := strings.Index(date, " GMT"); index >= 0 {

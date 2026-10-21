@@ -114,6 +114,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 	tld := domain[strings.LastIndexByte(domain, '.')+1:]
 	var scope, pending, organization, holder, nsset, keyset string
 	var found, mismatched, ignoredDomain, plainName bool
+	contactNameSeen := false
 	blank, scopeIndent := false, 0
 	for i, raw := range lines {
 		line := strings.TrimSpace(raw)
@@ -181,6 +182,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 			}
 		} else {
 			pending = ""
+			if scope == "registrant" || scope == "registrar" {
+				plainName = false // Once labels begin, never fall back to prose.
+			}
 		}
 		field = whoisKeys[key]
 		if key == "domain" && value == "" {
@@ -213,7 +217,8 @@ func parseWHOIS(domain, response string) (Record, error) {
 			section = "registrant"
 		}
 		if section != "" && (value == "" || section == "other-contact" || key == "domain registrant") {
-			scope, plainName = section, section == "registrant" || section == "registrar"
+			scope, plainName = section, (section == "registrant" || section == "registrar") && !whoisHasInlineValue(raw)
+			contactNameSeen = false
 			scopeIndent = indent
 			if field == "domain" || field == "nameserver" || field == "status" {
 				pending = field
@@ -243,6 +248,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 		if strings.HasPrefix(key, "domain ") && (field == "registration" || field == "expiration" || field == "changed" || field == "status") || strings.HasPrefix(key, "record ") || strings.HasPrefix(key, "fecha de ") {
 			scope = "domain"
 		}
+		if field == "expiration" && indent <= scopeIndent && (key == "expiry date" || key == "registry expiry date" || key == "registrar registration expiration date") {
+			scope = "domain"
+		}
 		if key == "admin e mail" || key == "tech e mail" {
 			scope = "other-contact"
 		}
@@ -254,6 +262,12 @@ func parseWHOIS(domain, response string) (Record, error) {
 			scope = "domain"
 		}
 		if key == "name" || key == "nombre" || key == "person" || key == "personname" {
+			if labeled && scope == "registrant" {
+				if contactNameSeen {
+					scope = "other-contact"
+				}
+				contactNameSeen = true
+			}
 			switch scope {
 			case "domain":
 				if key == "name" {
@@ -292,7 +306,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 			scope = "domain"
 		}
 		if value == "" {
-			if field != "" {
+			if field != "" && !whoisHasInlineValue(raw) {
 				pending = key
 			}
 			continue

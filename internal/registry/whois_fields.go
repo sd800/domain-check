@@ -36,7 +36,24 @@ var (
 	whoisLetterPrefix = regexp.MustCompile(`(?i)^[a-z]\.\s*(\[)`)
 	whoisNumberedNS   = regexp.MustCompile(`^(?:ns|domain server|name server)\s*\d+$`)
 	whoisDateSentence = regexp.MustCompile(`(?i)^(record created on|record expires on|record will expire on|registered on|first registration date)\s+(\d.*|before .*)$`)
+	whoisDateValue    = regexp.MustCompile(`(?i)^(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{4}|\d{1,2}-[a-z]{3}-\d{4})[ T]\d{1,2}:\d{2}`)
 )
+
+// These labels are deliberately recognized even when they are not output
+// fields. Otherwise an empty Name can consume Address, or an omitted Email
+// can consume Phone, as if the next label were the missing value.
+var whoisContactLabels = map[string]bool{
+	"name": true, "first name": true, "last name": true, "full name": true,
+	"organization": true, "organisation": true, "organization name": true, "org": true,
+	"address": true, "address1": true, "address2": true, "address3": true,
+	"address 1": true, "address 2": true, "address 3": true,
+	"street": true, "street address": true, "city": true, "state": true,
+	"state or province": true, "province": true, "postal code": true, "postcode": true,
+	"zip": true, "zip code": true, "country": true, "country code": true,
+	"email": true, "e mail": true, "email address": true, "phone": true,
+	"phone number": true, "telephone": true, "fax": true, "fax number": true,
+	"contact id": true, "nic handle": true, "ip address": true,
+}
 
 func whoisKey(key string) string {
 	key = strings.Trim(strings.TrimSpace(key), "[]* ")
@@ -61,6 +78,9 @@ func splitWHOISLine(raw string) (key, value string, labeled bool) {
 	if match := whoisDateSentence.FindStringSubmatch(line); match != nil {
 		return whoisKey(match[1]), useful(match[2]), true
 	}
+	if whoisDateValue.MatchString(line) {
+		return "", whoisValue(line), false
+	}
 	if strings.HasPrefix(line, "[") {
 		if end := strings.IndexByte(line, ']'); end > 0 {
 			key = whoisKey(line[1:end])
@@ -80,10 +100,19 @@ func splitWHOISLine(raw string) (key, value string, labeled bool) {
 		return key, whoisFieldValue(key, value), true
 	}
 	key = whoisKey(line)
-	if whoisSection(key) != "" || whoisKeys[key] != "" || key == "name" || key == "organization" || key == "ip address" {
+	if whoisSection(key) != "" || whoisKeys[key] != "" || whoisContactLabels[key] {
 		return key, "", true
 	}
 	return "", whoisValue(line), false
+}
+
+func whoisHasInlineValue(raw string) bool {
+	line := strings.TrimSpace(raw)
+	if end := strings.IndexByte(line, ']'); strings.Contains(line, "[") && end >= 0 {
+		return strings.Trim(strings.TrimSpace(line[end+1:]), ": ") != ""
+	}
+	_, value, ok := strings.Cut(line, ":")
+	return ok && strings.TrimSpace(value) != ""
 }
 
 func whoisValue(value string) string {
@@ -102,7 +131,7 @@ func whoisFieldValue(key, value string) string {
 // between a heading and its first value. Only explicit headings change scope.
 func whoisSection(key string) string {
 	switch key {
-	case "registrant", "holder", "owner", "titular", "registrant contact", "registrant contact information", "owner contact", "domain managers", "domain registrant":
+	case "registrant", "holder", "owner", "titular", "registrant contact", "registrant contact information", "owner contact", "domain managers", "domain owners", "domain owner", "domain registrant":
 		return "registrant"
 	case "registrar":
 		return "registrar"

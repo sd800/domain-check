@@ -64,6 +64,8 @@ domain example.com en            # Selectors also work after the domain
 domain zh                        # Save Simplified Chinese as the default
 domain en                        # Save English as the default
 domain auto                      # Restore device-language detection
+domain update                    # Refresh IANA dns.json immediately
+domain --update                  # Same explicit refresh
 domain 例子.中国                  # Internationalized domain name
 domain 'https://www.example.com/path?item=1&lang=zh'
 domain --help
@@ -79,6 +81,8 @@ Language selectors accept zero, one, or two leading hyphens:
 | English | `en`, `-en`, `--en` |
 | Simplified Chinese | `zh`, `-zh`, `--zh` |
 | Device language | `auto`, `-auto`, `--auto` |
+
+The `update`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update` without a domain or URL.
 
 The last language selector wins and is saved for future invocations, including when supplied alongside a domain. With no saved selection, or after `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
 
@@ -154,7 +158,7 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | A registry record was returned, or the introduction, help, or version was displayed |
+| `0` | A registry record was returned, IANA data was updated, or the introduction, help, or version was displayed |
 | `1` | No registry record, or an explicit registration restriction |
 | `2` | Invalid arguments or domain |
 | `3` | Discovery, network, service, response, or output error |
@@ -179,7 +183,9 @@ On macOS, IANA's `dns.json` is cached at:
 
 Discovered registry WHOIS hosts are cached under `whois/` in the same directory. Set `DOMAIN_CACHE_DIR` to use another cache directory.
 
-Cache freshness is checked only during a domain lookup. After one calendar month from the last successful fetch, the next lookup refreshes the data. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. Help and version commands do not perform network requests.
+Automatic cache freshness is checked only during a domain lookup. After one calendar month from the last successful fetch, the next lookup refreshes the data. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. Help and version commands do not perform network requests.
+
+Run `domain update` to download and validate IANA's current `dns.json` immediately, even when the local cache is fresh. A successful refresh replaces the file atomically and restarts its one-month freshness period. Download, validation, or cache-write failures return exit code `3` and preserve the existing cache; the command reports success only after the new file has been saved.
 
 If refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. Successful downloads replace cache files atomically. No background process, scheduled job, or lookup-result cache is created.
 

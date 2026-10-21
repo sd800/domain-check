@@ -111,6 +111,23 @@ func (c *Client) bootstrap(ctx context.Context) (bootstrap, error) {
 	return b, nil
 }
 
+// UpdateBootstrap forces an online refresh, regardless of cache age. Unlike
+// automatic refresh during a lookup, failure is returned instead of hidden by
+// a usable stale cache, and invalid downloads never replace the existing file.
+func (c *Client) UpdateBootstrap(ctx context.Context) error {
+	data, err := c.downloadBootstrap(ctx)
+	if err != nil {
+		return queryError("bootstrap-update-failed", err.Error())
+	}
+	if _, err := decodeBootstrap(data); err != nil {
+		return queryError("bootstrap-update-failed", err.Error())
+	}
+	if err := c.writeCache("dns.json", data); err != nil {
+		return queryError("bootstrap-cache-failed", err.Error())
+	}
+	return nil
+}
+
 func (c *Client) downloadBootstrap(ctx context.Context) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BootstrapURL, nil)
 	if err != nil {

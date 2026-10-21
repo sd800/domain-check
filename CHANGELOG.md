@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.8
+
+- Recognize EDUCAUSE WHOIS activation, expiration, and last-update fields so `.edu` registration dates are displayed.
+- Verify that date-only WHOIS values and RDAP events retain their original date precision and appear in the output.
+- Remove domain-specific tuning details from the README.
+
 ## 26.10.21.7
 
 - Apply the three-second deadline only to `.edu.cn` registry HTTP requests.

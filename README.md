@@ -8,8 +8,6 @@ domain example.com
 
 `domain` discovers registry RDAP services through [IANA's DNS bootstrap data](https://data.iana.org/rdap/dns.json). When a suffix has no RDAP entry, it discovers the registry's WHOIS server through IANA and queries that server on TCP port 43. **Registrar referrals are never followed.**
 
-For `.edu.cn`, the command uses the dedicated NIC registry interface and can fall back to DNS nameserver records.
-
 ## Install
 
 ### macOS binary
@@ -133,7 +131,7 @@ Only fields supplied by the registry are shown. Missing, empty, or explicitly re
 
 Content begins in a fixed column determined by the longest label, with three spaces after that label's colon. Chinese widths use terminal display cells; `DNSSEC` does not determine the Chinese column. Long values wrap to the terminal width, with continuation lines starting in the content column. When terminal dimensions are unavailable, `COLUMNS` is used, falling back to 80 columns. Very narrow terminals must still accommodate the label column and at least one character.
 
-Timestamps with explicit UTC offsets are converted to UTC and rendered as `YYYY-MM-DD HH:MM:SS`. Unzoned WHOIS timestamps and date-only values retain their original representation. The RDAP database refresh timestamp is not substituted for a domain's last-changed time. DNSSEC is shown only when the registry supplies enough information to determine it.
+Timestamps with explicit UTC offsets are converted to UTC and rendered as `YYYY-MM-DD HH:MM:SS`. Unzoned WHOIS timestamps and date-only values retain their original representation. Dates are displayed even when the registry supplies no time of day. The RDAP database refresh timestamp is not substituted for a domain's last-changed time. DNSSEC is shown only when the registry supplies enough information to determine it.
 
 ### Missing records and registration restrictions
 
@@ -158,7 +156,6 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 
 ## Registry-only queries
 
-- `.edu.cn` domains use their dedicated registry interface before ordinary `.cn` discovery; see below for its DNS fallback.
 - RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
 - Response links and entity links are never fetched, including registrar `related` links.
 - HTTP redirects are accepted only for the same domain query at an IANA-listed endpoint for that suffix, including an HTTP-to-HTTPS upgrade. Arbitrary paths, external hosts, and redirects with query parameters are blocked.
@@ -166,12 +163,6 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 - When IANA lists RDAP, an RDAP failure does not trigger a WHOIS fallback.
 
 WHOIS response formats vary by registry. The parser handles common labeled formats and multiline sections, including CNNIC and Nominet-style records, but cannot normalize every registry-specific format. Unrecognized replies produce errors instead of guessed registration results. Outbound TCP port 43 must be available to use WHOIS.
-
-### .edu.cn
-
-Queries for names ending in `.edu.cn` go directly to `https://www.nic.edu.cn/cgi-bin/reg/otherobj?query=<domain>`, with a three-second deadline covering the HTTP request and response. GBK or GB2312 HTML is decoded before extracting WHOIS text from `<PRE>`. The leading organization is displayed as the registrant, and the domain-server table supplies nameservers without their IP addresses. Embedded links and redirects are not followed.
-
-If access is denied, the command immediately runs `dig NS`. Unresponsive HTTP requests reach the three-second deadline before falling back; other failures or unusable content also trigger fallback. The DNS lookup uses dig's default timeout and retry settings and is not subject to the three-second HTTP limit. A successful DNS fallback shows the domain and nameservers in the usual layout, with all unavailable registration fields omitted. It does not infer registration status or DNSSEC from DNS data. An empty NS answer or a DNS lookup failure is reported as a query error. This fallback requires `dig`, which is included with macOS.
 
 ## IANA cache
 

@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -40,6 +42,42 @@ func seedBootstrap(t *testing.T, c *Client, services string) {
 	}
 }
 
+func assertServiceMetadataOnly(t *testing.T, c *Client, want []string, forbidden ...string) {
+	t.Helper()
+	var files []string
+	err := filepath.WalkDir(c.CacheDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		relative, err := filepath.Rel(c.CacheDir, path)
+		if err != nil {
+			return err
+		}
+		files = append(files, filepath.ToSlash(relative))
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, value := range forbidden {
+			if strings.Contains(string(data), value) {
+				t.Errorf("lookup data was persisted in %s", relative)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(files)
+	sort.Strings(want)
+	if strings.Join(files, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("unexpected persistent files: %v; want %v", files, want)
+	}
+}
+
 func TestDomainNormalization(t *testing.T) {
 	for input, want := range map[string]string{"EXAMPLE.COM.": "example.com", "例子.中国": "xn--fsqu00a.xn--fiqs8s", "example。com": "example.com", "example.co.uk": "example.co.uk"} {
 		got, err := NormalizeDomain(input)
@@ -68,6 +106,7 @@ func TestRegistryLinksNeverFetched(t *testing.T) {
 	if err != nil || r.Domain != "example.com" || calls != 1 || r.Registrant != "" {
 		t.Fatalf("%+v, %v, calls %d", r, err, calls)
 	}
+	assertServiceMetadataOnly(t, c, []string{"dns.json"}, "example.com", "registrar.test")
 }
 
 func TestRegistryRedirectPolicy(t *testing.T) {
@@ -135,7 +174,7 @@ func TestRDAPFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Registration != "2003-03-10 03:19:18" || r.Changed != "2025-05-15 10:25:25" || r.Expiration != "" || r.Registrant != "上海溪诚信息科技有限公司" || r.Registrar != "Example Registrar" || len(r.RegistrantEmail) != 1 || len(r.Nameservers) != 1 || r.DNSSEC != "unsigned" {
+	if r.Registration != "2003-03-10 03:19:18 UTC" || r.Changed != "2025-05-15 10:25:25 UTC" || r.Expiration != "" || r.Registrant != "上海溪诚信息科技有限公司" || r.Registrar != "Example Registrar" || len(r.RegistrantEmail) != 1 || len(r.Nameservers) != 1 || r.DNSSEC != "unsigned" {
 		t.Fatalf("%+v", r)
 	}
 	for _, body := range []string{`{}`, `{"objectClassName":"entity"}`, `{"objectClassName":"domain","ldhName":"other.com"}`, `{"objectClassName":"domain","ldhName":"example.com","errorCode":403}`, `<html>Error</html>`} {
@@ -236,6 +275,7 @@ func TestWHOISStopsAtRegistry(t *testing.T) {
 	if err != nil || len(destinations) != 3 || destinations[2] != "whois.cnnic.cn:43" {
 		t.Fatalf("IANA discovery was not cached: %v, %v", err, destinations)
 	}
+	assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/cn.json"}, "shanghai.cn", "上海溪诚信息科技有限公司", "admin@example.com", "whois.registrar.test")
 }
 
 func TestWHOISParsing(t *testing.T) {

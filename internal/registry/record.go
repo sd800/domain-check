@@ -102,7 +102,8 @@ func appendUnique(items []string, value string) []string {
 	return append(items, value)
 }
 
-// Zoned timestamps become UTC. Unzoned WHOIS timestamps retain their source time.
+// Zoned timestamps become UTC and are labeled. Dates and unzoned timestamps
+// retain their precision and wall time while using a consistent numeric format.
 func formatTime(s string) string {
 	s = useful(s)
 	for _, layout := range []string{
@@ -115,7 +116,24 @@ func formatTime(s string) string {
 			if strings.HasSuffix(layout, "MST") && !strings.HasSuffix(s, "UTC") && !strings.HasSuffix(s, "GMT") {
 				continue
 			}
-			return t.UTC().Format("2006-01-02 15:04:05")
+			return t.UTC().Format("2006-01-02 15:04:05") + " UTC"
+		}
+	}
+	for _, layout := range []string{
+		"2006-01-02 15:04:05", "2006-01-02T15:04:05",
+		"02-Jan-2006 15:04:05", "2 Jan 2006 15:04:05",
+		"2006/01/02 15:04:05", "2006.01.02 15:04:05",
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.Format("2006-01-02 15:04:05")
+		}
+	}
+	for _, layout := range []string{
+		"2006-01-02", "2006-1-2", "2-Jan-2006", "2 Jan 2006",
+		"2006-Jan-2", "January 2, 2006", "2006/1/2", "2006.1.2",
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.Format("2006-01-02")
 		}
 	}
 	return s

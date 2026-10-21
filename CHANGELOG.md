@@ -1,5 +1,13 @@
 # Changelog
 
+## 26.10.21.9
+
+- Normalize date-only values to `YYYY-MM-DD` and timestamps to `YYYY-MM-DD HH:MM:SS`, preserving the supplied precision.
+- Add a `UTC` suffix to timestamps converted from explicitly zoned values; leave unzoned values unlabeled.
+- Accept pasted URLs, strip URL components, and query the registrable domain using public-suffix rules while keeping direct domain inputs exact.
+- Keep URL input handling separate from strict registry-response validation, and never fetch the pasted URL itself.
+- Verify that lookups do not persist query inputs or results; keep local application data limited to service metadata and language preferences.
+
 ## 26.10.21.8
 
 - Recognize EDUCAUSE WHOIS activation, expiration, and last-update fields so `.edu` registration dates are displayed.

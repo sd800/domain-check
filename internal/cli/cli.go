@@ -43,7 +43,7 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 			o.version = true
 		default:
 			if strings.HasPrefix(arg, "-") || o.domain != "" {
-				return o, fmt.Errorf("unexpected argument: %s", registry.Clean(arg))
+				return o, fmt.Errorf("unexpected argument; expected one domain or URL")
 			}
 			o.domain = arg
 		}
@@ -55,7 +55,7 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 		o.intro = true
 		return o, nil
 	}
-	domain, err := registry.NormalizeDomain(o.domain)
+	domain, err := registry.NormalizeInput(o.domain)
 	if err != nil {
 		return o, err
 	}
@@ -73,8 +73,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 		}
 	}
 	if err != nil {
-		fmt.Fprintln(stderr, output.Text(o.lang, "Usage: domain [en|zh|auto] [domain]", "用法: domain [en|zh|auto] [域名]"))
-		fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Invalid arguments or domain", "参数或域名无效")+": "+registry.Clean(err.Error()))
+		fmt.Fprintln(stderr, output.Text(o.lang, "Usage: domain [en|zh|auto] [domain|URL]", "用法: domain [en|zh|auto] [域名或 URL]"))
+		fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Invalid arguments, domain, or URL", "参数、域名或 URL 无效")+": "+registry.Clean(err.Error()))
 		return 2
 	}
 	if o.preference != "" {
@@ -165,7 +165,7 @@ func introduction(lang output.Language, version string) string {
 	return "Domain Check from Registries\nversion " + version + "\n© 2026 Songming.org\n\n" + output.Text(lang, `Query domain registration information directly from registries.
 Registrar referrals are never followed.
 
-Usage: domain [en|zh|auto] [domain]
+Usage: domain [en|zh|auto] [domain|URL]
 
   domain example.com          Use the default language
   domain -en example.com      English
@@ -176,7 +176,7 @@ Language choices are saved for future commands.
 Run domain --help for more options.
 `, `直接向注册局查询域名注册信息，始终不跟随注册商。
 
-用法: domain [en|zh|auto] [域名]
+用法: domain [en|zh|auto] [域名或 URL]
 
   domain example.com          使用默认语言
   domain -en example.com      英文
@@ -191,12 +191,13 @@ Run domain --help for more options.
 func help(lang output.Language) string {
 	return output.Text(lang, `Domain Check from Registries
 
-Usage: domain [en|zh|auto] [domain]
+Usage: domain [en|zh|auto] [domain|URL]
 
   domain example.com          Use the default language
   domain -en example.com      English
   domain zh example.com       Simplified Chinese
   domain auto                 Follow the device language
+  domain https://example.com/path
 
 Language selectors accept zero, one, or two leading hyphens and may appear
 before or after the domain. The last selector wins and is saved for future
@@ -207,15 +208,18 @@ the build version.
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
 IANA lists no RDAP service. Registrar referrals are never followed.
 IANA data is refreshed at most once per calendar month, only during a lookup.
-Zoned timestamps are displayed in UTC; unzoned WHOIS values are preserved.
+URLs are reduced to their registrable domain; the URL itself is never fetched.
+Dates use YYYY-MM-DD; timestamps use YYYY-MM-DD HH:MM:SS.
+Zoned timestamps are converted to UTC and carry a UTC suffix.
 `, `Domain Check from Registries
 
-用法: domain [en|zh|auto] [域名]
+用法: domain [en|zh|auto] [域名或 URL]
 
   domain example.com          使用默认语言
   domain -en example.com      英文
   domain zh example.com       简体中文
   domain auto                 跟随设备语言
+  domain https://example.com/path
 
 语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数会保存。
 使用 auto、-auto 或 --auto 恢复跟随设备语言。
@@ -223,6 +227,8 @@ Zoned timestamps are displayed in UTC; unzoned WHOIS values are preserved.
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。
 始终不跟随注册商。IANA 数据只在查询时检查，每个日历月周期更新一次。
-带时区的时间统一显示为 UTC；未注明时区的 WHOIS 时间保留原值。
+URL 会自动识别可注册域名，不访问 URL 页面本身。
+日期使用 YYYY-MM-DD，时间使用 YYYY-MM-DD HH:MM:SS。
+带时区的时间转换为 UTC，并添加 UTC 后缀。
 `)
 }

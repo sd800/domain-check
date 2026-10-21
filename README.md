@@ -65,6 +65,7 @@ domain zh                        # Save Simplified Chinese as the default
 domain en                        # Save English as the default
 domain auto                      # Restore device-language detection
 domain 例子.中国                  # Internationalized domain name
+domain 'https://www.example.com/path?item=1&lang=zh'
 domain --help
 domain --version
 ```
@@ -83,7 +84,9 @@ The last language selector wins and is saved for future invocations, including w
 
 Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. A configuration read or write failure produces a warning; the current command can still run.
 
-Pass one domain per invocation, without a URL scheme, port, or path. A trailing dot is accepted. Internationalized names are converted to their ASCII/Punycode form for querying and display. The exact domain supplied is queried; subdomains are not silently replaced with a parent domain.
+Pass one domain or URL per invocation. URLs are automatically reduced to their registrable domain: `https://www.example.com:8443/path?item=1` queries `example.com`, and `https://www.example.co.uk/` queries `example.co.uk`. Addresses without a scheme, such as `www.example.com/path`, are also accepted. The URL's scheme, credentials, port, path, query, and fragment are not sent to the registry, and the URL itself is never fetched. Private hosting suffixes are reduced to the registry-level domain; for example, `https://user.github.io/` queries `github.io`.
+
+Direct domain inputs are queried exactly as supplied. A trailing dot is accepted. Internationalized names are converted to their ASCII/Punycode form for querying and display.
 
 ## Output
 
@@ -131,7 +134,7 @@ Only fields supplied by the registry are shown. Missing, empty, or explicitly re
 
 Content begins in a fixed column determined by the longest label, with three spaces after that label's colon. Chinese widths use terminal display cells; `DNSSEC` does not determine the Chinese column. Long values wrap to the terminal width, with continuation lines starting in the content column. When terminal dimensions are unavailable, `COLUMNS` is used, falling back to 80 columns. Very narrow terminals must still accommodate the label column and at least one character.
 
-Timestamps with explicit UTC offsets are converted to UTC and rendered as `YYYY-MM-DD HH:MM:SS`. Unzoned WHOIS timestamps and date-only values retain their original representation. Dates are displayed even when the registry supplies no time of day. The RDAP database refresh timestamp is not substituted for a domain's last-changed time. DNSSEC is shown only when the registry supplies enough information to determine it.
+Date-only values use `YYYY-MM-DD`, including values returned as `23-May-1985`. Timestamps use `YYYY-MM-DD HH:MM:SS`. Explicitly zoned timestamps are converted to UTC and labeled with a ` UTC` suffix. Unzoned timestamps retain their source wall time without a timezone label; date-only records retain date precision. Approximate or unrecognized date text is preserved. The RDAP database refresh timestamp is not substituted for a domain's last-changed time. DNSSEC is shown only when the registry supplies enough information to determine it.
 
 ### Missing records and registration restrictions
 
@@ -177,6 +180,8 @@ Discovered registry WHOIS hosts are cached under `whois/` in the same directory.
 Cache freshness is checked only during a domain lookup. After one calendar month from the last successful fetch, the next lookup refreshes the data. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. Help and version commands do not perform network requests.
 
 If refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. Successful downloads replace cache files atomically. No background process, scheduled job, or lookup-result cache is created.
+
+The tool does not save queried domains, pasted URLs, registration responses, or a lookup history. Results are written only to terminal output. Persistent application data is limited to IANA service-discovery metadata and language preferences.
 
 ## Development and releases
 

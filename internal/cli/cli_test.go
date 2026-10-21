@@ -32,6 +32,18 @@ func TestLanguageSelectors(t *testing.T) {
 	}
 }
 
+func TestURLArgumentsWithLanguageSelectors(t *testing.T) {
+	for _, args := range [][]string{
+		{"https://www.example.com/path?item=1", "zh"},
+		{"--zh", "https://www.example.com:8443/path#section"},
+	} {
+		o, err := parseArgs(args, output.English)
+		if err != nil || o.domain != "example.com" || o.lang != output.Chinese {
+			t.Fatalf("%v: %+v, %v", args, o, err)
+		}
+	}
+}
+
 func TestNoDomainShowsOfflineIntroduction(t *testing.T) {
 	for _, test := range []struct {
 		name, locale, usage string

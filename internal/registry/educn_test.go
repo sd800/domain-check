@@ -102,6 +102,7 @@ func TestEDUCNUsesDedicatedRegistryBeforeBootstrap(t *testing.T) {
 	if err != nil || r.Registrant != "Northeastern University" || calls != 1 {
 		t.Fatalf("%+v, %v, calls %d", r, err, calls)
 	}
+	assertServiceMetadataOnly(t, c, nil)
 }
 
 func TestEDUCNAccessDenialsAndTimeoutsFallBackDirectly(t *testing.T) {
@@ -156,6 +157,7 @@ func TestEDUCNAccessDenialsAndTimeoutsFallBackDirectly(t *testing.T) {
 			if err != nil || !reflect.DeepEqual(r, want) || httpCalls != 1 || dnsCalls != 1 {
 				t.Fatalf("got %+v, %v, HTTP %d, DNS %d", r, err, httpCalls, dnsCalls)
 			}
+			assertServiceMetadataOnly(t, c, nil)
 		})
 	}
 }

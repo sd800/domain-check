@@ -157,6 +157,11 @@ func whoisValue(value string) string {
 }
 
 func whoisFieldValue(key, value string) string {
+	if whoisKeys[key] == "domain" {
+		// Identity validation must see the original label characters, including
+		// emoji ZWJ. Sanitizing them first can turn it into a different name.
+		return html.UnescapeString(strings.TrimLeft(strings.TrimSpace(value), "."))
+	}
 	if whoisKeys[key] == "status" && strings.EqualFold(strings.TrimSpace(value), "not available") {
 		return Clean(value) // This is a real registered-domain status in .be.
 	}

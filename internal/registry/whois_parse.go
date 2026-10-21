@@ -169,6 +169,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 		blank = false
 		if !labeled {
 			if pending != "" {
+				if pending == "domain" {
+					value = whoisFieldValue("domain", raw)
+				}
 				if pending == "nameserver" && !whoisNameserverLine(value) {
 					pending, scope = "", "metadata"
 					continue
@@ -201,7 +204,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 			}
 		}
 		field = whoisKeys[key]
-		if key == "domain" && value == "" {
+		if field == "domain" && value == "" {
 			scope, pending = "domain", "domain"
 			continue
 		}

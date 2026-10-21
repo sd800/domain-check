@@ -27,10 +27,11 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"https://www.example.net.cn/path":                          "example.net.cn",
 		"https://co.uk/":                                           "co.uk",
 		"https://www.例子.中国/中文":                                     "xn--fsqu00a.xn--fiqs8s",
-		"https://user.github.io/project":                           "github.io",
-		"https://user.blogspot.co.uk/post":                         "blogspot.co.uk",
-		"https://user:password@www.example.com/private":            "example.com",
-		"https://www.example.com./":                                "example.com",
+		"https://რეგისტრაცია.გე/?utm_source=chatgpt.com": "xn--lodaehvb5cdik4g.xn--node",
+		"https://user.github.io/project":                 "github.io",
+		"https://user.blogspot.co.uk/post":               "blogspot.co.uk",
+		"https://user:password@www.example.com/private":  "example.com",
+		"https://www.example.com./":                      "example.com",
 	} {
 		t.Run(input, func(t *testing.T) {
 			got, err := NormalizeInput(input)

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-
-	"golang.org/x/net/idna"
 )
 
 type Result string
@@ -50,7 +48,7 @@ func queryError(code, detail string) error {
 
 func NormalizeDomain(input string) (string, error) {
 	input = strings.TrimSpace(input)
-	ascii, err := idna.Lookup.ToASCII(input)
+	ascii, err := domainASCII(input)
 	if err != nil {
 		return "", fmt.Errorf("invalid domain: %w", err)
 	}

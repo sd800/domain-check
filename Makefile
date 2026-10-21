@@ -15,11 +15,10 @@ check:
 	@test -z "$$(gofmt -l cmd internal version.go)" || (echo 'Run gofmt before committing.'; exit 1)
 
 install: build
-	install -d "$(DESTDIR)$(PREFIX)/bin"
-	install -m 755 bin/domain "$(DESTDIR)$(PREFIX)/bin/domain"
+	PREFIX="$(PREFIX)" DESTDIR="$(DESTDIR)" sh install.sh
 
 uninstall:
-	rm -f "$(DESTDIR)$(PREFIX)/bin/domain"
+	PREFIX="$(PREFIX)" DESTDIR="$(DESTDIR)" sh install.sh --uninstall
 
 dist:
 	sh scripts/dist.sh

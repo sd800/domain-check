@@ -121,44 +121,108 @@ func TestStandaloneLanguageConfirmationIsSavedAndOffline(t *testing.T) {
 	}
 }
 
-func TestLanguageWithQueryPreservesOutputAndContinuesOnSaveFailure(t *testing.T) {
+func temporaryLanguageQueryClient(t *testing.T) *registry.Client {
+	t.Helper()
+	c := registry.NewClient(t.TempDir())
+	c.HTTP.Transport = updateTransport(func(req *http.Request) (*http.Response, error) {
+		var data string
+		switch req.URL.String() {
+		case "https://data.iana.org/rdap/dns.json":
+			data = `{"services":[[["com"],["https://registry.test/"]]]}`
+		case "https://registry.test/domain/example.com":
+			data = `{"objectClassName":"domain","ldhName":"example.com"}`
+		default:
+			t.Errorf("unexpected network request: %s", req.URL)
+			return nil, fmt.Errorf("unexpected network request")
+		}
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(data)), Request: req}, nil
+	})
+	return c
+}
+
+func TestQueryLanguageIsTemporary(t *testing.T) {
 	t.Setenv("LC_ALL", "en_US.UTF-8")
-	for _, saveFails := range []bool{false, true} {
-		t.Run(fmt.Sprint(saveFails), func(t *testing.T) {
-			config := t.TempDir()
-			if saveFails {
-				config = filepath.Join(config, "file")
-				if err := os.WriteFile(config, []byte("not a directory"), 0600); err != nil {
-					t.Fatal(err)
+	t.Setenv("COLUMNS", "80")
+	for _, selector := range []string{"en", "zh", "auto"} {
+		for _, prefix := range []string{"", "-", "--"} {
+			for _, input := range []string{"example.com", "https://www.example.com/path?item=1"} {
+				for _, after := range []bool{false, true} {
+					t.Run(fmt.Sprintf("%s%s/%s/after=%t", prefix, selector, input, after), func(t *testing.T) {
+						config := t.TempDir()
+						t.Setenv("DOMAIN_CONFIG_DIR", config)
+						initial, want := output.Chinese, "Domain Name:         example.com\n"
+						if selector == "zh" {
+							initial, want = output.English, "域名:         example.com\n"
+						}
+						if err := saveLanguagePreference(initial); err != nil {
+							t.Fatal(err)
+						}
+						path := filepath.Join(config, "config.json")
+						before, err := os.ReadFile(path)
+						if err != nil {
+							t.Fatal(err)
+						}
+						args := []string{prefix + selector, input}
+						if after {
+							args[0], args[1] = args[1], args[0]
+						}
+						var out, errOut bytes.Buffer
+						code := run(context.Background(), args, &out, &errOut, "test", temporaryLanguageQueryClient(t))
+						if code != 0 || errOut.Len() != 0 || out.String() != want {
+							t.Fatalf("exit=%d, stdout=%q, stderr=%q; want %q", code, out.String(), errOut.String(), want)
+						}
+						saved, err := os.ReadFile(path)
+						if err != nil || !bytes.Equal(before, saved) {
+							t.Fatalf("query changed saved language: %q, %v", saved, err)
+						}
+						out.Reset()
+						if code := Run(context.Background(), nil, &out, &errOut, "test"); code != 0 || errOut.Len() != 0 {
+							t.Fatalf("subsequent command failed: %d, %s", code, errOut.String())
+						}
+						usage := "用法:"
+						if initial == output.English {
+							usage = "Usage:"
+						}
+						if !strings.Contains(out.String(), usage) {
+							t.Fatalf("subsequent command lost saved language: %s", out.String())
+						}
+					})
 				}
 			}
-			t.Setenv("DOMAIN_CONFIG_DIR", config)
-			c := registry.NewClient(t.TempDir())
-			c.HTTP.Transport = updateTransport(func(req *http.Request) (*http.Response, error) {
-				var data string
-				switch req.URL.String() {
-				case "https://data.iana.org/rdap/dns.json":
-					data = `{"services":[[["com"],["https://registry.test/"]]]}`
-				case "https://registry.test/domain/example.com":
-					data = `{"objectClassName":"domain","ldhName":"example.com"}`
-				default:
-					t.Fatalf("unexpected network request: %s", req.URL)
+		}
+	}
+}
+
+func TestTemporaryLanguageDoesNotCreateOrWritePreferences(t *testing.T) {
+	t.Setenv("LC_ALL", "zh_CN.UTF-8")
+	for _, blocked := range []bool{false, true} {
+		for _, selector := range []string{"en", "zh", "auto"} {
+			t.Run(fmt.Sprintf("%s/blocked=%t", selector, blocked), func(t *testing.T) {
+				config := filepath.Join(t.TempDir(), "preferences")
+				if blocked {
+					if err := os.WriteFile(config, []byte("not a directory"), 0600); err != nil {
+						t.Fatal(err)
+					}
 				}
-				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(data)), Request: req}, nil
+				t.Setenv("DOMAIN_CONFIG_DIR", config)
+				var out, errOut bytes.Buffer
+				code := run(context.Background(), []string{selector, "example.com"}, &out, &errOut, "test", temporaryLanguageQueryClient(t))
+				label := "域名:"
+				if selector == "en" {
+					label = "Domain Name:"
+				}
+				if code != 0 || errOut.Len() != 0 || !strings.HasPrefix(out.String(), label) {
+					t.Fatalf("temporary selection accessed preferences: %d, %q, %q", code, out.String(), errOut.String())
+				}
+				if blocked {
+					data, err := os.ReadFile(config)
+					if err != nil || string(data) != "not a directory" {
+						t.Fatalf("configuration changed: %q, %v", data, err)
+					}
+				} else if _, err := os.Stat(config); !os.IsNotExist(err) {
+					t.Fatalf("query created a preference directory: %v", err)
+				}
 			})
-			var out, errOut bytes.Buffer
-			code := run(context.Background(), []string{"en", "example.com"}, &out, &errOut, "test", c)
-			if code != 0 || out.String() != "Domain Name:         example.com\n" {
-				t.Fatalf("lookup output changed: exit=%d, stdout=%q, stderr=%q", code, out.String(), errOut.String())
-			}
-			if saveFails != strings.Contains(errOut.String(), "Cannot save the language preference") {
-				t.Fatalf("unexpected preference warning: %s", errOut.String())
-			}
-			if !saveFails {
-				if saved, err := loadLanguagePreference(); err != nil || saved != output.English {
-					t.Fatalf("query did not save language: %s, %v", saved, err)
-				}
-			}
-		})
+		}
 	}
 }

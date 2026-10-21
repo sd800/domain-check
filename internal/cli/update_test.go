@@ -25,7 +25,8 @@ func TestUpdateCommandsRefreshOnlyBootstrapData(t *testing.T) {
 		for _, prefix := range []string{"", "-", "--"} {
 			t.Run(lang+" "+prefix+"update", func(t *testing.T) {
 				t.Setenv("LC_ALL", "en_US.UTF-8")
-				t.Setenv("DOMAIN_CONFIG_DIR", t.TempDir())
+				config := t.TempDir()
+				t.Setenv("DOMAIN_CONFIG_DIR", config)
 				c := registry.NewClient(t.TempDir())
 				calls := 0
 				const data = `{"services":[[["com"],["https://registry.test/"]]]}`
@@ -55,6 +56,9 @@ func TestUpdateCommandsRefreshOnlyBootstrapData(t *testing.T) {
 				files, listErr := os.ReadDir(c.CacheDir)
 				if err != nil || listErr != nil || string(cached) != data || len(files) != 1 {
 					t.Fatalf("unexpected cache data: %q, %v, %v, %v", cached, err, files, listErr)
+				}
+				if files, err := os.ReadDir(config); err != nil || len(files) != 0 {
+					t.Fatalf("update saved a temporary language: %v, %v", files, err)
 				}
 			})
 		}

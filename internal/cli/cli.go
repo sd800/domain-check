@@ -90,14 +90,6 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 		fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Invalid arguments, domain, or URL", "参数、域名或 URL 无效")+": "+registry.Clean(err.Error()))
 		return 2
 	}
-	preferenceSaved := false
-	if o.preference != "" {
-		if err := saveLanguagePreference(o.preference); err != nil {
-			fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Cannot save the language preference", "无法保存语言偏好")+": "+registry.Clean(err.Error()))
-		} else {
-			preferenceSaved = true
-		}
-	}
 	if o.help {
 		fmt.Fprint(stdout, help(o.lang))
 		return 0
@@ -109,7 +101,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 	if o.intro {
 		var message string
 		if o.preference != "" {
-			if !preferenceSaved {
+			if err := saveLanguagePreference(o.preference); err != nil {
+				fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Cannot save the language preference", "无法保存语言偏好")+": "+registry.Clean(err.Error()))
 				return 3
 			}
 			message = languageConfirmation(o.preference, o.lang) + "\n"
@@ -205,24 +198,26 @@ Registrar referrals are never followed.
 Usage: domain [en|zh|auto] [domain|URL|update]
 
   domain example.com          Use the default language
-  domain -en example.com      English
-  domain zh example.com       Simplified Chinese
+  domain -en example.com      English for this query
+  domain zh example.com       Simplified Chinese for this query
   domain auto                 Follow the device language
   domain update               Refresh IANA DNS bootstrap data now
 
-Language choices are saved for future commands.
+Language selectors apply only to the current query.
+Run domain en, domain zh, or domain auto on its own to save the default.
 Run domain --help for more options.
 `, `直接向注册局查询域名注册信息，始终不跟随注册商。
 
 用法: domain [en|zh|auto] [域名|URL|update]
 
   domain example.com          使用默认语言
-  domain -en example.com      英文
-  domain zh example.com       简体中文
+  domain -en example.com      本次查询使用英文
+  domain zh example.com       本次查询使用简体中文
   domain auto                 跟随设备语言
   domain update               立即更新 IANA DNS 引导数据
 
-语言选择会保存，后续调用自动沿用。
+查询时的语言参数仅本次有效。
+单独运行 domain en、domain zh 或 domain auto 才会保存默认设置。
 运行 domain --help 查看更多选项。
 `)
 }
@@ -233,15 +228,17 @@ func help(lang output.Language) string {
 Usage: domain [en|zh|auto] [domain|URL|update]
 
   domain example.com          Use the default language
-  domain -en example.com      English
-  domain zh example.com       Simplified Chinese
+  domain -en example.com      English for this query
+  domain zh example.com       Simplified Chinese for this query
   domain auto                 Follow the device language
   domain update               Refresh IANA DNS bootstrap data now
   domain https://example.com/path
 
 Language selectors accept zero, one, or two leading hyphens and may appear
-before or after the domain. The last selector wins and is saved for future
-commands. Use auto, -auto, or --auto to restore the device language.
+before or after the domain. The last selector wins for the current command.
+Run domain en, domain zh, or domain auto on its own to save the default.
+With a domain, URL, help, version, or update, language selection is temporary.
+Use auto, -auto, or --auto to follow the device language.
 Other device languages use English. update, help, and version also accept
 zero, one, or two leading hyphens. -h and -v are shorthand for help and version.
 
@@ -257,14 +254,16 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
 用法: domain [en|zh|auto] [域名|URL|update]
 
   domain example.com          使用默认语言
-  domain -en example.com      英文
-  domain zh example.com       简体中文
+  domain -en example.com      本次查询使用英文
+  domain zh example.com       本次查询使用简体中文
   domain auto                 跟随设备语言
   domain update               立即更新 IANA DNS 引导数据
   domain https://example.com/path
 
-语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数会保存。
-使用 auto、-auto 或 --auto 恢复跟随设备语言。
+语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数决定本次语言。
+单独运行 domain en、domain zh 或 domain auto 才会保存默认设置。
+与域名、URL、help、version 或 update 一起使用时，语言选择仅本次有效。
+使用 auto、-auto 或 --auto 跟随设备语言。
 其他设备语言使用英文。update、help、version 也允许不加横线、一个或两个横线。
 -h 和 -v 分别是帮助和版本命令的简写。
 

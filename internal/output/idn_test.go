@@ -10,7 +10,7 @@ import (
 )
 
 func TestIDNRowFollowsDomainInBothLanguages(t *testing.T) {
-	for _, name := range []string{"示例.中国", "bücher.example", "テスト.example", "예시.example", "www.示例.中国"} {
+	for _, name := range []string{"示例.中国", "bücher.example", "テスト.example", "예시.example", "www.示例.中国", "😀.ws", "👩‍💻.ws", "👩🏽‍💻.ws"} {
 		domain, err := registry.NormalizeDomain(name)
 		if err != nil {
 			t.Fatal(err)
@@ -33,6 +33,26 @@ func TestIDNRowFollowsDomainInBothLanguages(t *testing.T) {
 					t.Fatalf("negative result layout: %s", b.String())
 				}
 			}
+		}
+	}
+}
+
+func TestEmojiIDNWrapPreservesJoinedClusters(t *testing.T) {
+	name := strings.Repeat("👩‍💻", 6) + ".ws"
+	domain, err := registry.NormalizeDomain(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := Format(&b, registry.Record{Domain: domain, Registrant: "Unsafe\x1b\u202e name"}, English, 27); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(b.String(), "👩‍💻") != 6 || strings.ContainsAny(b.String(), "\x1b\u202e") {
+		t.Fatalf("emoji cluster or terminal sanitization changed: %q", b.String())
+	}
+	for _, line := range strings.Split(strings.TrimSuffix(b.String(), "\n"), "\n") {
+		if uniseg.StringWidth(line) > 27 || strings.HasSuffix(line, "\u200d") {
+			t.Fatalf("emoji wrapped incorrectly: %q", line)
 		}
 	}
 }

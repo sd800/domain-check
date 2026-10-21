@@ -90,12 +90,16 @@ func TestLocale(t *testing.T) {
 
 func TestHelpAndVersionDoNotQuery(t *testing.T) {
 	t.Setenv("LC_ALL", "en_US.UTF-8")
-	t.Setenv("DOMAIN_CONFIG_DIR", t.TempDir())
+	config := t.TempDir()
+	t.Setenv("DOMAIN_CONFIG_DIR", config)
 	t.Setenv("DOMAIN_CACHE_DIR", t.TempDir())
 	for _, args := range [][]string{{"--version"}, {"--help"}, {"zh", "--help"}} {
 		var out, errOut bytes.Buffer
 		if code := Run(context.Background(), args, &out, &errOut, "26.10.21.1"); code != 0 || out.Len() == 0 || errOut.Len() != 0 {
 			t.Fatalf("%v: %d, %s, %s", args, code, &out, &errOut)
 		}
+	}
+	if files, err := os.ReadDir(config); err != nil || len(files) != 0 {
+		t.Fatalf("help/version saved a temporary language: %v, %v", files, err)
 	}
 }

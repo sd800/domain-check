@@ -1,5 +1,14 @@
 # Changelog
 
+## 26.10.21.18
+
+- Keep `en`, `zh`, and `auto` selectors temporary when combined with a domain, URL, help, version, or update; save the default only for standalone language commands.
+- Avoid writing language preferences during queries, including when the configuration directory is unavailable, while preserving standalone confirmation and failure reporting.
+- Update English and Simplified Chinese help, the README, and regression coverage to distinguish temporary language selection from saved defaults.
+- Add command-specific zsh glob protection and automatic quoting for pasted URLs, preserving query parameters, shell separators, substitutions, Unicode, and emoji as literal argument data.
+- Include a repeatable installer and shell integration in macOS archives, preserve existing zsh settings and symlinks, and keep staged installations separate from user shell configuration.
+- Support joined emoji labels through constrained IDNA compatibility handling, preserve their identity during WHOIS parsing and Unicode output, and keep grapheme clusters intact when wrapping.
+
 ## 26.10.21.17
 
 - Confirm successful standalone `en`, `zh`, and `auto` language changes after saving the preference, including all supported hyphen spellings.

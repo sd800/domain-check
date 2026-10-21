@@ -65,7 +65,9 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 	column := longest + 4 // colon plus three spaces after the longest label
 	var b strings.Builder
 	row := func(index int, value string) {
-		value = registry.Clean(value)
+		if index != 11 { // The locally validated IDN may contain emoji ZWJ.
+			value = registry.Clean(value)
+		}
 		if value == "" {
 			return
 		}

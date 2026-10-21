@@ -30,11 +30,10 @@ Download the archive for your Mac from [Releases](https://github.com/sd800/domai
 | Apple Silicon | `darwin_arm64.tar.gz` |
 | Intel | `darwin_amd64.tar.gz` |
 
-Extract the archive, then install the `domain` executable into a directory on your `PATH`:
+Extract the archive, then run its installer:
 
 ```sh
-mkdir -p "$HOME/.local/bin"
-install -m 755 domain "$HOME/.local/bin/domain"
+sh install.sh
 ```
 
 If needed, add this line to `~/.zshrc`, then open a new terminal:
@@ -55,7 +54,9 @@ cd domain-check
 make install
 ```
 
-`make install` defaults to `~/.local/bin/domain`. Use `make install PREFIX=/usr/local` to choose another prefix, or `make build` to create `bin/domain` without installing it.
+Both installers default to `~/.local/bin/domain`. Use `PREFIX=/usr/local sh install.sh` for a downloaded archive or `make install PREFIX=/usr/local` for a source checkout to choose another prefix. Use `make build` to create `bin/domain` without installing it.
+
+When the login shell is zsh, installation also enables URL handling specifically for `domain`: glob characters remain literal, and URLs pasted immediately after `domain` or its language selectors are quoted automatically. Other commands retain their existing paste behavior. The installer adds a marked source block to `${ZDOTDIR:-$HOME}/.zshrc` and installs the integration under the selected prefix. Open a new terminal after installation, or run `source "${ZDOTDIR:-$HOME}/.zshrc"` in the current terminal. Set `DOMAIN_ZSH_INTEGRATION=0` to leave shell configuration untouched, or `1` to explicitly enable the integration. Repeated installation updates the same block; `make uninstall` removes it.
 
 With Go already installed, the command can also be installed into `$(go env GOPATH)/bin`:
 
@@ -63,14 +64,17 @@ With Go already installed, the command can also be installed into `$(go env GOPA
 go install github.com/sd800/domain-check/cmd/domain@latest
 ```
 
+For that installation method, run `sh install.sh --shell-only` from a source checkout to enable the zsh integration without reinstalling the executable.
+
 ## Usage
 
 ```sh
 domain                           # Version and a short introduction; exit code 0
 domain example.com               # Saved language, or device language initially
-domain -en example.com           # English
-domain zh example.com            # Simplified Chinese
-domain --zh example.com          # Simplified Chinese
+domain -en example.com           # English for this query
+domain zh example.com            # Simplified Chinese for this query
+domain --zh example.com          # Simplified Chinese for this query
+domain auto example.com          # Device language for this query
 domain example.com en            # Selectors also work after the domain
 domain zh                        # Save Simplified Chinese as the default
 domain en                        # Save English as the default
@@ -97,13 +101,15 @@ Language selectors accept zero, one, or two leading hyphens:
 
 The `update`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update` without a domain or URL.
 
-The last language selector wins and is saved for future invocations, including when supplied alongside a domain. With no saved selection, or after `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
+The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, or `update`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto` commands save the default language. With no saved selection, or after standalone `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
 
-Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. Other commands can continue with a warning if a configuration read or write fails.
+Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. If reading a saved preference fails, other commands can continue in the device language with a warning. An explicit language selector bypasses reading the saved preference.
 
 Pass one domain or URL per invocation. URLs are automatically reduced to their registrable domain: `https://www.example.com:8443/path?item=1` queries `example.com`, and `https://www.example.co.uk/` queries `example.co.uk`. Addresses without a scheme, such as `www.example.com/path`, are also accepted. The URL's scheme, credentials, port, path, query, and fragment are not sent to the registry, and the URL itself is never fetched. Private hosting suffixes are reduced to the registry-level domain; for example, `https://user.github.io/` queries `github.io`.
 
-Direct domain inputs are queried exactly as supplied. A trailing dot is accepted. Internationalized names are converted to their ASCII/Punycode form for querying and display.
+With the zsh integration loaded, type `domain `, optionally a language selector and a space, then paste the complete URL. URL characters such as `?`, `&`, `;`, brackets, and substitutions remain part of one argument. In shell scripts, other shells, or when manually typing URLs containing shell operators, quote the URL as shown above.
+
+Direct domain inputs are queried exactly as supplied. A trailing dot is accepted. Internationalized names, including emoji and joined emoji sequences, are converted to ASCII/Punycode for querying. The domain line shows that ASCII name, with a separate Unicode display name when it can be decoded and validated.
 
 ## Output
 

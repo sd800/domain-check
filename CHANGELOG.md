@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.15
+
+- Revise the README introduction to highlight readable registration details and show both domain-name and full-URL queries.
+
 ## 26.10.21.14
 
 - Add the product statement as the first README section, describing direct registry queries and consistent, readable output.

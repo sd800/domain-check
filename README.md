@@ -1,12 +1,13 @@
 # Domain Check from Registries
 
-A macOS command-line tool for looking up domain registration information directly from registries.
+A macOS command-line tool that looks up domain registration details directly from registries and returns them in a clean, readable layout.
 
 ```sh
 domain example.com
+domain https://www.example.com/path
 ```
 
-`domain` discovers registry RDAP services through [IANA's DNS bootstrap data](https://data.iana.org/rdap/dns.json). When a suffix has no RDAP entry, it discovers the registry's WHOIS server through IANA and queries that server on TCP port 43. **Registrar referrals are never followed.**
+Type a domain name or paste a full URL straight from the browser. The command picks out the domain and prints its key registration details in one aligned view.
 
 ## Product statement
 

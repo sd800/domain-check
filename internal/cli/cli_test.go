@@ -44,6 +44,7 @@ func TestNoDomainShowsOfflineIntroduction(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("LC_ALL", test.locale)
+			t.Setenv("DOMAIN_CONFIG_DIR", t.TempDir())
 			cache := t.TempDir()
 			t.Setenv("DOMAIN_CACHE_DIR", cache)
 			// Even without a usable network context, the installation check succeeds.
@@ -79,6 +80,7 @@ func TestLocale(t *testing.T) {
 
 func TestHelpAndVersionDoNotQuery(t *testing.T) {
 	t.Setenv("LC_ALL", "en_US.UTF-8")
+	t.Setenv("DOMAIN_CONFIG_DIR", t.TempDir())
 	t.Setenv("DOMAIN_CACHE_DIR", t.TempDir())
 	for _, args := range [][]string{{"--version"}, {"--help"}, {"zh", "--help"}} {
 		var out, errOut bytes.Buffer

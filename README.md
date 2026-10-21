@@ -56,26 +56,32 @@ go install github.com/sd800/domain-check/cmd/domain@latest
 
 ```sh
 domain                           # Version and a short introduction; exit code 0
-domain example.com               # Device language
+domain example.com               # Saved language, or device language initially
 domain -en example.com           # English
 domain zh example.com            # Simplified Chinese
 domain --zh example.com          # Simplified Chinese
 domain example.com en            # Selectors also work after the domain
+domain zh                        # Save Simplified Chinese as the default
+domain en                        # Save English as the default
+domain auto                      # Restore device-language detection
 domain 例子.中国                  # Internationalized domain name
 domain --help
 domain --version
 ```
 
-Running `domain` without a domain prints the program name, version, copyright notice, a short introduction, and usage examples in the device language, then exits successfully. Use `domain en` or `domain zh` to select the introduction language. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
+Running `domain` without a domain prints the program name, version, copyright notice, a short introduction, and usage examples in the default language, then exits successfully. Use `domain en` or `domain zh` to switch and save the default language. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
 
-Both language selectors accept zero, one, or two leading hyphens:
+Language selectors accept zero, one, or two leading hyphens:
 
 | Language | Selectors |
 | --- | --- |
 | English | `en`, `-en`, `--en` |
 | Simplified Chinese | `zh`, `-zh`, `--zh` |
+| Device language | `auto`, `-auto`, `--auto` |
 
-The last language selector wins. Without a selector, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. Explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
+The last language selector wins and is saved for future invocations, including when supplied alongside a domain. With no saved selection, or after `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
+
+Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. A configuration read or write failure produces a warning; the current command can still run.
 
 Pass one domain per invocation, without a URL scheme, port, or path. A trailing dot is accepted. Internationalized names are converted to their ASCII/Punycode form for querying and display. The exact domain supplied is queried; subdomains are not silently replaced with a parent domain.
 

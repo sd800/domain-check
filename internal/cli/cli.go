@@ -16,11 +16,12 @@ import (
 )
 
 type options struct {
-	domain  string
-	lang    output.Language
-	intro   bool
-	help    bool
-	version bool
+	domain     string
+	lang       output.Language
+	preference output.Language
+	intro      bool
+	help       bool
+	version    bool
 }
 
 func parseArgs(args []string, lang output.Language) (options, error) {
@@ -29,8 +30,13 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 		switch strings.ToLower(arg) {
 		case "en", "-en", "--en":
 			o.lang = output.English
+			o.preference = output.English
 		case "zh", "-zh", "--zh":
 			o.lang = output.Chinese
+			o.preference = output.Chinese
+		case "auto", "-auto", "--auto":
+			o.lang = lang
+			o.preference = automaticLanguage
 		case "help", "-h", "--help":
 			o.help = true
 		case "version", "-v", "--version":
@@ -59,10 +65,22 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer, version string) int {
 	o, err := parseArgs(args, preferredLanguage())
+	if o.preference == "" {
+		if saved, loadErr := loadLanguagePreference(); loadErr != nil {
+			fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Cannot read the saved language; using the device language", "无法读取已保存的语言，使用设备语言")+": "+registry.Clean(loadErr.Error()))
+		} else if saved == output.English || saved == output.Chinese {
+			o.lang = saved
+		}
+	}
 	if err != nil {
-		fmt.Fprintln(stderr, output.Text(o.lang, "Usage: domain [en|zh] <domain>", "用法: domain [en|zh] <域名>"))
+		fmt.Fprintln(stderr, output.Text(o.lang, "Usage: domain [en|zh|auto] [domain]", "用法: domain [en|zh|auto] [域名]"))
 		fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Invalid arguments or domain", "参数或域名无效")+": "+registry.Clean(err.Error()))
 		return 2
+	}
+	if o.preference != "" {
+		if err := saveLanguagePreference(o.preference); err != nil {
+			fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Cannot save the language preference", "无法保存语言偏好")+": "+registry.Clean(err.Error()))
+		}
 	}
 	if o.help {
 		fmt.Fprint(stdout, help(o.lang))
@@ -145,21 +163,25 @@ func introduction(lang output.Language, version string) string {
 	return "Domain Check from Registries\nversion " + version + "\n© 2026 Songming.org\n\n" + output.Text(lang, `Query domain registration information directly from registries.
 Registrar referrals are never followed.
 
-Usage: domain [en|zh] <domain>
+Usage: domain [en|zh|auto] [domain]
 
-  domain example.com          Use the device language
+  domain example.com          Use the default language
   domain -en example.com      English
   domain zh example.com       Simplified Chinese
+  domain auto                 Follow the device language
 
+Language choices are saved for future commands.
 Run domain --help for more options.
 `, `直接向注册局查询域名注册信息，始终不跟随注册商。
 
-用法: domain [en|zh] <域名>
+用法: domain [en|zh|auto] [域名]
 
-  domain example.com          按设备语言输出
+  domain example.com          使用默认语言
   domain -en example.com      英文
   domain zh example.com       简体中文
+  domain auto                 跟随设备语言
 
+语言选择会保存，后续调用自动沿用。
 运行 domain --help 查看更多选项。
 `)
 }
@@ -167,15 +189,18 @@ Run domain --help for more options.
 func help(lang output.Language) string {
 	return output.Text(lang, `Domain Check from Registries
 
-Usage: domain [en|zh] <domain>
+Usage: domain [en|zh|auto] [domain]
 
-  domain example.com          Use the device language
+  domain example.com          Use the default language
   domain -en example.com      English
   domain zh example.com       Simplified Chinese
+  domain auto                 Follow the device language
 
 Language selectors accept zero, one, or two leading hyphens and may appear
-before or after the domain. The last selector wins. Other device languages
-use English. --help and --version display help and the build version.
+before or after the domain. The last selector wins and is saved for future
+commands. Use auto, -auto, or --auto to restore the device language.
+Other device languages use English. --help and --version display help and
+the build version.
 
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
 IANA lists no RDAP service. Registrar referrals are never followed.
@@ -183,13 +208,15 @@ IANA data is refreshed at most once per calendar month, only during a lookup.
 Zoned timestamps are displayed in UTC; unzoned WHOIS values are preserved.
 `, `Domain Check from Registries
 
-用法: domain [en|zh] <域名>
+用法: domain [en|zh|auto] [域名]
 
-  domain example.com          按设备语言输出
+  domain example.com          使用默认语言
   domain -en example.com      英文
   domain zh example.com       简体中文
+  domain auto                 跟随设备语言
 
-语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数生效。
+语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数会保存。
+使用 auto、-auto 或 --auto 恢复跟随设备语言。
 其他设备语言使用英文。--help 显示帮助，--version 显示版本。
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。

@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.5
+
+- Persist explicit English and Simplified Chinese selections as the default for subsequent invocations.
+- Add `auto`, `-auto`, and `--auto` to restore device-language detection.
+- Store language preferences separately from the IANA cache, with atomic writes and warnings for configuration failures.
+
 ## 26.10.21.4
 
 - Display the program name, version, and Songming.org copyright notice on separate lines in the introduction.

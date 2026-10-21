@@ -15,7 +15,7 @@ func TestEnglishLayout(t *testing.T) {
 	if err := Format(&b, r, English, 80); err != nil {
 		t.Fatal(err)
 	}
-	want := "Domain Name:         example.com\n\nRegistration Time:   2003-03-10 11:19:18\nExpiration Time:     2027-05-15 11:25:25\n\nDomain Status:       ok\n\nRegistrar:           Example Registrar\n\nName Server:         ns1.example.com\nName Server:         ns2.example.com\n\nDNSSEC:              unsigned\n"
+	want := "Domain Name:         example.com\n\nRegistration Time:   2003-03-10 11:19:18\nExpiration Time:     2027-05-15 11:25:25\n\nRegistrar:           Example Registrar\nDomain Status:       ok\n\nName Server:         ns1.example.com\nName Server:         ns2.example.com\nDNSSEC:              unsigned\n"
 	if b.String() != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", b.String(), want)
 	}

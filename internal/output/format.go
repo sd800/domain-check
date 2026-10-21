@@ -88,11 +88,11 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 	groups := [][]entry{
 		{{1, record.Registration}, {2, record.Expiration}, {3, record.Changed}},
 	}
-	var statusGroup []entry
+	registrarGroup := []entry{{5, record.Registrar}}
 	for _, status := range record.Statuses {
-		statusGroup = append(statusGroup, entry{4, status})
+		registrarGroup = append(registrarGroup, entry{4, status})
 	}
-	groups = append(groups, statusGroup, []entry{{5, record.Registrar}})
+	groups = append(groups, registrarGroup)
 	contactGroup := []entry{{6, record.Registrant}}
 	for _, email := range record.RegistrantEmail {
 		contactGroup = append(contactGroup, entry{7, email})
@@ -102,7 +102,8 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 	for _, ns := range record.Nameservers {
 		nsGroup = append(nsGroup, entry{8, ns})
 	}
-	groups = append(groups, nsGroup, []entry{{9, record.DNSSEC}})
+	nsGroup = append(nsGroup, entry{9, record.DNSSEC})
+	groups = append(groups, nsGroup)
 	for _, group := range groups {
 		nonempty := false
 		for _, entry := range group {

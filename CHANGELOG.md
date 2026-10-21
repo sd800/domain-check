@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.4
+
+- Display the program name, version, and Songming.org copyright notice on separate lines in the introduction.
+- Use `domain zh example.com` consistently in usage examples.
+- Compact registration output by grouping the registrar with domain statuses and nameservers with DNSSEC.
+
 ## 26.10.21.3
 
 - Show a localized introduction, version, and usage examples when `domain` is run without a domain, including with a language selector alone.

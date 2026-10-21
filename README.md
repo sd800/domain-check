@@ -58,15 +58,15 @@ go install github.com/sd800/domain-check/cmd/domain@latest
 domain                           # Version and a short introduction; exit code 0
 domain example.com               # Device language
 domain -en example.com           # English
-domain zh shanghai.cn            # Simplified Chinese
-domain --zh shanghai.cn          # Simplified Chinese
+domain zh example.com            # Simplified Chinese
+domain --zh example.com          # Simplified Chinese
 domain example.com en            # Selectors also work after the domain
 domain 例子.中国                  # Internationalized domain name
 domain --help
 domain --version
 ```
 
-Running `domain` without a domain prints the version, a short introduction, and usage examples in the device language, then exits successfully. Use `domain en` or `domain zh` to select the introduction language. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
+Running `domain` without a domain prints the program name, version, copyright notice, a short introduction, and usage examples in the device language, then exits successfully. Use `domain en` or `domain zh` to select the introduction language. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
 
 Both language selectors accept zero, one, or two leading hyphens:
 
@@ -90,16 +90,14 @@ Registration Time:   2003-03-10 11:19:18
 Expiration Time:     2027-05-15 11:25:25
 Last Changed Time:   2025-05-15 10:25:25
 
-Domain Status:       ok
-
 Registrar:           Example Registrar
+Domain Status:       ok
 
 Registrant:          Example Organization
 Registrant Email:    admin@example.com
 
 Name Server:         ns1.example.com
 Name Server:         ns2.example.com
-
 DNSSEC:              unsigned
 ```
 
@@ -112,16 +110,14 @@ The labels in Chinese are:
 过期时间:     2027-05-15 11:25:25
 更新时间:     2025-05-15 10:25:25
 
-状态:         ok
-
 注册商:       Example Registrar
+状态:         ok
 
 注册人:       Example Organization
 联系邮箱:     admin@example.com
 
 域名服务器:   ns1.example.com
 域名服务器:   ns2.example.com
-
 DNSSEC:       unsigned
 ```
 

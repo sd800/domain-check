@@ -53,7 +53,7 @@ func TestNoDomainShowsOfflineIntroduction(t *testing.T) {
 			if code := Run(ctx, test.args, &out, &errOut, "26.10.21.3"); code != 0 || errOut.Len() != 0 {
 				t.Fatalf("exit %d, stderr %q", code, errOut.String())
 			}
-			for _, want := range []string{"Domain Check from Registries 26.10.21.3", test.usage, "domain example.com", "domain --help"} {
+			for _, want := range []string{"Domain Check from Registries\nversion 26.10.21.3\n© 2026 Songming.org\n", test.usage, "domain example.com", "domain zh example.com", "domain --help"} {
 				if !strings.Contains(out.String(), want) {
 					t.Errorf("missing %q in %q", want, out.String())
 				}

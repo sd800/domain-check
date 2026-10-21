@@ -142,14 +142,14 @@ func errorText(lang output.Language, err error) string {
 }
 
 func introduction(lang output.Language, version string) string {
-	return "Domain Check from Registries " + version + "\n\n" + output.Text(lang, `Query domain registration information directly from registries.
+	return "Domain Check from Registries\nversion " + version + "\n© 2026 Songming.org\n\n" + output.Text(lang, `Query domain registration information directly from registries.
 Registrar referrals are never followed.
 
 Usage: domain [en|zh] <domain>
 
   domain example.com          Use the device language
   domain -en example.com      English
-  domain zh shanghai.cn       Simplified Chinese
+  domain zh example.com       Simplified Chinese
 
 Run domain --help for more options.
 `, `直接向注册局查询域名注册信息，始终不跟随注册商。
@@ -158,7 +158,7 @@ Run domain --help for more options.
 
   domain example.com          按设备语言输出
   domain -en example.com      英文
-  domain zh shanghai.cn       简体中文
+  domain zh example.com       简体中文
 
 运行 domain --help 查看更多选项。
 `)
@@ -171,7 +171,7 @@ Usage: domain [en|zh] <domain>
 
   domain example.com          Use the device language
   domain -en example.com      English
-  domain zh example.cn        Simplified Chinese
+  domain zh example.com       Simplified Chinese
 
 Language selectors accept zero, one, or two leading hyphens and may appear
 before or after the domain. The last selector wins. Other device languages
@@ -187,7 +187,7 @@ Zoned timestamps are displayed in UTC; unzoned WHOIS values are preserved.
 
   domain example.com          按设备语言输出
   domain -en example.com      英文
-  domain zh example.cn        简体中文
+  domain zh example.com       简体中文
 
 语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数生效。
 其他设备语言使用英文。--help 显示帮助，--version 显示版本。

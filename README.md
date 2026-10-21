@@ -8,6 +8,16 @@ domain example.com
 
 `domain` discovers registry RDAP services through [IANA's DNS bootstrap data](https://data.iana.org/rdap/dns.json). When a suffix has no RDAP entry, it discovers the registry's WHOIS server through IANA and queries that server on TCP port 43. **Registrar referrals are never followed.**
 
+## Product statement
+
+Domain Check from Registries is built around a simple principle: **a domain lookup should go straight to the source and come back easy to read.** It works right in the macOS Terminal, from query out to answer back.
+
+**Send the query straight to the registry.** Searching through commercial domain websites or following registrar referrals exposes interest in a domain name to tracking, giving others a signal to front-run it or hold onto it. Domain Check queries the registry's own RDAP and WHOIS services and never follows registrar referrals. Whether the input is a domain name or a full URL, every lookup goes directly to the registry and nowhere else.
+
+**Bring back a clean, readable answer.** Registry responses often contain inconsistent formatting, redundant fields, and technical details that obscure useful information. Domain Check extracts relevant registration details, organizes them into a consistent, easy-to-scan format, and drops the clutter. Whether the response is RDAP or registry-specific WHOIS, every answer comes back in the same clean layout.
+
+**One command, one clean answer, straight from the registry.**
+
 ## Install
 
 ### macOS binary

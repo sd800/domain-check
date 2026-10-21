@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.14
+
+- Add the product statement as the first README section, describing direct registry queries and consistent, readable output.
+
 ## 26.10.21.13
 
 - Reduce executable size by replacing general HTML encoding discovery with the registry interface's required GBK, GB2312, GB18030, and UTF encoding handling.

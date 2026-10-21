@@ -135,20 +135,23 @@ func TestEDUCNAccessDenialsAndTimeoutsFallBackDirectly(t *testing.T) {
 				return response, nil
 			})
 			c.Warn = func(message string) { t.Errorf("unexpected fallback warning: %s", message) }
+			lookupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			lookupDeadline, _ := lookupCtx.Deadline()
 			c.RunDig = func(ctx context.Context, args ...string) ([]byte, error) {
 				dnsCalls++
 				if ctx.Err() != nil {
 					t.Fatal("DNS inherited a canceled HTTP context")
 				}
-				if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > 3*time.Second {
-					t.Fatal("DNS lookup is not bounded")
+				if deadline, ok := ctx.Deadline(); !ok || !deadline.Equal(lookupDeadline) {
+					t.Fatal("DNS received an extra timeout instead of the caller's context")
 				}
-				if strings.Join(args, " ") != "+time=2 +tries=1 +noall +answer neu.edu.cn NS" {
+				if strings.Join(args, " ") != "+noall +answer neu.edu.cn NS" {
 					t.Fatalf("unexpected dig arguments: %v", args)
 				}
 				return []byte(eduCNDNSAnswer), nil
 			}
-			r, err := c.Lookup(context.Background(), "neu.edu.cn")
+			r, err := c.Lookup(lookupCtx, "neu.edu.cn")
 			want := Record{Domain: "neu.edu.cn", Nameservers: []string{"ns.neu.edu.cn", "ns1.neu.edu.cn", "ns2.neu.edu.cn"}}
 			if err != nil || !reflect.DeepEqual(r, want) || httpCalls != 1 || dnsCalls != 1 {
 				t.Fatalf("got %+v, %v, HTTP %d, DNS %d", r, err, httpCalls, dnsCalls)

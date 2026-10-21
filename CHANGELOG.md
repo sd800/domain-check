@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.21.7
+
+- Apply the three-second deadline only to `.edu.cn` registry HTTP requests.
+- Use dig's default timeout and retry settings for DNS fallback, preserving overall command cancellation.
+
 ## 26.10.21.6
 
 - Query `.edu.cn` domains directly through the dedicated NIC registry interface with a three-second HTTP deadline.

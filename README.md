@@ -171,7 +171,7 @@ WHOIS response formats vary by registry. The parser handles common labeled forma
 
 Queries for names ending in `.edu.cn` go directly to `https://www.nic.edu.cn/cgi-bin/reg/otherobj?query=<domain>`, with a three-second deadline covering the HTTP request and response. GBK or GB2312 HTML is decoded before extracting WHOIS text from `<PRE>`. The leading organization is displayed as the registrant, and the domain-server table supplies nameservers without their IP addresses. Embedded links and redirects are not followed.
 
-If access is denied, the command immediately runs a bounded `dig NS` lookup. Unresponsive requests reach the three-second deadline before falling back; other failures or unusable content also trigger fallback. A successful DNS fallback shows the domain and nameservers in the usual layout, with all unavailable registration fields omitted. It does not infer registration status or DNSSEC from DNS data. An empty NS answer or a DNS lookup failure is reported as a query error. This fallback requires `dig`, which is included with macOS.
+If access is denied, the command immediately runs `dig NS`. Unresponsive HTTP requests reach the three-second deadline before falling back; other failures or unusable content also trigger fallback. The DNS lookup uses dig's default timeout and retry settings and is not subject to the three-second HTTP limit. A successful DNS fallback shows the domain and nameservers in the usual layout, with all unavailable registration fields omitted. It does not infer registration status or DNSSEC from DNS data. An empty NS answer or a DNS lookup failure is reported as a query error. This fallback requires `dig`, which is included with macOS.
 
 ## IANA cache
 

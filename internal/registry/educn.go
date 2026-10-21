@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	eduCNEndpoint = "https://www.nic.edu.cn/cgi-bin/reg/otherobj"
-	eduCNTimeout  = 3 * time.Second
+	eduCNEndpoint    = "https://www.nic.edu.cn/cgi-bin/reg/otherobj"
+	eduCNHTTPTimeout = 3 * time.Second
 )
 
 func (c *Client) eduCN(ctx context.Context, domain string) (Record, error) {
@@ -26,10 +26,9 @@ func (c *Client) eduCN(ctx context.Context, domain string) (Record, error) {
 	if err := ctx.Err(); err != nil {
 		return Record{}, queryError("edu-cn-failed", err.Error())
 	}
-	// DNS is a separate operation; it must not inherit the expired HTTP context.
-	dnsCtx, cancel := context.WithTimeout(ctx, eduCNTimeout)
-	defer cancel()
-	data, err := c.RunDig(dnsCtx, "+time=2", "+tries=1", "+noall", "+answer", domain, "NS")
+	// Only HTTP has the three-second limit. Keep dig's default timeouts and
+	// retries while preserving cancellation of the overall command.
+	data, err := c.RunDig(ctx, "+noall", "+answer", domain, "NS")
 	if err != nil {
 		return Record{}, queryError("dns-failed", err.Error())
 	}
@@ -42,10 +41,10 @@ func (c *Client) eduCN(ctx context.Context, domain string) (Record, error) {
 }
 
 func (c *Client) eduCNRegistry(ctx context.Context, domain string) (Record, error) {
-	ctx, cancel := context.WithTimeout(ctx, eduCNTimeout)
+	ctx, cancel := context.WithTimeout(ctx, eduCNHTTPTimeout)
 	defer cancel()
 	client := *c.HTTP
-	client.Timeout = eduCNTimeout
+	client.Timeout = eduCNHTTPTimeout
 	// No HTML link or redirect is allowed to initiate a registrar query.
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, eduCNEndpoint+"?query="+url.QueryEscape(domain), nil)

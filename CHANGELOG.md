@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.21.19
+
+- Remove the zsh integration, URL paste widget, shell aliases, and shell-configuration installer; restore installation and removal of the CLI executable only.
+- Package only the executable and documentation, and document normal shell quoting for URLs while retaining temporary language selection and emoji domain support.
+
 ## 26.10.21.18
 
 - Keep `en`, `zh`, and `auto` selectors temporary when combined with a domain, URL, help, version, or update; save the default only for standalone language commands.

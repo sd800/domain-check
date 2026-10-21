@@ -30,10 +30,11 @@ Download the archive for your Mac from [Releases](https://github.com/sd800/domai
 | Apple Silicon | `darwin_arm64.tar.gz` |
 | Intel | `darwin_amd64.tar.gz` |
 
-Extract the archive, then run its installer:
+Extract the archive, then install the `domain` executable into a directory on your `PATH`:
 
 ```sh
-sh install.sh
+mkdir -p "$HOME/.local/bin"
+install -m 755 domain "$HOME/.local/bin/domain"
 ```
 
 If needed, add this line to `~/.zshrc`, then open a new terminal:
@@ -54,17 +55,13 @@ cd domain-check
 make install
 ```
 
-Both installers default to `~/.local/bin/domain`. Use `PREFIX=/usr/local sh install.sh` for a downloaded archive or `make install PREFIX=/usr/local` for a source checkout to choose another prefix. Use `make build` to create `bin/domain` without installing it.
-
-When the login shell is zsh, installation also enables URL handling specifically for `domain`: glob characters remain literal, and URLs pasted immediately after `domain` or its language selectors are quoted automatically. Other commands retain their existing paste behavior. The installer adds a marked source block to `${ZDOTDIR:-$HOME}/.zshrc` and installs the integration under the selected prefix. Open a new terminal after installation, or run `source "${ZDOTDIR:-$HOME}/.zshrc"` in the current terminal. Set `DOMAIN_ZSH_INTEGRATION=0` to leave shell configuration untouched, or `1` to explicitly enable the integration. Repeated installation updates the same block; `make uninstall` removes it.
+`make install` defaults to `~/.local/bin/domain`. Use `make install PREFIX=/usr/local` to choose another prefix, or `make build` to create `bin/domain` without installing it.
 
 With Go already installed, the command can also be installed into `$(go env GOPATH)/bin`:
 
 ```sh
 go install github.com/sd800/domain-check/cmd/domain@latest
 ```
-
-For that installation method, run `sh install.sh --shell-only` from a source checkout to enable the zsh integration without reinstalling the executable.
 
 ## Usage
 
@@ -107,7 +104,7 @@ Preferences are stored at `~/Library/Application Support/domain-check/config.jso
 
 Pass one domain or URL per invocation. URLs are automatically reduced to their registrable domain: `https://www.example.com:8443/path?item=1` queries `example.com`, and `https://www.example.co.uk/` queries `example.co.uk`. Addresses without a scheme, such as `www.example.com/path`, are also accepted. The URL's scheme, credentials, port, path, query, and fragment are not sent to the registry, and the URL itself is never fetched. Private hosting suffixes are reduced to the registry-level domain; for example, `https://user.github.io/` queries `github.io`.
 
-With the zsh integration loaded, type `domain `, optionally a language selector and a space, then paste the complete URL. URL characters such as `?`, `&`, `;`, brackets, and substitutions remain part of one argument. In shell scripts, other shells, or when manually typing URLs containing shell operators, quote the URL as shown above.
+Quote URLs containing shell-special characters such as `?`, `&`, `*`, or parentheses, as shown above, so the shell passes the complete URL to `domain`.
 
 Direct domain inputs are queried exactly as supplied. A trailing dot is accepted. Internationalized names, including emoji and joined emoji sequences, are converted to ASCII/Punycode for querying. The domain line shows that ASCII name, with a separate Unicode display name when it can be decoded and validated.
 

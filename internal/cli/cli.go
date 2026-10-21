@@ -90,9 +90,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 		fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Invalid arguments, domain, or URL", "参数、域名或 URL 无效")+": "+registry.Clean(err.Error()))
 		return 2
 	}
+	preferenceSaved := false
 	if o.preference != "" {
 		if err := saveLanguagePreference(o.preference); err != nil {
 			fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Cannot save the language preference", "无法保存语言偏好")+": "+registry.Clean(err.Error()))
+		} else {
+			preferenceSaved = true
 		}
 	}
 	if o.help {
@@ -104,7 +107,16 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 		return 0
 	}
 	if o.intro {
-		if _, err := fmt.Fprint(stdout, introduction(o.lang, version)); err != nil {
+		var message string
+		if o.preference != "" {
+			if !preferenceSaved {
+				return 3
+			}
+			message = languageConfirmation(o.preference, o.lang) + "\n"
+		} else {
+			message = introduction(o.lang, version)
+		}
+		if _, err := fmt.Fprint(stdout, message); err != nil {
 			fmt.Fprintln(stderr, "domain: "+registry.Clean(err.Error()))
 			return 3
 		}

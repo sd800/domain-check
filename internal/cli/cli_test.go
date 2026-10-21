@@ -51,8 +51,6 @@ func TestNoDomainShowsOfflineIntroduction(t *testing.T) {
 	}{
 		{"English device", "en_US.UTF-8", "Usage:", nil},
 		{"Chinese device", "zh_CN.UTF-8", "用法:", nil},
-		{"English selector", "zh_CN.UTF-8", "Usage:", []string{"-en"}},
-		{"Chinese selector", "en_US.UTF-8", "用法:", []string{"zh"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("LC_ALL", test.locale)

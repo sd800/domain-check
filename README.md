@@ -83,7 +83,9 @@ domain --help
 domain --version
 ```
 
-Running `domain` without a domain prints the program name, version, copyright notice, a short introduction, and usage examples in the default language, then exits successfully. Use `domain en` or `domain zh` to switch and save the default language. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
+Running `domain` without arguments prints the program name, version, copyright notice, a short introduction, and usage examples in the default language, then exits successfully. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
+
+Use `domain en` or `domain zh` to switch and save the default language, or `domain auto` to restore device-language detection. These standalone language commands print a short confirmation after the preference has been saved, without performing a lookup or updating the IANA cache.
 
 Language selectors accept zero, one, or two leading hyphens:
 
@@ -97,7 +99,7 @@ The `update`, `help`, and `version` commands also accept zero, one, or two leadi
 
 The last language selector wins and is saved for future invocations, including when supplied alongside a domain. With no saved selection, or after `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
 
-Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. A configuration read or write failure produces a warning; the current command can still run.
+Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. Other commands can continue with a warning if a configuration read or write fails.
 
 Pass one domain or URL per invocation. URLs are automatically reduced to their registrable domain: `https://www.example.com:8443/path?item=1` queries `example.com`, and `https://www.example.co.uk/` queries `example.co.uk`. Addresses without a scheme, such as `www.example.com/path`, are also accepted. The URL's scheme, credentials, port, path, query, and fragment are not sent to the registry, and the URL itself is never fetched. Private hosting suffixes are reduced to the registry-level domain; for example, `https://user.github.io/` queries `github.io`.
 
@@ -169,10 +171,10 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | A registry record was returned, IANA data was updated, or the introduction, help, or version was displayed |
+| `0` | A registry record was returned, language preferences or IANA data were saved, or the introduction, help, or version was displayed |
 | `1` | No registry record, or an explicit registration restriction |
 | `2` | Invalid arguments or domain |
-| `3` | Discovery, network, service, response, or output error |
+| `3` | Discovery, configuration, network, service, response, or output error |
 
 ## Registry-only queries
 

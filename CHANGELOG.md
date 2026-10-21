@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.17
+
+- Confirm successful standalone `en`, `zh`, and `auto` language changes after saving the preference, including all supported hyphen spellings.
+- Show explicit language confirmations in the selected language and automatic-mode confirmations in the device language, while keeping the no-argument introduction and query output intact.
+- Report standalone preference-save failures with exit code `3` instead of displaying a successful introduction; queries can still continue with a warning.
+
 ## 26.10.21.16
 
 - Show the locally decoded Unicode name directly below an internationalized domain's ASCII name, labeled `IDN` in English or `国际化域名` in Chinese, when IDNA conversion and identity validation succeed.

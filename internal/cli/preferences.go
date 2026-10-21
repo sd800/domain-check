@@ -11,6 +11,17 @@ import (
 
 const automaticLanguage output.Language = "auto"
 
+func languageConfirmation(preference, lang output.Language) string {
+	switch preference {
+	case output.English:
+		return "Language switched to English and saved as the default."
+	case output.Chinese:
+		return "语言已切换为简体中文，并保存为默认语言。"
+	default:
+		return output.Text(lang, "Language set to follow the device language. Preference saved.", "语言已切换为跟随设备语言，并保存设置。")
+	}
+}
+
 type preferences struct {
 	Language output.Language `json:"language"`
 }

@@ -5,31 +5,6 @@ import (
 	"strings"
 )
 
-var reservedResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?(?:\s+\S+)?\s+(?:is )?reserved\b|reserved(?: domain| name)?[.!]?$)`)
-var forbiddenResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?(?:\s+\S+)?\s+(?:is )?(?:not allowed|not permitted|prohibited)(?: for registration)?[.!]?$|registration (?:is )?(?:not allowed|not permitted|prohibited)[.!]?$)`)
-
-func negativeWHOIS(line string) Result {
-	line = strings.ToLower(strings.TrimSpace(line))
-	if reservedResponse.MatchString(line) {
-		return Reserved
-	}
-	if forbiddenResponse.MatchString(line) {
-		return NotAllowed
-	}
-	for _, prefix := range []string{"no match for ", "no matching record", "no entries found", "no data found", "no information available about domain name", "not found:", "domain not found", "no such domain", "no object found", "the queried object does not exist:"} {
-		if strings.HasPrefix(line, prefix) {
-			return NoRecord
-		}
-	}
-	if line == "not found" || line == "not found." || line == "no entries found." {
-		return NoRecord
-	}
-	if line == "status: free" || line == "status: available" || line == "domain is not registered" || line == "domain not registered" {
-		return NotRegistered
-	}
-	return ""
-}
-
 type whoisObject struct {
 	kind, handle, name, organization string
 	emails, nameservers              []string
@@ -109,12 +84,17 @@ func whoisObjects(lines []string) (map[string]whoisObject, map[int]bool) {
 
 func parseWHOIS(domain, response string) (Record, error) {
 	r := Record{Domain: domain}
+	if strings.EqualFold(strings.TrimRight(strings.TrimSpace(response), ".!"), "reserved") {
+		return Record{Domain: domain, Result: Reserved}, nil
+	}
 	lines := strings.Split(response, "\n")
 	objects, skip := whoisObjects(lines)
 	tld := domain[strings.LastIndexByte(domain, '.')+1:]
 	var scope, pending, organization, holder, nsset, keyset string
 	var found, mismatched, ignoredDomain, plainName bool
 	contactNameSeen := false
+	var manager whoisObject
+	explicitRegistrant := false
 	blank, scopeIndent := false, 0
 	for i, raw := range lines {
 		line := strings.TrimSpace(raw)
@@ -122,18 +102,39 @@ func parseWHOIS(domain, response string) (Record, error) {
 			blank = true
 			continue
 		}
-		if found && (strings.HasPrefix(line, ">>>") || strings.HasPrefix(strings.ToLower(line), "terms of use:") || strings.HasPrefix(strings.ToLower(line), "copyright notice:")) {
+		if strings.HasPrefix(line, ">>>") && !mismatched {
+			switch strings.ToLower(strings.TrimSpace(strings.TrimPrefix(line, ">>>"))) {
+			case "the domain contains special characters not allowed.", "this domain violates registry policy.":
+				r.Result = NotAllowed
+				continue
+			}
+		}
+		if (found || r.Result != "") && (strings.HasPrefix(line, ">>>") || strings.HasPrefix(strings.ToLower(line), "terms of use:") || strings.HasPrefix(strings.ToLower(line), "copyright notice:")) {
 			break // Footer prose is not another availability determination.
 		}
-		if strings.HasPrefix(line, "%") || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ">>>") || strings.HasPrefix(line, "***") {
+		if strings.HasPrefix(line, "%") || strings.HasPrefix(line, ">>") || strings.HasPrefix(line, "***") {
+			// Some registries use protocol comments for the entire negative
+			// reply. Recognize only explicit error forms before any record.
+			if !found {
+				message := strings.TrimLeft(line, "%>* ")
+				if match := commentedWHOISError.FindStringSubmatch(message); match != nil {
+					message = match[1]
+				}
+				if result := negativeWHOISFor(domain, message); result != "" {
+					r.Result = result
+				}
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
 			continue
 		}
 		lower := strings.ToLower(line)
-		if strings.Contains(lower, "limit exceeded") || strings.Contains(lower, "quota exceeded") || strings.HasPrefix(lower, "too many queries") || strings.HasPrefix(lower, "access denied") {
+		if strings.Contains(lower, "limit exceeded") || strings.Contains(lower, "quota exceeded") || strings.HasPrefix(lower, "too many queries") || strings.HasPrefix(lower, "access denied") || strings.HasPrefix(lower, "requests of this client are not permitted") || lower == "this tld has no whois server." {
 			return Record{}, queryError("whois-failed", line)
 		}
-		if result := negativeWHOIS(line); result != "" {
-			if found && result == NoRecord && (scope == "registrant" || scope == "other-contact" || scope == "registrar") {
+		if result := negativeWHOISFor(domain, line); result != "" {
+			if found && result == NoRecord && (scope == "registrant" || scope == "other-contact" || scope == "registrar" || scope == "manager") {
 				continue // An included contact object can be missing independently.
 			}
 			r.Result = result
@@ -171,7 +172,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 					continue
 				}
 				key = "nameserver"
-			} else if scope == "registrant" && plainName {
+			} else if (scope == "registrant" || scope == "manager") && plainName {
 				// Only the first unlabelled line of an explicit owner section
 				// is a name. Addresses and phone numbers are not names.
 				key, plainName = "registrant name", false
@@ -182,7 +183,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 			}
 		} else {
 			pending = ""
-			if scope == "registrant" || scope == "registrar" {
+			if scope == "registrant" || scope == "registrar" || scope == "manager" {
 				plainName = false // Once labels begin, never fall back to prose.
 			}
 		}
@@ -216,8 +217,14 @@ func parseWHOIS(domain, response string) (Record, error) {
 		if key == "contact information" && tld == "jp" {
 			section = "registrant"
 		}
+		if key == "whois server" && strings.Contains(raw, ":") && !strings.HasPrefix(strings.TrimSpace(raw), "**") {
+			continue // A flat referral field, even empty, is not a metadata section.
+		}
 		if section != "" && (value == "" || section == "other-contact" || key == "domain registrant") {
-			scope, plainName = section, (section == "registrant" || section == "registrar") && !whoisHasInlineValue(raw)
+			scope, plainName = section, (section == "registrant" || section == "registrar" || section == "manager") && !whoisHasInlineValue(raw)
+			if section == "registrant" {
+				explicitRegistrant = true
+			}
 			contactNameSeen = false
 			scopeIndent = indent
 			if field == "domain" || field == "nameserver" || field == "status" {
@@ -262,7 +269,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 			scope = "domain"
 		}
 		if key == "name" || key == "nombre" || key == "person" || key == "personname" {
-			if labeled && scope == "registrant" {
+			if labeled && (scope == "registrant" || scope == "manager") {
 				if contactNameSeen {
 					scope = "other-contact"
 				}
@@ -278,7 +285,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 					}
 					found = true
 				}
-			case "registrant":
+			case "registrant", "manager":
 				field = "registrant"
 			case "registrar":
 				field = "registrar"
@@ -293,12 +300,12 @@ func parseWHOIS(domain, response string) (Record, error) {
 		if key == "org" || key == "organization" || key == "organisation" || key == "organization name" || key == "company english name" || key == "company chinese name" {
 			if scope == "registrar" {
 				field = "registrar"
-			} else if scope == "registrant" || scope == "domain" || scope == "" {
+			} else if scope == "registrant" || scope == "manager" || scope == "domain" || scope == "" {
 				field = "organization"
 			}
 		}
 		if key == "email" || key == "e mail" || key == "email address" {
-			if scope == "registrant" || (scope == "domain" || scope == "") && (tld == "by" || tld == "il") {
+			if scope == "registrant" || scope == "manager" || (scope == "domain" || scope == "") && (tld == "by" || tld == "il") {
 				field = "email"
 			}
 		}
@@ -314,7 +321,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 		// Explicit domain fields (Name Server, Registrant Email...) may occur
 		// after a contact block. Generic object dates and DNSSEC capabilities
 		// must remain scoped to that object.
-		contactScope := scope == "registrant" || scope == "registrar" || scope == "other-contact" || scope == "nameserver" || scope == "metadata"
+		contactScope := scope == "registrant" || scope == "registrar" || scope == "other-contact" || scope == "nameserver" || scope == "metadata" || scope == "manager"
 		switch field {
 		case "registration", "expiration", "changed":
 			if contactScope {
@@ -339,6 +346,10 @@ func parseWHOIS(domain, response string) (Record, error) {
 			if scope != "domain" && scope != "" && key != "domain status" {
 				continue
 			}
+			if result := negativeWHOISStatus(value); result != "" {
+				r.Result = result
+				continue
+			}
 			if index := strings.Index(value, " http"); index >= 0 {
 				value = value[:index]
 			}
@@ -355,20 +366,39 @@ func parseWHOIS(domain, response string) (Record, error) {
 				r.Registrar = value
 			}
 		case "registrant":
+			if scope == "manager" {
+				if manager.name == "" {
+					manager.name = value
+				}
+				continue
+			}
 			if scope == "other-contact" || scope == "registrar" {
 				continue
 			}
+			explicitRegistrant = true
 			if _, ok := objects[whoisObjectID("contact", value)]; ok || key == "holder" && (tld == "se" || tld == "nu") || key == "registrant" && strings.Contains(" at ir mw mk ls ve ", " "+tld+" ") {
 				holder = value
 			} else if r.Registrant == "" {
 				r.Registrant = value
 			}
 		case "organization":
+			if scope == "manager" {
+				if manager.organization == "" {
+					manager.organization = value
+				}
+				continue
+			}
 			if scope != "other-contact" && scope != "registrar" && organization == "" {
+				explicitRegistrant = true
 				organization = value
 			}
 		case "email":
+			if scope == "manager" {
+				manager.emails = appendWHOISEmails(manager.emails, value)
+				continue
+			}
 			if scope != "other-contact" && scope != "registrar" {
+				explicitRegistrant = true
 				r.RegistrantEmail = appendWHOISEmails(r.RegistrantEmail, value)
 			}
 		case "nameserver":
@@ -411,7 +441,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 	}
 	// NIC Chile deliberately omits a domain-name line in positive responses.
 	// Require its complete positive-record signature, and no conflicting name.
-	if !found && !mismatched && tld == "cl" && r.Registrant != "" && r.Registrar != "" && r.Registration != "" && r.Expiration != "" && len(r.Nameservers) > 0 {
+	if !found && !mismatched && tld == "cl" && r.Registrant != "" && r.Registrar != "" && r.Registration != "" && r.Expiration != "" {
 		found = true
 	}
 	if !found {
@@ -423,6 +453,15 @@ func parseWHOIS(domain, response string) (Record, error) {
 	}
 	if organization != "" {
 		r.Registrant = organization
+	}
+	// Legacy manager-only replies remain useful. A separate owner section,
+	// even a redacted one, always takes precedence over management contacts.
+	if !explicitRegistrant && r.Registrant == "" && (manager.name != "" || manager.organization != "" || len(manager.emails) > 0) {
+		r.Registrant = manager.organization
+		if r.Registrant == "" {
+			r.Registrant = manager.name
+		}
+		r.RegistrantEmail = manager.emails
 	}
 	var registrarObject whoisObject
 	registrarCount := 0

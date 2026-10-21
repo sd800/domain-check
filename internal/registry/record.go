@@ -18,6 +18,7 @@ const (
 	NotRegistered Result = "not-registered"
 	Reserved      Result = "reserved"
 	NotAllowed    Result = "not-allowed"
+	Restricted    Result = "registration-restricted"
 )
 
 type Record struct {

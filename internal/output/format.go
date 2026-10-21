@@ -41,6 +41,8 @@ func ResultText(lang Language, result registry.Result) string {
 		return Text(lang, "Reserved", "已保留")
 	case registry.NotAllowed:
 		return Text(lang, "Registration not allowed", "不允许注册")
+	case registry.Restricted:
+		return Text(lang, "Registration restricted (online registration unavailable)", "注册受限（无法在线注册）")
 	default:
 		return Text(lang, "No registry record", "注册局无记录")
 	}

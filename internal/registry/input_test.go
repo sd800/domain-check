@@ -9,6 +9,9 @@ import (
 func TestDomainAndURLInputs(t *testing.T) {
 	for input, want := range map[string]string{
 		"example.com":      "example.com",
+		"net.cn":           "net.cn",
+		"home.cn":          "home.cn",
+		"example.net.cn":   "example.net.cn",
 		"WWW.EXAMPLE.COM.": "www.example.com",
 		"https://www.example.com:8443/path?item=1&lang=zh#section": "example.com",
 		"http://mail.example.com/":                                 "example.com",
@@ -19,6 +22,10 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"example.com:443":                                          "example.com",
 		"https://books.example.co.uk/title":                        "example.co.uk",
 		"https://department.neu.edu.cn/path":                       "neu.edu.cn",
+		"https://net.cn/":                                          "net.cn",
+		"https://home.cn/path":                                     "home.cn",
+		"https://www.example.net.cn/path":                          "example.net.cn",
+		"https://co.uk/":                                           "co.uk",
 		"https://www.例子.中国/中文":                                     "xn--fsqu00a.xn--fiqs8s",
 		"https://user.github.io/project":                           "github.io",
 		"https://user.blogspot.co.uk/post":                         "blogspot.co.uk",
@@ -34,7 +41,7 @@ func TestDomainAndURLInputs(t *testing.T) {
 	}
 	for _, input := range []string{
 		"https://localhost/path", "https://127.0.0.1/", "https://[2001:db8::1]/",
-		"https://co.uk/", "https:///missing-host", "mailto:user@example.com",
+		"https:///missing-host", "mailto:user@example.com",
 		"file:///etc/passwd", "https://example.com:invalid/", "https://user:secret@/path",
 		"https://-bad.com/", "https://exa\nmple.com/", "example.com\nother.com",
 	} {

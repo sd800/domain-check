@@ -1,0 +1,91 @@
+package registry
+
+import (
+	"regexp"
+	"strings"
+)
+
+var reservedResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?\s+(?:is )?reserved[.!]?$|reserved (?:domain|name)[.!]?$)`)
+var forbiddenResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?(?:\s+\S+)?\s+(?:is )?(?:not allowed|not permitted|prohibited)(?: for registration)?[.!]?$|registration (?:is )?(?:not allowed|not permitted|prohibited)[.!]?$)`)
+var commentedWHOISError = regexp.MustCompile(`(?i)^error:\s*(?:\d+:\s*)?(.*)$`)
+var namedWHOISResult = regexp.MustCompile(`(?i)^(?:domain\s+)?(\S+)\s+(is free|is reserved|has been reserved by .+?)[.!]?$`)
+var namedWHOISMissing = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)^(?:the\s+)?domain\s+["']?([a-z0-9.-]+?)["']?\s+(?:was\s+)?not found[.!]?$`),
+	regexp.MustCompile(`(?i)^no (?:match(?: found)?|record found) for\s+(?:domain\s*:?\s*)?["']?([a-z0-9.-]+?)["']?[.!]?$`),
+	regexp.MustCompile(`(?i)^([a-z0-9.-]+):\s*no entries found[.!]?$`),
+	regexp.MustCompile(`(?i)^([a-z0-9.-]+)\s+-\s+no match[.!]?$`),
+}
+var namedWHOISAvailable = regexp.MustCompile(`(?i)^domain\s+([a-z0-9.-]+)\s+is available for (?:purchase|registration)[.!]?$`)
+
+func negativeWHOIS(line string) Result {
+	line = strings.ToLower(strings.TrimSpace(line))
+	if line == "the domain name you apply can not be registered online. please consult your domain name registrar" {
+		return Restricted // CNNIC does not distinguish namespace names from other restrictions here.
+	}
+	if reservedResponse.MatchString(line) {
+		return Reserved
+	}
+	if forbiddenResponse.MatchString(line) {
+		return NotAllowed
+	}
+	for _, prefix := range []string{"no matching record", "no entries found", "no data found", "no information available about domain name", "not found:", "domain not found", "no such domain", "no object found", "the queried object does not exist:"} {
+		if strings.HasPrefix(line, prefix) {
+			return NoRecord
+		}
+	}
+	switch strings.TrimRight(line, ".!") {
+	case "not found", "no entries found", "no match", "nothing found", "nothing found for this query", "object does not exist", "no_se_encontro_el_objeto/object_not_found":
+		return NoRecord
+	}
+	if line == "domain is not registered" || line == "domain not registered" || strings.TrimRight(line, ".!") == "the domain has not been registered" {
+		return NotRegistered
+	}
+	if line == "reserved domain name" || line == "reserved domain name." || line == "this name is reserved by the registry." || line == "this name is reserved by the registry" {
+		return Reserved
+	}
+	return ""
+}
+
+func negativeWHOISFor(domain, line string) Result {
+	if result := negativeWHOIS(line); result != "" {
+		return result
+	}
+	if match := namedWHOISResult.FindStringSubmatch(strings.TrimSpace(line)); match != nil {
+		if name, err := NormalizeDomain(match[1]); err == nil && name == domain {
+			if strings.EqualFold(match[2], "is free") {
+				return NotRegistered
+			}
+			return Reserved
+		}
+	}
+	for _, pattern := range namedWHOISMissing {
+		if match := pattern.FindStringSubmatch(strings.TrimSpace(line)); match != nil {
+			if name, err := NormalizeDomain(match[1]); err == nil && name == domain {
+				return NoRecord
+			}
+			return ""
+		}
+	}
+	if match := namedWHOISAvailable.FindStringSubmatch(strings.TrimSpace(line)); match != nil {
+		if name, err := NormalizeDomain(match[1]); err == nil && name == domain {
+			return NotRegistered
+		}
+	}
+	return ""
+}
+
+// Interpret availability labels only as a domain status, never as contact data
+// or a statement in the registry's terms of use.
+func negativeWHOISStatus(value string) Result {
+	switch strings.ToLower(Clean(value)) {
+	case "free", "available", "not registered", "not registered, and may be available if valid":
+		return NotRegistered
+	case "no object found", "not found":
+		return NoRecord
+	case "reserved":
+		return Reserved
+	case "prohibited string - domain cannot be registered":
+		return NotAllowed
+	}
+	return ""
+}

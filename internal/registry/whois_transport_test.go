@@ -97,3 +97,48 @@ func TestWHOISIncludedObjectsDoNotCauseAdditionalQueries(t *testing.T) {
 	}
 	assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/at.json"}, "example.at", "SHARED1", "Example Owner", "owner@example.test", "whois.registrar.test", "registrar.test/contact")
 }
+
+func TestCNNICRestrictedNamesStopAtRegistry(t *testing.T) {
+	for _, input := range []string{"net.cn", "home.cn", "https://net.cn/", "https://home.cn/path"} {
+		t.Run(input, func(t *testing.T) {
+			domain, err := NormalizeInput(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := fixtureClient(t, func(*http.Request) (*http.Response, error) {
+				t.Fatal("unexpected HTTP request")
+				return nil, nil
+			})
+			seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+			var destinations []string
+			c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
+				destinations = append(destinations, address)
+				client, server := net.Pipe()
+				go func() {
+					defer server.Close()
+					query, _ := bufio.NewReader(server).ReadString('\n')
+					switch address {
+					case "whois.iana.org:43":
+						if query != "cn\r\n" {
+							t.Errorf("unexpected suffix query %q", query)
+						}
+						fmt.Fprint(server, "domain: CN\nwhois: whois.cnnic.cn\n")
+					case "whois.cnnic.cn:43":
+						if query != domain+"\r\n" {
+							t.Errorf("namespace name was rewritten: %q", query)
+						}
+						fmt.Fprint(server, "the Domain Name you apply can not be registered online. Please consult your Domain Name registrar\n")
+					default:
+						t.Errorf("followed registrar suggestion: %s", address)
+					}
+				}()
+				return client, nil
+			}
+			r, err := c.Lookup(context.Background(), domain)
+			if err != nil || r.Domain != domain || r.Result != Restricted || len(destinations) != 2 {
+				t.Fatalf("%+v, %v, destinations=%v", r, err, destinations)
+			}
+			assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/cn.json"}, domain)
+		})
+	}
+}

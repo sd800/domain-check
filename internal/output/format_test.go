@@ -65,6 +65,21 @@ func TestNegativeLayout(t *testing.T) {
 	}
 }
 
+func TestRestrictedRegistrationResult(t *testing.T) {
+	for lang, want := range map[Language]string{
+		English: "Registration restricted (online registration unavailable)",
+		Chinese: "注册受限（无法在线注册）",
+	} {
+		var b bytes.Buffer
+		if err := Format(&b, registry.Record{Domain: "net.cn", Result: registry.Restricted}, lang, 80); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(b.String(), want) || strings.Count(b.String(), "\n") != 2 {
+			t.Fatalf("%s: %s", lang, b.String())
+		}
+	}
+}
+
 func TestTerminalControlsAndGraphemes(t *testing.T) {
 	var b bytes.Buffer
 	Format(&b, registry.Record{Domain: "example.com", Registrant: "abc\x1b]2;evil\a\nnext"}, English, 80)

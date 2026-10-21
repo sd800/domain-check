@@ -1,5 +1,16 @@
 # Changelog
 
+## 26.10.21.12
+
+- Separate domain managers from explicit registrant sections, including slash-separated owner headings, and keep redacted owners from being replaced by management contacts.
+- Recover domain dates after empty WHOIS referral fields and domain-details headings, and accept complete registry records that omit nameservers.
+- Recognize additional registry absence, availability, reservation, and policy-rejection replies, including status fields and protocol comments, while validating named results against the requested domain.
+- Keep copyright and terms-of-use text from changing lookup results, and preserve errors for access denials, unsupported queries, and incomplete responses.
+- Handle restricted CNNIC namespace and domain queries with a distinct online-registration restriction result, without following registrar suggestions or assuming permanent reservation.
+- Accept pasted URLs whose hostname is a multi-label namespace such as `net.cn`, preserving the exact namespace for registry queries.
+- Expand synthetic regression coverage for exceptional registry-owned records, ordinary registrations, negative replies, response identity, and registry-only routing.
+- Remove older generated release archives when packaging so local builds retain only the current release artifacts.
+
 ## 26.10.21.11
 
 - Add `domain update`, `domain -update`, and `domain --update` to refresh IANA DNS bootstrap data immediately, regardless of cache age.

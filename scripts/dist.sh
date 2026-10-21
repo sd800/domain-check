@@ -6,6 +6,10 @@ case "$version" in
   *[!0-9.]*|'') printf '%s\n' 'Invalid VERSION.' >&2; exit 1 ;;
 esac
 mkdir -p dist
+# Releases are archived on GitHub; retain only the current local build.
+for artifact in dist/domain_*_darwin_arm64.tar.gz dist/domain_*_darwin_amd64.tar.gz dist/checksums_*.txt; do
+  [ ! -f "$artifact" ] || rm -f "$artifact"
+done
 for arch in arm64 amd64; do
   name="domain_${version}_darwin_${arch}"
   staging=$(mktemp -d)

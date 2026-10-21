@@ -154,7 +154,7 @@ Result:              No registry record
 查询结果:     注册局无记录
 ```
 
-A normal RDAP `404` means the registry returned no matching record. It does **not** establish that the domain can be registered. `Not registered`, `Reserved`, or `Registration not allowed` is shown only when a supported WHOIS response explicitly states that result. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
+A normal RDAP `404` means the registry returned no matching record. It does **not** establish that the domain can be registered. `Not registered`, `Reserved`, or `Registration not allowed` is shown only when a supported WHOIS response explicitly states that result. A reply that only rules out online registration is shown as `Registration restricted (online registration unavailable)`; it does not establish permanent reservation. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
 
 | Exit code | Meaning |
 | --- | --- |

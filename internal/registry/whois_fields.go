@@ -58,6 +58,7 @@ var whoisContactLabels = map[string]bool{
 func whoisKey(key string) string {
 	key = strings.Trim(strings.TrimSpace(key), "[]* ")
 	key = strings.ReplaceAll(strings.ReplaceAll(key, "_", " "), "-", " ")
+	key = strings.ReplaceAll(key, "/", " / ")
 	key = strings.TrimRight(key, ". ")
 	key = strings.ToLower(Clean(key))
 	if whoisNumberedNS.MatchString(key) {
@@ -131,15 +132,17 @@ func whoisFieldValue(key, value string) string {
 // between a heading and its first value. Only explicit headings change scope.
 func whoisSection(key string) string {
 	switch key {
-	case "registrant", "holder", "owner", "titular", "registrant contact", "registrant contact information", "owner contact", "domain managers", "domain owners", "domain owner", "domain registrant":
+	case "registrant", "holder", "owner", "titular", "registrant contact", "registrant contact information", "owner contact", "domain owners", "domain owner", "domain registrant", "domain owners / registrant", "domain owner / registrant":
 		return "registrant"
+	case "domain managers":
+		return "manager"
 	case "registrar":
 		return "registrar"
 	case "administrative contact", "administrative contacts", "administrativ contact", "administrative", "admin contact", "admin c", "technical contact", "technical contacts", "technical", "tech contact", "tech", "tech c", "zone c", "billing contact", "billing", "contacto administrativo", "contacto tecnico", "contacto financiero", "registrar technical contacts", "registrar contact information", "reseller":
 		return "other-contact"
 	case "name server", "name servers", "nameservers", "nservers", "dns servers", "domain servers", "domain nameservers", "domain name servers", "domain servers in listed order", "name servers information", "name server information":
 		return "nameserver"
-	case "domain", "domain information", "domain name information", "relevant dates", "additional info", "details":
+	case "domain", "domain information", "domain name information", "domain details", "relevant dates", "additional info", "details":
 		return "domain"
 	case "whois", "whois server", "disclaimer", "status information", "flags", "contact information":
 		return "metadata"

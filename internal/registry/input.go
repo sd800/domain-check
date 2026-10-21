@@ -44,7 +44,7 @@ func NormalizeInput(input string) (string, error) {
 		suffix, icann = publicsuffix.PublicSuffix(suffix)
 	}
 	if host == suffix {
-		return "", fmt.Errorf("URL hostname is a public suffix")
+		return host, nil // A multi-label namespace such as net.cn can itself be queried.
 	}
 	parent := strings.TrimSuffix(host, "."+suffix)
 	if index := strings.LastIndexByte(parent, '.'); index >= 0 {

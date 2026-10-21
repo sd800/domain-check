@@ -21,47 +21,138 @@ Domain Check from Registries is built around a simple principle: **a domain look
 
 ## Install
 
-### macOS binary
+### Install directly from Terminal
 
-Download the archive for your Mac from [Releases](https://github.com/sd800/domain-check/releases):
+Copy the entire block below into macOS Terminal. No Go installation or manual download is required. It selects Apple Silicon or Intel automatically, downloads the latest release, verifies its SHA-256 checksum, and installs `domain` into `~/.local/bin`.
+
+The same block adds that directory to `PATH` for the current terminal and future zsh sessions, then prints the installed version. The standard `PATH` line is added to `${ZDOTDIR:-$HOME}/.zshrc` only once.
+
+```sh
+if /bin/sh <<'SH'
+set -eu
+case "$(uname -m)" in
+  arm64) arch=arm64 ;;
+  x86_64) arch=amd64 ;;
+  *) printf '%s\n' 'Unsupported Mac architecture.' >&2; exit 1 ;;
+esac
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT HUP INT TERM
+curl -fsSL --retry 3 -o "$work/release.json" \
+  https://api.github.com/repos/sd800/domain-check/releases/latest
+tag=$(/usr/bin/plutil -extract tag_name raw -o - "$work/release.json")
+version=${tag#v}
+case "$version" in
+  ''|*[!0-9.]*) printf '%s\n' 'Invalid release version.' >&2; exit 1 ;;
+esac
+archive="domain_${version}_darwin_${arch}.tar.gz"
+base="https://github.com/sd800/domain-check/releases/download/$tag"
+curl -fL --retry 3 -o "$work/$archive" "$base/$archive"
+curl -fsSL --retry 3 -o "$work/checksums.txt" "$base/checksums_${version}.txt"
+(
+  cd "$work"
+  awk -v file="$archive" '$2 == file { print; n++ } END { exit n != 1 }' \
+    checksums.txt > verify.txt
+  shasum -a 256 -c verify.txt
+)
+tar -xOf "$work/$archive" domain > "$work/domain"
+mkdir -p "$HOME/.local/bin"
+install -m 755 "$work/domain" "$HOME/.local/bin/domain"
+profile="${ZDOTDIR:-$HOME}/.zshrc"
+mkdir -p "$(dirname "$profile")"
+grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
+  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
+SH
+then
+  export PATH="$HOME/.local/bin:$PATH"
+  domain --version
+else
+  printf '%s\n' 'Installation failed.' >&2
+  false
+fi
+```
+
+The alternative methods below install into the same directory and include the same `PATH` setup.
+
+### Install with Go
+
+Requires Go 1.26 or newer. Copy the entire block into Terminal:
+
+```sh
+if /bin/sh <<'SH'
+set -eu
+mkdir -p "$HOME/.local/bin"
+GOBIN="$HOME/.local/bin" go install github.com/sd800/domain-check/cmd/domain@latest
+profile="${ZDOTDIR:-$HOME}/.zshrc"
+mkdir -p "$(dirname "$profile")"
+grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
+  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
+SH
+then
+  export PATH="$HOME/.local/bin:$PATH"
+  domain --version
+else
+  printf '%s\n' 'Installation failed.' >&2
+  false
+fi
+```
+
+### Download a macOS binary
+
+Download and extract the archive for your Mac from [Releases](https://github.com/sd800/domain-check/releases):
 
 | Mac | Archive suffix |
 | --- | --- |
 | Apple Silicon | `darwin_arm64.tar.gz` |
 | Intel | `darwin_amd64.tar.gz` |
 
-Extract the archive, then install the `domain` executable into a directory on your `PATH`:
+Open Terminal in the extracted directory, then copy the entire block:
 
 ```sh
+if /bin/sh <<'SH'
+set -eu
 mkdir -p "$HOME/.local/bin"
 install -m 755 domain "$HOME/.local/bin/domain"
+profile="${ZDOTDIR:-$HOME}/.zshrc"
+mkdir -p "$(dirname "$profile")"
+grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
+  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
+SH
+then
+  export PATH="$HOME/.local/bin:$PATH"
+  domain --version
+else
+  printf '%s\n' 'Installation failed.' >&2
+  false
+fi
 ```
 
-If needed, add this line to `~/.zshrc`, then open a new terminal:
-
-```sh
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Each release includes a SHA-256 checksum file. To verify a downloaded archive, place the checksum file beside it and run `shasum -a 256` on the archive; compare its hash with the corresponding entry.
+Each release includes a SHA-256 checksum file. To verify a manually downloaded archive, compare the output of `shasum -a 256` for that archive with its entry in the checksum file. The direct Terminal method verifies the checksum automatically.
 
 ### Build from source
 
-Requires Go 1.26 or newer.
+Requires Go 1.26 or newer and Git. Run this block from the directory where you want the checkout:
 
 ```sh
+if /bin/sh <<'SH'
+set -eu
 git clone https://github.com/sd800/domain-check.git
 cd domain-check
-make install
+make install PREFIX="$HOME/.local"
+profile="${ZDOTDIR:-$HOME}/.zshrc"
+mkdir -p "$(dirname "$profile")"
+grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
+  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
+SH
+then
+  export PATH="$HOME/.local/bin:$PATH"
+  domain --version
+else
+  printf '%s\n' 'Installation failed.' >&2
+  false
+fi
 ```
 
-`make install` defaults to `~/.local/bin/domain`. Use `make install PREFIX=/usr/local` to choose another prefix, or `make build` to create `bin/domain` without installing it.
-
-With Go already installed, the command can also be installed into `$(go env GOPATH)/bin`:
-
-```sh
-go install github.com/sd800/domain-check/cmd/domain@latest
-```
+`make install` defaults to `~/.local/bin/domain`. Use `make install PREFIX=/usr/local` to choose another prefix, or `make build` to create `bin/domain` without installing it. The complete copy-and-paste commands above use the default prefix.
 
 ## Usage
 

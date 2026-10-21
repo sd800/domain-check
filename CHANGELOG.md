@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.20
+
+- Put a complete macOS Terminal installation command first, with automatic architecture selection, latest-release download, and SHA-256 verification without requiring Go.
+- Combine installation and repeatable PATH setup in every README method so the command works in the current terminal and future zsh sessions.
+- Use the same executable directory for Go, source, and binary installations, and show the installed version after each successful setup.
+
 ## 26.10.21.19
 
 - Remove the zsh integration, URL paste widget, shell aliases, and shell-configuration installer; restore installation and removal of the CLI executable only.

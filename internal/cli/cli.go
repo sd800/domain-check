@@ -140,6 +140,8 @@ func errorText(lang output.Language, err error) string {
 		return output.Text(lang, "Query failed", "查询失败") + ": " + registry.Clean(err.Error())
 	}
 	messages := map[string][2]string{
+		"edu-cn-failed":       {"Domain query failed", "域名查询失败"},
+		"dns-failed":          {"DNS nameserver query failed", "DNS 域名服务器查询失败"},
 		"bootstrap-failed":    {"Cannot load IANA RDAP bootstrap data", "无法读取 IANA RDAP 引导数据"},
 		"iana-whois-failed":   {"Cannot discover the registry WHOIS server from IANA", "无法通过 IANA 获取注册局 WHOIS 服务器"},
 		"unsupported-suffix":  {"Unknown or unsupported domain suffix", "未知或不支持的域名后缀"},

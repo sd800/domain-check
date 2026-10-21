@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ type Client struct {
 	Warn         func(string)
 	// DialWHOIS is injectable to verify that no registrar receives a query.
 	DialWHOIS func(context.Context, string, string) (net.Conn, error)
+	RunDig    func(context.Context, ...string) ([]byte, error)
 }
 
 func NewClient(cacheDir string) *Client {
@@ -35,6 +37,9 @@ func NewClient(cacheDir string) *Client {
 		},
 		CacheDir: cacheDir, BootstrapURL: "https://data.iana.org/rdap/dns.json",
 		IANAWHOIS: "whois.iana.org", Now: time.Now, DialWHOIS: dialer.DialContext,
+		RunDig: func(ctx context.Context, args ...string) ([]byte, error) {
+			return exec.CommandContext(ctx, "dig", args...).Output()
+		},
 	}
 }
 
@@ -60,6 +65,9 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 		return Record{}, queryError("invalid-domain", err.Error())
 	}
 	domain = normalized
+	if strings.HasSuffix(domain, ".edu.cn") {
+		return c.eduCN(ctx, domain)
+	}
 	b, err := c.bootstrap(ctx)
 	if err != nil {
 		// Do not guess WHOIS when the presence of registry RDAP is unknown.

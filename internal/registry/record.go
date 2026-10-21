@@ -1,4 +1,4 @@
-// Package registry queries registry-operated RDAP and WHOIS services only.
+// Package registry queries registry services, with DNS nameserver fallback for .edu.cn.
 package registry
 
 import (

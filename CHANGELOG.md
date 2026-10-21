@@ -1,5 +1,12 @@
 # Changelog
 
+## 26.10.21.6
+
+- Query `.edu.cn` domains directly through the dedicated NIC registry interface with a three-second HTTP deadline.
+- Decode GBK and GB2312 HTML before extracting the preformatted WHOIS record, organization name, and domain servers.
+- Immediately fall back to bounded `dig NS` queries on access denial or other registry failures, displaying only the domain and returned nameservers.
+- Keep DNS failures separate from registration-availability results and prevent HTML links or redirects from triggering additional queries.
+
 ## 26.10.21.5
 
 - Persist explicit English and Simplified Chinese selections as the default for subsequent invocations.

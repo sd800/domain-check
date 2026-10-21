@@ -118,6 +118,7 @@ func TestEDUCNAccessDenialsAndTimeoutsFallBackDirectly(t *testing.T) {
 		{"server error", 503, "Unavailable", false},
 		{"HTML denial", 200, "<html>Access denied</html>", false},
 		{"WHOIS denial", 200, "<pre>Access denied</pre>", false},
+		{"unsupported HTML encoding", 200, `<meta charset="shift_jis"><pre>Domain Name: neu.edu.cn</pre>`, false},
 		{"wrong domain", 200, "<pre>Domain Name: other.edu.cn</pre>", false},
 		{"timeout", 0, "", true},
 	} {

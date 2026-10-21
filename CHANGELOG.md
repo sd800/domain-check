@@ -1,5 +1,19 @@
 # Changelog
 
+## 26.10.21.13
+
+- Reduce executable size by replacing general HTML encoding discovery with the registry interface's required GBK, GB2312, GB18030, and UTF encoding handling.
+- Extract preformatted registry text with a streaming HTML tokenizer instead of constructing a complete document tree, preserving entities, nested text, line breaks, and script/style exclusion.
+- Tokenize WHOIS labels and values once for shared domain, contact, and included-object processing; collapse redundant blank separators and avoid a separate object-line index map.
+- Reduce temporary allocations when sanitizing already normalized text, and replace simple label regular expressions with direct checks.
+- Centralize observed registry date and contact-format differences in compact profiles while preserving response identity, redaction, date precision, and registry-only routing.
+- Recognize EDUCAUSE missing-domain replies as absent registry records, preserve registrant/contact boundaries, and parse its month-name dates directly without repeated generic format attempts.
+- Preserve IANA infrastructure-domain metadata without requiring nameservers, and recognize zero-object WHOIS replies without implying registration availability.
+- Support explicitly declared Chinese IDN bundles, compact Hong Kong suffixes, Taiwan character-variant tables, scoped registrant emails, and UTC offsets in registry timestamps.
+- Normalize IANA's Unicode WHOIS suffix identities before comparing them with ASCII IDNA queries and caching the verified registry endpoint.
+- Match Unicode names in negative replies, distinguish unavailable names from permanent reservation, and hide bracketed or parenthesized redaction placeholders.
+- Add parser benchmarks and regression coverage for encoding selection, HTML extraction boundaries, DNS fallback, and terminal-text sanitization.
+
 ## 26.10.21.12
 
 - Separate domain managers from explicit registrant sections, including slash-separated owner headings, and keep redacted owners from being replaced by management contacts.

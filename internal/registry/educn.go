@@ -1,17 +1,12 @@
 package registry
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"golang.org/x/net/html"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 const (
@@ -69,38 +64,14 @@ func (c *Client) eduCNRegistry(ctx context.Context, domain string) (Record, erro
 }
 
 func parseEDUCN(domain string, data []byte, contentType string) (Record, error) {
-	// Decode before parsing HTML. GB2312 labels map to GBK for HTML documents;
-	// the registry's legacy GBK encoding is also the default when undeclared.
-	encoding, name, certain := charset.DetermineEncoding(data, contentType)
-	if !certain && name == "windows-1252" {
-		encoding = simplifiedchinese.GBK
-	}
-	decoded, err := encoding.NewDecoder().Bytes(data)
+	decoded, err := decodeEDUCN(data, contentType)
 	if err != nil {
 		return Record{}, err
 	}
-	root, err := html.Parse(bytes.NewReader(decoded))
+	text, err := eduCNPreText(decoded)
 	if err != nil {
 		return Record{}, err
 	}
-	var blocks []string
-	var visit func(*html.Node)
-	visit = func(node *html.Node) {
-		if node.Type == html.ElementNode && node.Data == "pre" {
-			var text strings.Builder
-			preText(node, &text)
-			blocks = append(blocks, text.String())
-			return
-		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			visit(child)
-		}
-	}
-	visit(root)
-	if len(blocks) == 0 {
-		return Record{}, fmt.Errorf("registry response has no WHOIS text")
-	}
-	text := strings.Join(blocks, "\n\n")
 	var normalized strings.Builder
 	var firstLine string
 	inServers := false
@@ -134,22 +105,6 @@ func parseEDUCN(domain string, data []byte, contentType string) (Record, error) 
 		record.Registrant = useful(firstLine)
 	}
 	return record, nil
-}
-
-func preText(node *html.Node, text *strings.Builder) {
-	if node.Type == html.TextNode {
-		text.WriteString(node.Data)
-	} else if node.Type == html.ElementNode {
-		switch node.Data {
-		case "script", "style":
-			return
-		case "br":
-			text.WriteByte('\n')
-		}
-	}
-	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		preText(child, text)
-	}
 }
 
 func parseDigNS(answer string) []string {

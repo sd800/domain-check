@@ -109,7 +109,10 @@ func (c *Client) whoisServer(ctx context.Context, tld string) (string, error) {
 		}
 		switch strings.ToLower(strings.TrimSpace(key)) {
 		case "domain":
-			known = strings.EqualFold(strings.TrimSpace(value), tld)
+			// IANA returns U-labels for IDN suffixes even when queried by
+			// their A-label. Reuse strict domain validation before comparing.
+			domain, err := NormalizeDomain("iana." + strings.TrimSpace(value))
+			known = err == nil && domain == "iana."+tld
 		case "whois":
 			host = strings.ToLower(strings.TrimSpace(value))
 		}

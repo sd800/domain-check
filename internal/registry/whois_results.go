@@ -10,17 +10,23 @@ var forbiddenResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?(?
 var commentedWHOISError = regexp.MustCompile(`(?i)^error:\s*(?:\d+:\s*)?(.*)$`)
 var namedWHOISResult = regexp.MustCompile(`(?i)^(?:domain\s+)?(\S+)\s+(is free|is reserved|has been reserved by .+?)[.!]?$`)
 var namedWHOISMissing = []*regexp.Regexp{
-	regexp.MustCompile(`(?i)^(?:the\s+)?domain\s+["']?([a-z0-9.-]+?)["']?\s+(?:was\s+)?not found[.!]?$`),
-	regexp.MustCompile(`(?i)^no (?:match(?: found)?|record found) for\s+(?:domain\s*:?\s*)?["']?([a-z0-9.-]+?)["']?[.!]?$`),
-	regexp.MustCompile(`(?i)^([a-z0-9.-]+):\s*no entries found[.!]?$`),
-	regexp.MustCompile(`(?i)^([a-z0-9.-]+)\s+-\s+no match[.!]?$`),
+	regexp.MustCompile(`(?i)^(?:the\s+)?domain\s+["']?([^\s"']+?)["']?\s+(?:was\s+)?not found[.!]?$`),
+	regexp.MustCompile(`(?i)^no (?:match(?: found)?|record found) for\s+(?:domain\s*:?\s*)?["']?([^\s"']+?)["']?[.!]?$`),
+	regexp.MustCompile(`(?i)^([^\s"']+):\s*no entries found[.!]?$`),
+	regexp.MustCompile(`(?i)^([^\s"']+)\s+-\s+no match[.!]?$`),
 }
-var namedWHOISAvailable = regexp.MustCompile(`(?i)^domain\s+([a-z0-9.-]+)\s+is available for (?:purchase|registration)[.!]?$`)
+var namedWHOISAvailable = regexp.MustCompile(`(?i)^domain\s+([^\s"']+)\s+is available for (?:purchase|registration)[.!]?$`)
 
 func negativeWHOIS(line string) Result {
 	line = strings.ToLower(strings.TrimSpace(line))
+	if line == "this domain is currently not available for registration. please select other domain." {
+		return Unavailable
+	}
 	if line == "the domain name you apply can not be registered online. please consult your domain name registrar" {
 		return Restricted // CNNIC does not distinguish namespace names from other restrictions here.
+	}
+	if strings.TrimSuffix(line, ".") == "the domain name you requested was not found in our database" {
+		return NoRecord
 	}
 	if reservedResponse.MatchString(line) {
 		return Reserved
@@ -34,7 +40,7 @@ func negativeWHOIS(line string) Result {
 		}
 	}
 	switch strings.TrimRight(line, ".!") {
-	case "not found", "no entries found", "no match", "nothing found", "nothing found for this query", "object does not exist", "no_se_encontro_el_objeto/object_not_found":
+	case "not found", "no found", "no entries found", "no match", "nothing found", "nothing found for this query", "object does not exist", "no_se_encontro_el_objeto/object_not_found", "this query returned 0 objects":
 		return NoRecord
 	}
 	if line == "domain is not registered" || line == "domain not registered" || strings.TrimRight(line, ".!") == "the domain has not been registered" {

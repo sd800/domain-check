@@ -92,3 +92,15 @@ func TestTerminalControlsAndGraphemes(t *testing.T) {
 		}
 	}
 }
+
+func TestUnavailableRegistrationResult(t *testing.T) {
+	for lang, want := range map[Language]string{English: "Not available for registration", Chinese: "不可注册"} {
+		var b bytes.Buffer
+		if err := Format(&b, registry.Record{Domain: "example.test", Result: registry.Unavailable}, lang, 80); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(b.String(), want) || strings.Count(b.String(), "\n") != 2 {
+			t.Fatalf("%s: %s", lang, b.String())
+		}
+	}
+}

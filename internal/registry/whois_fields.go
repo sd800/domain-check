@@ -6,6 +6,30 @@ import (
 	"strings"
 )
 
+// Lex each line once. Object discovery and domain/contact interpretation share
+// the same labels and values; object flags replace a separate line-index map.
+type whoisLine struct {
+	raw, key, value        string
+	labeled, object, alias bool
+}
+
+func tokenizeWHOIS(response string) []whoisLine {
+	lines := make([]whoisLine, 0, min(strings.Count(response, "\n")+1, 256))
+	for raw := range strings.SplitSeq(response, "\n") {
+		if strings.TrimSpace(raw) == "" {
+			// One blank token preserves the section boundary. Extra blank
+			// lines carry no field or contact-object information.
+			if len(lines) == 0 || lines[len(lines)-1].raw != "" {
+				lines = append(lines, whoisLine{})
+			}
+			continue
+		}
+		key, value, labeled := splitWHOISLine(raw)
+		lines = append(lines, whoisLine{raw: raw, key: key, value: value, labeled: labeled})
+	}
+	return lines
+}
+
 // WHOIS has no common schema. These are field labels, rather than loose
 // substring matches: an administrative email must not become a registrant email.
 var whoisKeys = func() map[string]string {
@@ -33,8 +57,6 @@ var whoisKeys = func() map[string]string {
 }()
 
 var (
-	whoisLetterPrefix = regexp.MustCompile(`(?i)^[a-z]\.\s*(\[)`)
-	whoisNumberedNS   = regexp.MustCompile(`^(?:ns|domain server|name server)\s*\d+$`)
 	whoisDateSentence = regexp.MustCompile(`(?i)^(record created on|record expires on|record will expire on|registered on|first registration date)\s+(\d.*|before .*)$`)
 	whoisDateValue    = regexp.MustCompile(`(?i)^(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{4}|\d{1,2}-[a-z]{3}-\d{4})[ T]\d{1,2}:\d{2}`)
 )
@@ -61,8 +83,13 @@ func whoisKey(key string) string {
 	key = strings.ReplaceAll(key, "/", " / ")
 	key = strings.TrimRight(key, ". ")
 	key = strings.ToLower(Clean(key))
-	if whoisNumberedNS.MatchString(key) {
-		return "name server"
+	for _, prefix := range []string{"ns", "domain server", "name server"} {
+		if number, ok := strings.CutPrefix(key, prefix); ok {
+			number = strings.TrimSpace(number)
+			if number != "" && strings.Trim(number, "0123456789") == "" {
+				return "name server"
+			}
+		}
 	}
 	if strings.HasPrefix(key, "company english name (") {
 		return "company english name"
@@ -75,12 +102,20 @@ func whoisKey(key string) string {
 func splitWHOISLine(raw string) (key, value string, labeled bool) {
 	line := strings.TrimSpace(raw)
 	line = strings.TrimLeft(line, "* ")
-	line = whoisLetterPrefix.ReplaceAllString(line, "$1")
-	if match := whoisDateSentence.FindStringSubmatch(line); match != nil {
-		return whoisKey(match[1]), useful(match[2]), true
+	if len(line) >= 3 && (line[0] >= 'a' && line[0] <= 'z' || line[0] >= 'A' && line[0] <= 'Z') && line[1] == '.' {
+		if rest := strings.TrimLeft(line[2:], " \t\n\f\r"); strings.HasPrefix(rest, "[") {
+			line = rest
+		}
 	}
-	if whoisDateValue.MatchString(line) {
-		return "", whoisValue(line), false
+	if len(line) > 0 {
+		if line[0] == 'r' || line[0] == 'R' || line[0] == 'f' || line[0] == 'F' {
+			if match := whoisDateSentence.FindStringSubmatch(line); match != nil {
+				return whoisKey(match[1]), useful(match[2]), true
+			}
+		}
+		if line[0] >= '0' && line[0] <= '9' && whoisDateValue.MatchString(line) {
+			return "", whoisValue(line), false
+		}
 	}
 	if strings.HasPrefix(line, "[") {
 		if end := strings.IndexByte(line, ']'); end > 0 {

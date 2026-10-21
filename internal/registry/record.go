@@ -19,6 +19,7 @@ const (
 	Reserved      Result = "reserved"
 	NotAllowed    Result = "not-allowed"
 	Restricted    Result = "registration-restricted"
+	Unavailable   Result = "not-available"
 )
 
 type Record struct {
@@ -76,6 +77,26 @@ func NormalizeDomain(input string) (string, error) {
 
 // Clean prevents registry-supplied control characters from operating the terminal.
 func Clean(s string) string {
+	// Most labels and values already have ordinary single spaces. Preserve
+	// their backing string instead of allocating a field slice and a copy.
+	space := false
+	for i, r := range s {
+		separator := r <= ' ' || r == 127
+		if r >= 128 {
+			separator = unicode.IsSpace(r) || unicode.IsControl(r) || unicode.In(r, unicode.Cf)
+		}
+		if separator && (r != ' ' || i == 0 || space) {
+			return cleanFields(s)
+		}
+		space = separator
+	}
+	if space {
+		return cleanFields(s)
+	}
+	return s
+}
+
+func cleanFields(s string) string {
 	return strings.Join(strings.FieldsFunc(s, func(r rune) bool {
 		return unicode.IsSpace(r) || unicode.IsControl(r) || unicode.In(r, unicode.Cf)
 	}), " ")
@@ -83,11 +104,14 @@ func Clean(s string) string {
 
 func useful(s string) string {
 	s = Clean(s)
-	switch strings.ToLower(s) {
+	lower := strings.ToLower(s)
+	if redacted := strings.Trim(lower, "()[] "); redacted == "redacted" || strings.HasPrefix(redacted, "redacted for ") {
+		return ""
+	}
+	switch lower {
 	case "", "-", "--", "n/a", "null", "none", "not available", "not disclosed", "redacted", "redacted for privacy", "data protected":
 		return ""
 	}
-	lower := strings.ToLower(s)
 	for _, prefix := range []string{"data redacted", "redacted for ", "not disclosed", "hidden upon user request", "please visit ", "please query ", "visit www."} {
 		if strings.HasPrefix(lower, prefix) {
 			return ""

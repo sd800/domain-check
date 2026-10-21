@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	whoisGMTOffset   = regexp.MustCompile(`\(?GMT([+-])(\d{1,2})(?::(\d{2}))?\)?$`)
+	whoisGMTOffset   = regexp.MustCompile(`\(?(?:GMT|UTC)([+-])(\d{1,2})(?::(\d{2}))?\)?$`)
 	whoisOrdinalDate = regexp.MustCompile(`(?i)(\d{1,2})(?:st|nd|rd|th)\b`)
 	whoisILChange    = regexp.MustCompile(`\b(\d{8})(?:\s+\((?:Assigned|Changed)\))?$`)
 )
@@ -19,14 +19,20 @@ func formatWHOISTime(tld, value string) string {
 	if value == "" {
 		return ""
 	}
-	if tld == "il" {
+	profile := whoisProfiles[tld]
+	if profile.has(monthNameDates) {
+		if parsed, err := time.Parse("2-Jan-2006", value); err == nil {
+			return parsed.Format("2006-01-02")
+		}
+	}
+	if profile.has(changeHistoryDates) {
 		if match := whoisILChange.FindStringSubmatch(value); match != nil {
 			value = match[1]
 		}
 	}
 	// Numeric day-first dates are enabled only for registries whose format
 	// specifies that order; generic ambiguous dates keep their original text.
-	if strings.Contains(" ax hk mw mk ls ve rs sm tn il pt im ", " "+tld+" ") {
+	if profile.has(dayFirstDates) {
 		date := value
 		zone := ""
 		if index := strings.Index(date, " GMT"); index >= 0 {
@@ -43,24 +49,24 @@ func formatWHOISTime(tld, value string) string {
 			}
 		}
 	}
-	if tld == "gg" || tld == "je" {
+	if profile.has(ordinalDates) {
 		value = whoisOrdinalDate.ReplaceAllString(value, "$1")
 		value = strings.ReplaceAll(value, " at ", " ")
 	}
-	if tld == "tr" {
+	if profile.has(periodDateSuffix) {
 		value = strings.TrimSuffix(value, ".")
 	}
 	// These suffixes explicitly identify a timezone; unknown abbreviations
 	// are left intact instead of guessing their offset.
-	for suffix, offset := range map[string]string{"(JST)": "+09:00", "(UTC)": "+00:00", "(GMT)": "+00:00"} {
-		if strings.HasSuffix(value, suffix) {
-			value = strings.TrimSpace(strings.TrimSuffix(value, suffix)) + " " + offset
+	for _, zone := range whoisTimezoneSuffixes {
+		if strings.HasSuffix(value, zone.suffix) {
+			value = strings.TrimSpace(strings.TrimSuffix(value, zone.suffix)) + " " + zone.offset
 		}
 	}
-	if tld == "cl" {
-		for suffix, offset := range map[string]string{" CLST": " -03:00", " CLT": " -04:00"} {
-			if strings.HasSuffix(value, suffix) {
-				value = strings.TrimSuffix(value, suffix) + offset
+	if profile.has(chileanTimezones) {
+		for _, zone := range whoisChileanTimezoneSuffixes {
+			if strings.HasSuffix(value, zone.suffix) {
+				value = strings.TrimSuffix(value, zone.suffix) + zone.offset
 			}
 		}
 	}

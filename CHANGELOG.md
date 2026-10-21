@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.21
+
+- Replace the long, repeated README installation blocks with a short copy-and-paste entry point and a commented shared installer.
+- Keep checksum verification, temporary-file cleanup, and repeatable PATH setup; reuse the installer for optional source builds.
+- Remove redundant Go and manual-install command blocks, link release downloads, and fold source installation details away from the main instructions.
+
 ## 26.10.21.20
 
 - Put a complete macOS Terminal installation command first, with automatic architecture selection, latest-release download, and SHA-256 verification without requiring Go.

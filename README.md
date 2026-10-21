@@ -21,138 +21,40 @@ Domain Check from Registries is built around a simple principle: **a domain look
 
 ## Install
 
-### Install directly from Terminal
-
-Copy the entire block below into macOS Terminal. No Go installation or manual download is required. It selects Apple Silicon or Intel automatically, downloads the latest release, verifies its SHA-256 checksum, and installs `domain` into `~/.local/bin`.
-
-The same block adds that directory to `PATH` for the current terminal and future zsh sessions, then prints the installed version. The standard `PATH` line is added to `${ZDOTDIR:-$HOME}/.zshrc` only once.
+Copy this entire block into macOS Terminal. It installs the latest release for Apple Silicon or Intel, verifies its SHA-256 checksum, and makes `domain` available immediately. No Go installation or manual download is required.
 
 ```sh
-if /bin/sh <<'SH'
+/bin/sh <<'SH' && export PATH="$HOME/.local/bin:$PATH" && domain --version
 set -eu
-case "$(uname -m)" in
-  arm64) arch=arm64 ;;
-  x86_64) arch=amd64 ;;
-  *) printf '%s\n' 'Unsupported Mac architecture.' >&2; exit 1 ;;
-esac
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT HUP INT TERM
-curl -fsSL --retry 3 -o "$work/release.json" \
-  https://api.github.com/repos/sd800/domain-check/releases/latest
-tag=$(/usr/bin/plutil -extract tag_name raw -o - "$work/release.json")
-version=${tag#v}
-case "$version" in
-  ''|*[!0-9.]*) printf '%s\n' 'Invalid release version.' >&2; exit 1 ;;
-esac
-archive="domain_${version}_darwin_${arch}.tar.gz"
-base="https://github.com/sd800/domain-check/releases/download/$tag"
-curl -fL --retry 3 -o "$work/$archive" "$base/$archive"
-curl -fsSL --retry 3 -o "$work/checksums.txt" "$base/checksums_${version}.txt"
-(
-  cd "$work"
-  awk -v file="$archive" '$2 == file { print; n++ } END { exit n != 1 }' \
-    checksums.txt > verify.txt
-  shasum -a 256 -c verify.txt
-)
-tar -xOf "$work/$archive" domain > "$work/domain"
-mkdir -p "$HOME/.local/bin"
-install -m 755 "$work/domain" "$HOME/.local/bin/domain"
-profile="${ZDOTDIR:-$HOME}/.zshrc"
-mkdir -p "$(dirname "$profile")"
-grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
-  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
+installer=$(mktemp)
+trap 'rm -f "$installer"' EXIT
+curl -fsSL --retry 3 -o "$installer" \
+  https://raw.githubusercontent.com/sd800/domain-check/main/scripts/install.sh
+sh "$installer"
 SH
-then
-  export PATH="$HOME/.local/bin:$PATH"
-  domain --version
-else
-  printf '%s\n' 'Installation failed.' >&2
-  false
-fi
 ```
 
-The alternative methods below install into the same directory and include the same `PATH` setup.
+The [commented installer](scripts/install.sh) puts the executable in `~/.local/bin` and adds a standard `PATH` entry to `${ZDOTDIR:-$HOME}/.zshrc` only once. The block above also sets `PATH` in the current terminal and prints the installed version; no restart is needed. Run the same block again to install the latest release.
 
-### Install with Go
+Archives and checksum files are also available on the [Releases page](https://github.com/sd800/domain-check/releases).
 
-Requires Go 1.26 or newer. Copy the entire block into Terminal:
+<details>
+<summary>Build and install from source</summary>
+
+Requires Go 1.26 or newer and Git. Run this block from the directory where you want the checkout. It builds the executable, uses the same installer for installation and future zsh sessions, then enables `domain` in the current terminal:
 
 ```sh
-if /bin/sh <<'SH'
-set -eu
-mkdir -p "$HOME/.local/bin"
-GOBIN="$HOME/.local/bin" go install github.com/sd800/domain-check/cmd/domain@latest
-profile="${ZDOTDIR:-$HOME}/.zshrc"
-mkdir -p "$(dirname "$profile")"
-grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
-  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
-SH
-then
-  export PATH="$HOME/.local/bin:$PATH"
-  domain --version
-else
-  printf '%s\n' 'Installation failed.' >&2
-  false
-fi
+git clone https://github.com/sd800/domain-check.git &&
+cd domain-check &&
+make build &&
+sh scripts/install.sh bin/domain &&
+export PATH="$HOME/.local/bin:$PATH" &&
+domain --version
 ```
 
-### Download a macOS binary
+To build without installing, run `make build` and use `./bin/domain`.
 
-Download and extract the archive for your Mac from [Releases](https://github.com/sd800/domain-check/releases):
-
-| Mac | Archive suffix |
-| --- | --- |
-| Apple Silicon | `darwin_arm64.tar.gz` |
-| Intel | `darwin_amd64.tar.gz` |
-
-Open Terminal in the extracted directory, then copy the entire block:
-
-```sh
-if /bin/sh <<'SH'
-set -eu
-mkdir -p "$HOME/.local/bin"
-install -m 755 domain "$HOME/.local/bin/domain"
-profile="${ZDOTDIR:-$HOME}/.zshrc"
-mkdir -p "$(dirname "$profile")"
-grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
-  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
-SH
-then
-  export PATH="$HOME/.local/bin:$PATH"
-  domain --version
-else
-  printf '%s\n' 'Installation failed.' >&2
-  false
-fi
-```
-
-Each release includes a SHA-256 checksum file. To verify a manually downloaded archive, compare the output of `shasum -a 256` for that archive with its entry in the checksum file. The direct Terminal method verifies the checksum automatically.
-
-### Build from source
-
-Requires Go 1.26 or newer and Git. Run this block from the directory where you want the checkout:
-
-```sh
-if /bin/sh <<'SH'
-set -eu
-git clone https://github.com/sd800/domain-check.git
-cd domain-check
-make install PREFIX="$HOME/.local"
-profile="${ZDOTDIR:-$HOME}/.zshrc"
-mkdir -p "$(dirname "$profile")"
-grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$profile" 2>/dev/null ||
-  printf '\n%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
-SH
-then
-  export PATH="$HOME/.local/bin:$PATH"
-  domain --version
-else
-  printf '%s\n' 'Installation failed.' >&2
-  false
-fi
-```
-
-`make install` defaults to `~/.local/bin/domain`. Use `make install PREFIX=/usr/local` to choose another prefix, or `make build` to create `bin/domain` without installing it. The complete copy-and-paste commands above use the default prefix.
+</details>
 
 ## Usage
 

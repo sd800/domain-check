@@ -18,6 +18,7 @@ import (
 type options struct {
 	domain  string
 	lang    output.Language
+	intro   bool
 	help    bool
 	version bool
 }
@@ -45,7 +46,8 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 		return o, nil
 	}
 	if o.domain == "" {
-		return o, fmt.Errorf("missing domain")
+		o.intro = true
+		return o, nil
 	}
 	domain, err := registry.NormalizeDomain(o.domain)
 	if err != nil {
@@ -68,6 +70,13 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 	}
 	if o.version {
 		fmt.Fprintln(stdout, "Domain Check from Registries "+version)
+		return 0
+	}
+	if o.intro {
+		if _, err := fmt.Fprint(stdout, introduction(o.lang, version)); err != nil {
+			fmt.Fprintln(stderr, "domain: "+registry.Clean(err.Error()))
+			return 3
+		}
 		return 0
 	}
 	client := registry.NewClient(registry.DefaultCacheDir())
@@ -130,6 +139,29 @@ func errorText(lang output.Language, err error) string {
 		return registry.Clean(query.Error())
 	}
 	return output.Text(lang, message[0], message[1]) + ": " + query.Detail
+}
+
+func introduction(lang output.Language, version string) string {
+	return "Domain Check from Registries " + version + "\n\n" + output.Text(lang, `Query domain registration information directly from registries.
+Registrar referrals are never followed.
+
+Usage: domain [en|zh] <domain>
+
+  domain example.com          Use the device language
+  domain -en example.com      English
+  domain zh shanghai.cn       Simplified Chinese
+
+Run domain --help for more options.
+`, `直接向注册局查询域名注册信息，始终不跟随注册商。
+
+用法: domain [en|zh] <域名>
+
+  domain example.com          按设备语言输出
+  domain -en example.com      英文
+  domain zh shanghai.cn       简体中文
+
+运行 domain --help 查看更多选项。
+`)
 }
 
 func help(lang output.Language) string {

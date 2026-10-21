@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.21.3
+
+- Show a localized introduction, version, and usage examples when `domain` is run without a domain, including with a language selector alone.
+- Return exit code `0` for this offline installation check without accessing registry services or updating the IANA cache.
+
 ## 26.10.21.2
 
 - Update the MIT License attribution to Songming.org.

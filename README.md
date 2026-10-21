@@ -55,6 +55,7 @@ go install github.com/sd800/domain-check/cmd/domain@latest
 ## Usage
 
 ```sh
+domain                           # Version and a short introduction; exit code 0
 domain example.com               # Device language
 domain -en example.com           # English
 domain zh shanghai.cn            # Simplified Chinese
@@ -64,6 +65,8 @@ domain 例子.中国                  # Internationalized domain name
 domain --help
 domain --version
 ```
+
+Running `domain` without a domain prints the version, a short introduction, and usage examples in the device language, then exits successfully. Use `domain en` or `domain zh` to select the introduction language. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
 
 Both language selectors accept zero, one, or two leading hyphens:
 
@@ -144,7 +147,7 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | A registry record was returned, or help/version was displayed |
+| `0` | A registry record was returned, or the introduction, help, or version was displayed |
 | `1` | No registry record, or an explicit registration restriction |
 | `2` | Invalid arguments or domain |
 | `3` | Discovery, network, service, response, or output error |

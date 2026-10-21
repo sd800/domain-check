@@ -3,6 +3,8 @@ package cli
 import (
 	"bytes"
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/sd800/domain-check/internal/output"
@@ -23,10 +25,44 @@ func TestLanguageSelectors(t *testing.T) {
 	if err != nil || o.lang != output.Chinese {
 		t.Fatalf("%+v, %v", o, err)
 	}
-	for _, args := range [][]string{nil, {"zh"}, {"---zh", "example.com"}, {"one.com", "two.com"}, {"--server", "registrar.test"}} {
+	for _, args := range [][]string{{"---zh", "example.com"}, {"one.com", "two.com"}, {"--server", "registrar.test"}} {
 		if _, err := parseArgs(args, output.English); err == nil {
 			t.Errorf("accepted %v", args)
 		}
+	}
+}
+
+func TestNoDomainShowsOfflineIntroduction(t *testing.T) {
+	for _, test := range []struct {
+		name, locale, usage string
+		args                []string
+	}{
+		{"English device", "en_US.UTF-8", "Usage:", nil},
+		{"Chinese device", "zh_CN.UTF-8", "用法:", nil},
+		{"English selector", "zh_CN.UTF-8", "Usage:", []string{"-en"}},
+		{"Chinese selector", "en_US.UTF-8", "用法:", []string{"zh"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("LC_ALL", test.locale)
+			cache := t.TempDir()
+			t.Setenv("DOMAIN_CACHE_DIR", cache)
+			// Even without a usable network context, the installation check succeeds.
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			var out, errOut bytes.Buffer
+			if code := Run(ctx, test.args, &out, &errOut, "26.10.21.3"); code != 0 || errOut.Len() != 0 {
+				t.Fatalf("exit %d, stderr %q", code, errOut.String())
+			}
+			for _, want := range []string{"Domain Check from Registries 26.10.21.3", test.usage, "domain example.com", "domain --help"} {
+				if !strings.Contains(out.String(), want) {
+					t.Errorf("missing %q in %q", want, out.String())
+				}
+			}
+			entries, err := os.ReadDir(cache)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("installation check touched cache: %v, %v", entries, err)
+			}
+		})
 	}
 }
 

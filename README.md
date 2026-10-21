@@ -105,7 +105,7 @@ Direct domain inputs are queried exactly as supplied. A trailing dot is accepted
 
 ## Output
 
-An illustrative registry response:
+Standardized layout for query results:
 
 ```text
 Domain Name:         example.com
@@ -125,7 +125,7 @@ Name Server:         ns2.example.com
 DNSSEC:              unsigned
 ```
 
-The labels in Chinese are:
+The standardized layout with Simplified Chinese labels:
 
 ```text
 域名:         example.com

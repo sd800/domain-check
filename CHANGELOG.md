@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.21.16
+
+- Show the locally decoded Unicode name directly below an internationalized domain's ASCII name, labeled `IDN` in English or `国际化域名` in Chinese, when IDNA conversion and identity validation succeed.
+- Apply the existing content alignment and wrapping to the new row, including missing-record and registration-restriction results.
+- Rename the README output introduction to describe the standardized query-result layout while keeping its examples unchanged.
+
 ## 26.10.21.15
 
 - Revise the README introduction to highlight readable registration details and show both domain-name and full-URL queries.

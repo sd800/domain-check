@@ -17,8 +17,8 @@ const (
 )
 
 var labels = map[Language][]string{
-	English: {"Domain Name", "Registration Time", "Expiration Time", "Last Changed Time", "Domain Status", "Registrar", "Registrant", "Registrant Email", "Name Server", "DNSSEC", "Result"},
-	Chinese: {"域名", "注册时间", "过期时间", "更新时间", "状态", "注册商", "注册人", "联系邮箱", "域名服务器", "DNSSEC", "查询结果"},
+	English: {"Domain Name", "Registration Time", "Expiration Time", "Last Changed Time", "Domain Status", "Registrar", "Registrant", "Registrant Email", "Name Server", "DNSSEC", "Result", "IDN"},
+	Chinese: {"域名", "注册时间", "过期时间", "更新时间", "状态", "注册商", "注册人", "联系邮箱", "域名服务器", "DNSSEC", "查询结果", "国际化域名"},
 }
 
 type entry struct {
@@ -83,6 +83,7 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 		}
 	}
 	row(0, record.Domain)
+	row(11, unicodeDomain(record.Domain))
 	if record.Result != "" {
 		row(10, ResultText(lang, record.Result))
 		_, err := io.WriteString(w, b.String())

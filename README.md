@@ -197,4 +197,4 @@ Pushing a `vYY.M.D.NUM` tag runs the release workflow, checks its agreement with
 
 ## License
 
-[MIT](LICENSE)
+[MIT License](LICENSE)

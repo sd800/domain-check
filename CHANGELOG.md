@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.21.2
+
+- Update the MIT License attribution to Songming.org.
+- Use the full MIT License name in the README.
+
 ## 26.10.21.1
 
 - Add the `domain` command for direct registry domain-registration lookups.

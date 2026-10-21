@@ -79,3 +79,31 @@ func TestRDAPDateOnlyEvents(t *testing.T) {
 		t.Fatalf("date-only events were lost or changed: %+v, %v", r, err)
 	}
 }
+
+func TestRegistrySpecificWHOISDates(t *testing.T) {
+	for _, test := range []struct{ tld, input, want string }{
+		{"pt", "21/10/2000 01:02:03", "2000-10-21 01:02:03"},
+		{"rs", "21.10.2000 01:02:03", "2000-10-21 01:02:03"},
+		{"hk", "21-10-2000", "2000-10-21"},
+		{"be", "Sat Oct 21 2000", "2000-10-21"},
+		{"jo", "Oct 21 2000 1:02PM", "2000-10-21 13:02:00"},
+		{"at", "20001021 01:02:03", "2000-10-21 01:02:03"},
+		{"jp", "2000/10/21 01:02:03 (JST)", "2000-10-20 16:02:03 UTC"},
+		{"tn", "21-10-2000 01:02:03 GMT+1", "2000-10-21 00:02:03 UTC"},
+		{"kz", "2000-10-21 01:02:03 (GMT+0:00)", "2000-10-21 01:02:03 UTC"},
+		{"gg", "21st October 2000 at 01:02:03.000", "2000-10-21 01:02:03"},
+		{"tr", "2000-Oct-21.", "2000-10-21"},
+		{"cl", "2000-10-21 01:02:03 CLST", "2000-10-21 04:02:03 UTC"},
+		{"cl", "2000-10-21 01:02:03 CLT", "2000-10-21 05:02:03 UTC"},
+		{"tm", "Never", "Never"},
+		{"ro", "Before 2000", "Before 2000"},
+		{"cn", "03/04/2000", "03/04/2000"},
+		{"cn", "2000-10-21 01:02:03 CST", "2000-10-21 01:02:03 CST"},
+	} {
+		t.Run(test.tld+" "+test.input, func(t *testing.T) {
+			if got := formatWHOISTime(test.tld, test.input); got != test.want {
+				t.Fatalf("got %q; want %q", got, test.want)
+			}
+		})
+	}
+}

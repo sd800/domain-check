@@ -1,0 +1,121 @@
+package registry
+
+import (
+	"html"
+	"regexp"
+	"strings"
+)
+
+// WHOIS has no common schema. These are field labels, rather than loose
+// substring matches: an administrative email must not become a registrant email.
+var whoisKeys = func() map[string]string {
+	groups := map[string][]string{
+		"domain":       {"domain", "domain name", "domainname", "dominio", "ascii"},
+		"registration": {"created", "created on", "created date", "creation date", "create date", "registration time", "registration date", "registered", "registered on", "registered date", "registered on date", "assigned", "domain record activated", "domain created", "domain create date", "domain registration date", "domain name commencement date", "first registration date", "record created on", "record created", "activation", "fecha de registro"},
+		"expiration":   {"expires", "expires on", "expire", "expire date", "expiry", "expiry date", "expiration", "expiration date", "expiration time", "expiration on", "registry expiry date", "registrar registration expiration date", "paid till", "valid until", "validity", "domain expires", "domain expiration date", "record expires on", "record will expire on", "renewal date", "fecha de vencimiento"},
+		"changed":      {"updated", "updated on", "updated date", "update date", "last update", "last updated", "last updated on", "last updated date", "last update time", "last modified", "last modified date", "last changed", "last changed time", "changed", "modified", "modified date", "modification date", "domain record last updated", "domain last updated date"},
+		"status":       {"status", "state", "domain status", "domain state", "registration status", "query status"},
+		"registrar":    {"registrar", "registrar name", "sponsoring registrar", "current registrar", "current registar", "registration service provider"},
+		"registrant":   {"registrant", "registrant name", "registrant contact name", "holder", "owner", "owner name"},
+		"organization": {"registrant organization", "registrant organisation", "registrant contact organization", "registrant contact organisation"},
+		"email":        {"registrant email", "registrant e mail", "registrant contact email", "registrant contact e mail", "holder email", "owner email"},
+		"nameserver":   {"name server", "name servers", "nameserver", "nameservers", "nserver", "nservers", "hostname", "host name", "dns", "dns servers", "domain servers", "domain nameservers", "domain name servers", "domain servers in listed order", "name servers information", "name server information", "name server (db)", "primary server", "secondary server"},
+		"dnssec":       {"dnssec", "dnssec signed", "signed", "domain signed"},
+		"ds":           {"ds", "ds record", "ds rdata", "dnskey", "signing key"},
+	}
+	keys := make(map[string]string)
+	for field, labels := range groups {
+		for _, label := range labels {
+			keys[label] = field
+		}
+	}
+	return keys
+}()
+
+var (
+	whoisLetterPrefix = regexp.MustCompile(`(?i)^[a-z]\.\s*(\[)`)
+	whoisNumberedNS   = regexp.MustCompile(`^(?:ns|domain server|name server)\s*\d+$`)
+	whoisDateSentence = regexp.MustCompile(`(?i)^(record created on|record expires on|record will expire on|registered on|first registration date)\s+(\d.*|before .*)$`)
+)
+
+func whoisKey(key string) string {
+	key = strings.Trim(strings.TrimSpace(key), "[]* ")
+	key = strings.ReplaceAll(strings.ReplaceAll(key, "_", " "), "-", " ")
+	key = strings.TrimRight(key, ". ")
+	key = strings.ToLower(Clean(key))
+	if whoisNumberedNS.MatchString(key) {
+		return "name server"
+	}
+	if strings.HasPrefix(key, "company english name (") {
+		return "company english name"
+	}
+	return key
+}
+
+// Read colon, dot-leader, JPRS bracket, and a small set of colonless date
+// labels. Arbitrary prose is never split on whitespace into a field/value.
+func splitWHOISLine(raw string) (key, value string, labeled bool) {
+	line := strings.TrimSpace(raw)
+	line = strings.TrimLeft(line, "* ")
+	line = whoisLetterPrefix.ReplaceAllString(line, "$1")
+	if match := whoisDateSentence.FindStringSubmatch(line); match != nil {
+		return whoisKey(match[1]), useful(match[2]), true
+	}
+	if strings.HasPrefix(line, "[") {
+		if end := strings.IndexByte(line, ']'); end > 0 {
+			key = whoisKey(line[1:end])
+			return key, whoisFieldValue(key, strings.TrimLeft(line[end+1:], ": ")), true
+		}
+	}
+	if key, value, ok := strings.Cut(line, ":"); ok && len(key) < 180 && !strings.Contains(key, "@") && !strings.HasPrefix(key, "http") {
+		// A bare NS line may contain IPv6 glue; its first colon is not
+		// a label delimiter. Dot leaders on real labels remain supported.
+		first := strings.Fields(key)
+		if len(first) > 0 {
+			if _, err := NormalizeDomain(first[0]); err == nil {
+				return "", whoisValue(line), false
+			}
+		}
+		key = whoisKey(key)
+		return key, whoisFieldValue(key, value), true
+	}
+	key = whoisKey(line)
+	if whoisSection(key) != "" || whoisKeys[key] != "" || key == "name" || key == "organization" || key == "ip address" {
+		return key, "", true
+	}
+	return "", whoisValue(line), false
+}
+
+func whoisValue(value string) string {
+	// Some older registries emit HTML entities or fill the value with dots.
+	return useful(html.UnescapeString(strings.TrimLeft(strings.TrimSpace(value), ".")))
+}
+
+func whoisFieldValue(key, value string) string {
+	if whoisKeys[key] == "status" && strings.EqualFold(strings.TrimSpace(value), "not available") {
+		return Clean(value) // This is a real registered-domain status in .be.
+	}
+	return whoisValue(value)
+}
+
+// A section is kept across blank lines; several registries put a blank line
+// between a heading and its first value. Only explicit headings change scope.
+func whoisSection(key string) string {
+	switch key {
+	case "registrant", "holder", "owner", "titular", "registrant contact", "registrant contact information", "owner contact", "domain managers", "domain registrant":
+		return "registrant"
+	case "registrar":
+		return "registrar"
+	case "administrative contact", "administrative contacts", "administrativ contact", "administrative", "admin contact", "admin c", "technical contact", "technical contacts", "technical", "tech contact", "tech", "tech c", "zone c", "billing contact", "billing", "contacto administrativo", "contacto tecnico", "contacto financiero", "registrar technical contacts", "registrar contact information", "reseller":
+		return "other-contact"
+	case "name server", "name servers", "nameservers", "nservers", "dns servers", "domain servers", "domain nameservers", "domain name servers", "domain servers in listed order", "name servers information", "name server information":
+		return "nameserver"
+	case "domain", "domain information", "domain name information", "relevant dates", "additional info", "details":
+		return "domain"
+	case "whois", "whois server", "disclaimer", "status information", "flags", "contact information":
+		return "metadata"
+	case "keys", "dnssec ds records":
+		return "keys"
+	}
+	return ""
+}

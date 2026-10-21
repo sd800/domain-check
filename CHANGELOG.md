@@ -1,5 +1,14 @@
 # Changelog
 
+## 26.10.21.10
+
+- Broaden WHOIS field matching across registry formats for ASCII top-level domains without RDAP, including dot leaders, bracketed labels, colonless dates, bundled domain names, and multiline records.
+- Resolve registrant, nameserver-set, and DNSSEC-key objects included in the same registry response without making additional queries or following registrar referrals.
+- Keep domain dates and registrant details separate from administrative, technical, and registrar contact objects; hide unresolved contact handles and redacted data.
+- Normalize additional registry-specific date formats and explicit timezones while preserving approximate dates and unknown timezone abbreviations.
+- Add registry-specific query syntax and legacy character decoding, and prevent WHOIS footer text from becoming a false availability result.
+- Expand synthetic regression coverage for registry formats, contact scoping, response identity, DNSSEC, referral prevention, and lookup privacy.
+
 ## 26.10.21.9
 
 - Normalize date-only values to `YYYY-MM-DD` and timestamps to `YYYY-MM-DD HH:MM:SS`, preserving the supplied precision.

@@ -81,7 +81,7 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 	if err != nil {
 		return Record{}, err
 	}
-	response, err := c.whois(ctx, host, domain)
+	response, err := c.whois(ctx, host, registryWHOISQuery(host, domain))
 	if err != nil {
 		return Record{}, queryError("whois-failed", err.Error())
 	}

@@ -86,6 +86,12 @@ func useful(s string) string {
 	case "", "-", "--", "n/a", "null", "none", "not available", "not disclosed", "redacted", "redacted for privacy", "data protected":
 		return ""
 	}
+	lower := strings.ToLower(s)
+	for _, prefix := range []string{"data redacted", "redacted for ", "not disclosed", "hidden upon user request", "please visit ", "please query ", "visit www."} {
+		if strings.HasPrefix(lower, prefix) {
+			return ""
+		}
+	}
 	return s
 }
 

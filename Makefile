@@ -22,6 +22,7 @@ security:
 install: build
 	install -d "$(DESTDIR)$(PREFIX)/bin"
 	install -m 755 build/bin/domain "$(DESTDIR)$(PREFIX)/bin/domain"
+	@if [ -z "$(DESTDIR)" ]; then "$(PREFIX)/bin/domain" --web-refresh; fi
 
 uninstall:
 	rm -f "$(DESTDIR)$(PREFIX)/bin/domain"

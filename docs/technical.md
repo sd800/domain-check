@@ -1,10 +1,10 @@
 # Technical details
 
-Domain Check from Registries is a macOS CLI written in Go. Its executable is `domain`. It discovers registry services from IANA, extracts registration details locally, and renders English or Simplified Chinese output.
+Domain Check from Registries is a macOS CLI written in Go, with an optional local browser interface. Its executable is `domain`. Both interfaces share IANA service discovery, local response parsing, and English or Simplified Chinese presentation.
 
 ## Lookup flow
 
-1. Parse one command or one domain/URL, with optional language selectors. Introduction, help, version, and standalone language commands finish without registry discovery.
+1. Parse one command or one domain/URL, with optional language selectors. Introduction, help, version, setup, and standalone language commands finish without registry discovery.
 2. Validate a domain and convert internationalized labels to lowercase ASCII/Punycode. For URL input, discard credentials, port, path, query, and fragment locally, then select the registry-level registrable domain. The pasted URL is never fetched.
 3. Load the complete IANA `dns.json` document and select the longest matching suffix. Prefer an advertised HTTPS endpoint. If IANA advertises RDAP, use it even when it fails; failure never triggers a WHOIS fallback.
 4. When no RDAP endpoint is advertised, obtain the active suffix's WHOIS hostname from the complete IANA `tlds.json` document and make one TCP port 43 query. Its `rdap_base_urls` fields do not override `dns.json`.
@@ -44,7 +44,23 @@ RDAP `404` is reported as no registry record. Registration availability and rest
 
 Label width is measured in terminal display cells. The content column follows the longest label's colon by three spaces. `DNSSEC` does not determine the Chinese column. Continuations begin at the same content column; wrapping preserves grapheme clusters. Terminal dimensions take precedence over `COLUMNS`, with an 80-column fallback.
 
-`en`, `zh`, and `auto` accept zero, one, or two leading hyphens. A standalone language command saves and confirms the default. With a domain, URL, help, version, or update, the selection applies only to that invocation and bypasses reading the saved language. The last selector wins. Device language supplies the initial default; explicit locale overrides and fallback behavior are documented in [Usage](../README.md#usage).
+`en`, `zh`, and `auto` accept zero, one, or two leading hyphens. A standalone language command saves and confirms the default. With a domain, URL, help, version, update, or setup, the selection applies only to that invocation and bypasses reading the saved language. The last selector wins. Device language supplies the initial default; explicit locale overrides and fallback behavior are documented in [Usage](../README.md#usage).
+
+## Local browser interface
+
+`domain setup`, `domain -setup`, and `domain --setup` open the same two-step menu. The first step controls the web interface; the second controls automatic startup at macOS login. The current user's LaunchAgent runs the installed executable with a fixed internal server argument. Setup uses `/bin/launchctl` directly, with separate arguments and XML-escaped plist values. It does not invoke a shell, require administrator privileges, or modify the hosts file.
+
+The server binds both `127.0.0.1:20771` and `[::1]:20771`. Browsers resolve the reserved `.localhost` hostname to loopback, making the interface available at `http://domain-check.localhost:20771`. A port conflict leaves the previous settings intact and reports a setup error.
+
+HTML, CSS, JavaScript, and the text-free SVG logo are embedded in the executable. Content fingerprints in asset URLs keep cached assets consistent after an update. The title prefers the locally installed Segoe UI, with Arial and sans-serif fallbacks. Body text uses the system Arial and Chinese sans-serif stacks, including PingFang and Microsoft YaHei, at a 15px base size with normal letter spacing. Field labels are 14px and the copyright is 11px. The blue palette adapts to light and dark appearance. Search-box focus border and shadow changes are inactive; their CSS is retained in a comment for future adjustment. No remote font or asset is loaded.
+
+Before first paint, a small CSP-hashed script applies the saved theme and language. Browser language and system appearance supply the initial defaults. Queries use `fetch` without navigation; the current record stays in place while another query is pending and is replaced atomically on success. Field columns retain a fixed alignment across languages, with a wider gap between labels and values. Long records scroll with the page. Submitting an empty input clears the result and returns to the initial view, cancelling any pending lookup. Only the theme and language are stored in browser local storage, separately from CLI preferences.
+
+A direct route such as `/example.com` or `/https%3A//www.google.com` decodes into the search input. The server avoids automatic path-cleaning redirects, preserving embedded URL separators. Input is submitted in a bounded JSON POST to the same-origin API and passes through the shared domain/URL normalizer before registry access. The browser does not load the pasted URL. After a successful query the address returns to `/` without creating a new history entry. Reloading starts with an empty result; responses and query inputs are not persisted.
+
+The API requires a per-process random token, a permitted Host, loopback client address, and same-origin browser request metadata. It accepts at most two simultaneous lookups and thirty starts per minute, with a 45-second query deadline. The shared registry client retains its destination validation and registry-only routing. HTTP access and error logging are disabled; the LaunchAgent directs process output to `/dev/null`.
+
+Turning off automatic startup keeps the service loaded for the current login session. Turning it on installs the plist in `~/Library/LaunchAgents`; turning the web service off unloads the job and removes both possible plists. The installer and `make install` refresh an enabled service after updating the executable, preserving the selected settings.
 
 ## Persistent state
 
@@ -52,13 +68,17 @@ Label width is measured in terminal display cells. The content column follows th
 | --- | --- |
 | `~/Library/Caches/domain-check/dns.json` | Complete IANA RDAP bootstrap document. |
 | `~/Library/Caches/domain-check/tlds.json` | Complete IANA TLD registry document. |
-| `~/Library/Application Support/domain-check/config.json` | Language preference only. |
+| `~/Library/Application Support/domain-check/config.json` | CLI language preference. |
+| `~/Library/Application Support/domain-check/web.json` | Web enabled and start-at-login choices. |
+| `~/Library/Application Support/domain-check/web-agent.plist` | Current-session LaunchAgent when login startup is off. |
+| `~/Library/LaunchAgents/org.songming.domain-check.web.plist` | LaunchAgent when login startup is on. |
+| Browser local storage | Web theme and language choices only. |
 
-`DOMAIN_CACHE_DIR` and `DOMAIN_CONFIG_DIR` override the respective directories. No queried domains, pasted URLs, responses, or lookup history are written by the CLI.
+`DOMAIN_CACHE_DIR` and `DOMAIN_CONFIG_DIR` override the respective directories. Neither interface writes queried domains, pasted URLs, responses, or lookup history. Browser and shell history follow their own settings.
 
 Cache age is checked only when a lookup needs the document. One calendar month after the last successful fetch, that lookup attempts a refresh, clamping month-end dates. A validated stale document may be reused with a warning after a failed automatic refresh; its age is not reset. Invalid documents are never routing evidence.
 
-`domain update` validates both complete downloads before replacing either file. Each file is replaced atomically; a second save failure preserves the successful first refresh and reports the incomplete update. There are no background updates or per-suffix cache files.
+`domain update` validates both complete downloads before replacing either file. Each file is replaced atomically; a second save failure preserves the successful first refresh and reports the incomplete update. The optional web service refreshes IANA data only in response to a lookup. There are no scheduled updates or per-suffix cache files.
 
 ## Code organization
 
@@ -66,6 +86,7 @@ Cache age is checked only when a lookup needs the document. One calendar month a
 | --- | --- |
 | [`cmd/domain`](../cmd/domain) | Executable entry point. |
 | [`internal/cli`](../internal/cli) | Arguments, locale, preferences, exit status, and terminal width. |
+| [`internal/localweb`](../internal/localweb) | Embedded browser interface, local HTTP API, and current-user service management. |
 | [`internal/registry`](../internal/registry) | Input normalization, IANA discovery, registry transports, and response parsing. |
 | [`internal/output`](../internal/output) | Aligned bilingual records and grapheme-aware wrapping. |
 | [`internal/safeio`](../internal/safeio) | Bounded reads of regular local data files. |

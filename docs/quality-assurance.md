@@ -36,16 +36,27 @@ make dist
 | Discovery | Use longest-suffix IANA RDAP routing, prefer HTTPS, and use bulk TLD WHOIS discovery only when RDAP is absent. |
 | Registry boundary | Never follow registrar referrals, linked entities, or unresolved handles; constrain redirects to the same query at listed registry endpoints. |
 | Network destinations | Reject invalid hosts, forbidden URL components, private or mixed DNS answers, and disguised local addresses; connect to the validated IPs. |
-| Cache / preferences | Store only full IANA documents and language; enforce calendar-month refresh, validated stale fallback, bounded reads, private writes, and explicit partial-save errors. |
+| Cache / preferences | Store only full IANA documents, language, and optional web settings; enforce calendar-month refresh, validated stale fallback, bounded reads, private writes, and explicit partial-save errors. |
 | RDAP parsing | Validate domain and Unicode identities, events, embedded roles and jCards, signing data, and response-size/depth/field limits. |
 | WHOIS parsing | Verify positive and negative identities, exact labels, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
 | Contact attribution | Prefer a disclosed registrant organization; do not substitute administrative, technical, billing, or registrar contact values. |
 | Dates | Preserve date precision, normalize recognized formats, convert only explicit zones to UTC, and exclude contact/database timestamps from domain events. |
 | Output | Omit undisclosed fields; align English and Chinese by display cells; preserve grapheme clusters and safe local IDN display; neutralize terminal controls in fields and errors. |
 | Availability | Keep no record, not registered, reserved, restricted, unavailable, and operational failure distinct. |
+| Local web API | Accept only loopback clients, allowlisted Hosts, same-origin metadata, JSON and the session token; enforce body, rate, concurrency and time limits; preserve the registry-only engine. |
+| Web rendering | Render remote fields as text, omit missing values, preserve dates and IDN identities, retain the old record while pending, and keep queries out of storage and logs. |
+| Setup / service | Verify all setup selector forms and both menus, saved status, current-session operation, login startup, disabling, port conflicts, update refresh, and failed-transition preservation. |
 | Installation | Validate release tags, checksum manifests, expected archive members, links, duplicate paths, source arguments, replacement failures, and repeatable standard PATH setup. |
 
 Public tests use synthetic records to protect registrant privacy. Test transports verify the actual requested destinations and reject unauthorized requests alongside the parser assertions.
+
+## Browser and macOS service verification
+
+When changing the browser interface, run the server from a native build and inspect it in a current browser at `http://domain-check.localhost:20771`. Use synthetic records for screenshots and deterministic browser checks. Verify desktop and phone widths, both languages, system/light/dark appearance, and saved preferences on reload. Confirm a 15px body base, 14px field labels, 11px copyright, normal letter spacing, no remote fonts or assets, keyboard submission, stable search-box borders on focus, visible button focus, and natural page scrolling for long records without horizontal overflow.
+
+Exercise direct paths containing a domain, a partially encoded full URL, and a fully encoded URL. Confirm URL normalization through the shared registry engine, safe rendering of HTML-shaped text, explicit negative results, and useful errors. A new query must retain the current result while pending; theme switches must preserve result nodes. The console must show no script or CSP errors. Browser storage must contain only appearance and language choices.
+
+On macOS, test the actual two-step setup menu with web enable/disable and login startup enable/disable. Inspect the user LaunchAgent registration, verify both loopback listeners, and confirm the service survives closing the terminal. Check that disabling removes registrations, that no administrator prompt or hosts-file change occurs, and that executable installation refreshes a previously enabled service. Restore the desired user settings after the checks.
 
 ## Fuzz testing
 

@@ -77,6 +77,7 @@ domain en                        # Save English as the default
 domain auto                      # Restore device-language detection
 domain update                    # Refresh IANA RDAP and WHOIS data immediately
 domain --update                  # Same explicit refresh
+domain setup                     # Configure the optional local web interface
 domain 例子.中国                  # Internationalized domain name
 domain 'https://www.example.com/path?item=1&lang=zh'
 domain --help
@@ -95,9 +96,9 @@ Language selectors accept zero, one, or two leading hyphens:
 | Simplified Chinese | `zh`, `-zh`, `--zh` |
 | Device language | `auto`, `-auto`, `--auto` |
 
-The `update`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update` without a domain or URL.
+The `update`, `setup`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update` and `setup` without a domain or URL.
 
-The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, or `update`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto` commands save the default language. With no saved selection, or after standalone `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
+The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, `update`, or `setup`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto` commands save the default language. With no saved selection, or after standalone `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
 
 Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. If reading a saved preference fails, other commands can continue in the device language with a warning. An explicit language selector bypasses reading the saved preference.
 
@@ -173,10 +174,33 @@ An RDAP `404` is displayed as `No registry record`. Registration availability an
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | A registry record was returned, language preferences or IANA data were saved, or the introduction, help, or version was displayed |
+| `0` | A registry record was returned, language preferences or IANA data were saved, or setup, the introduction, help, or version finished successfully |
 | `1` | No registry record, or an explicit registration restriction |
 | `2` | Invalid arguments or domain |
 | `3` | Discovery, configuration, network, service, response, or output error |
+
+## Local web interface
+
+Query from your browser with the same registry-only engine:
+
+```sh
+domain setup
+```
+
+Choose **1 Enable** to start the interface and open [domain-check.localhost:20771](http://domain-check.localhost:20771). Choose **3 Next** to configure automatic startup when you log in to macOS, then **3 Finish**. Both options show their current status. Automatic startup is off initially; disabling it keeps the interface available for the current login session. Disabling the web interface also disables automatic startup.
+
+The menu also accepts `domain -setup` and `domain --setup`. It uses your account's LaunchAgent and requires no administrator privileges, additional runtime, or hosts-file changes. Run it again to change either setting. Install the executable before enabling the interface so its path remains available.
+
+Type a domain or paste a URL in the search box, or open a direct lookup:
+
+```text
+http://domain-check.localhost:20771/example.com
+http://domain-check.localhost:20771/https%3A//www.google.com
+```
+
+The interface follows your device's light or dark appearance and browser language initially. The controls at the top switch between system, light, and dark themes, and between English and Simplified Chinese. These browser preferences are saved independently of the CLI language. All assets are served locally, and text uses system fonts without remote font requests. Long results scroll naturally with the page, and existing results stay visible while the next query runs.
+
+The service listens only on your Mac's loopback addresses. It does not expose the interface to your local network or store lookup history. Reinstalling with the installer or `make install` refreshes an enabled interface while preserving its settings. To remove the tool, first disable the interface in `domain setup`.
 
 ## Registry-only queries
 
@@ -199,13 +223,13 @@ The tool caches two complete, official IANA datasets on macOS:
 
 `dns.json` determines RDAP routing. The complete TLD registry in `tlds.json` supplies WHOIS server addresses; entries are not selected or written according to queried suffixes. Set `DOMAIN_CACHE_DIR` to use another cache directory.
 
-Cache freshness is checked only during a lookup, when the corresponding dataset is needed. After one calendar month from its last successful fetch, the next lookup that needs that file refreshes it. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. The introduction, help, version, and standalone language commands do not fetch or refresh IANA data.
+Cache freshness is checked only during a lookup, when the corresponding dataset is needed. After one calendar month from its last successful fetch, the next lookup that needs that file refreshes it. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. The introduction, help, version, setup, and standalone language commands do not fetch or refresh IANA data.
 
 Run `domain update` to download and validate both current datasets immediately, even when the local caches are fresh. Both downloads are validated before either cached file is replaced. Each replacement is atomic and restarts that file's one-month freshness period. Download, validation, or cache-write failures return exit code `3`; an incomplete update never reports success. If saving one file succeeds before saving the other fails, that file remains refreshed and the other keeps its previous contents.
 
-If an automatic refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. No background process, scheduled job, or lookup-result cache is created.
+If an automatic refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. IANA refreshes are driven by lookups or `domain update`; enabling the optional web service does not schedule metadata downloads. No lookup-result cache is created.
 
-The tool does not save queried domains, pasted URLs, registration responses, or a lookup history. Results are written only to terminal output. Persistent application data is limited to the complete IANA datasets and language preferences; cache contents do not record which WHOIS suffixes were queried.
+The tool does not save queried domains, pasted URLs, registration responses, or a lookup history. Results are displayed in the Terminal or the optional local web interface. Persistent application data contains the complete IANA datasets, language preference, and optional web-service settings. The browser stores only its theme and language preferences. Cache contents do not record which WHOIS suffixes were queried.
 
 ## Development and releases
 
@@ -240,9 +264,9 @@ Pushing a `vYY.M.D.NUM` tag runs the release workflow, checks its agreement with
 
 Domain Check from Registries is designed to keep your domain lookups private.
 
-**Lookups are processed on your Mac.** Domain Check has no servers, accounts, or analytics. It prepares each query, formats the registry's response, and displays the result in your Terminal. When you paste a URL, Domain Check reduces it to its registrable domain on your Mac before sending a query.
+**Lookups are processed on your Mac.** Domain Check has no remote servers, accounts, or analytics. It prepares each query, formats the registry's response, and displays the result in your Terminal or optional local browser interface. The browser interface runs only on your Mac. When you paste a URL, Domain Check reduces it to its registrable domain on your Mac before sending a query.
 
-**Minimal data is stored.** Domain Check stores only your language preference and two complete IANA service-discovery datasets. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. Your shell may keep a history of the commands you run, according to its own settings.
+**Minimal data is stored.** Domain Check stores your CLI language preference, two complete IANA service-discovery datasets, and settings for the optional local web service. The browser stores only your theme and language choices. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. The local web service keeps no access logs. Your shell and browser may keep their own command or navigation history, according to their settings.
 
 **Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. IANA's service-discovery datasets are downloaded in full, so IANA receives no information about the domains or suffixes you look up. Domain Check uses HTTPS whenever a registry offers it.
 

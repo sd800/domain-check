@@ -101,6 +101,19 @@ install -m 755 "$binary" "$pending"
 mv -fh "$pending" "$HOME/.local/bin/domain"
 pending=
 
+# Refresh an already-enabled local interface after replacing its executable.
+# Older releases predate this option and return the normal argument-error status.
+if "$HOME/.local/bin/domain" --version >/dev/null 2>&1; then
+  if "$HOME/.local/bin/domain" --web-refresh >/dev/null 2>&1; then
+    :
+  else
+    refresh_status=$?
+    if [ "$refresh_status" -ne 2 ]; then
+      printf '%s\n' 'Installed. Run domain setup to restart the local web interface.' >&2
+    fi
+  fi
+fi
+
 # Add only a standard PATH entry, once, respecting an existing ZDOTDIR setting.
 # The README also exports PATH in the calling terminal, where this script cannot.
 profile="${ZDOTDIR:-$HOME}/.zshrc"

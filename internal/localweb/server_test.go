@@ -1,0 +1,187 @@
+package localweb
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
+	"testing"
+
+	"github.com/sd800/domain-check/internal/registry"
+)
+
+func request(s *Server, method, path, body string) *http.Request {
+	r := httptest.NewRequest(method, URL+path, strings.NewReader(body))
+	r.RemoteAddr = "127.0.0.1:50123"
+	if method == "POST" {
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("X-Domain-Check-Token", s.token)
+		r.Header.Set("Origin", URL)
+	}
+	return r
+}
+
+func TestWebLookupUsesNormalizedDomainAndNoRecordStorage(t *testing.T) {
+	var inputs []string
+	s, err := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		inputs = append(inputs, domain)
+		return registry.Record{Domain: domain, Registrant: "Owner\x1b[2J\u202e", Nameservers: []string{"ns1.example.test"}}, []string{"stale-bootstrap"}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := request(s, "POST", "/api/lookup", `{"input":"https://user:password@www.example.com/path?private=1"}`)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if w.Code != 200 || len(inputs) != 1 || inputs[0] != "example.com" {
+		t.Fatalf("%d %s, %v", w.Code, w.Body.String(), inputs)
+	}
+	if strings.ContainsAny(w.Body.String(), "\x1b\u202e") || strings.Contains(w.Body.String(), "password") || strings.Contains(w.Body.String(), "private=1") {
+		t.Fatal("unsafe output")
+	}
+	if w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("lookup was cacheable")
+	}
+	if strings.Contains(string(s.index), "Owner") || strings.Contains(string(s.index), "example.com") {
+		t.Fatal("lookup retained in page")
+	}
+}
+
+func TestWebOriginHostTokenAndRemoteBoundary(t *testing.T) {
+	var calls atomic.Int32
+	s, _ := New("test", func(context.Context, string) (registry.Record, []string, error) {
+		calls.Add(1)
+		return registry.Record{}, nil, nil
+	})
+	for _, mutation := range []func(*http.Request){
+		func(r *http.Request) { r.RemoteAddr = "192.168.1.4:5000" },
+		func(r *http.Request) { r.Host = "attacker.test:20771" },
+		func(r *http.Request) { r.Host = "domain-check.localhost.attacker.test:20771" },
+		func(r *http.Request) { r.Header.Set("Origin", "https://attacker.test") },
+		func(r *http.Request) { r.Header.Set("Sec-Fetch-Site", "cross-site") },
+		func(r *http.Request) { r.Header.Del("X-Domain-Check-Token") },
+		func(r *http.Request) { r.Header.Set("Content-Type", "text/plain") },
+	} {
+		r := request(s, "POST", "/api/lookup", `{"input":"example.com"}`)
+		mutation(r)
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, r)
+		if w.Code != 403 {
+			t.Fatalf("accepted request: %d", w.Code)
+		}
+	}
+	if calls.Load() != 0 {
+		t.Fatal("rejected request reached registry")
+	}
+}
+
+func TestWebInvalidAndOversizedInputDoNotQuery(t *testing.T) {
+	s, _ := New("test", func(context.Context, string) (registry.Record, []string, error) {
+		t.Fatal("invalid input reached registry")
+		return registry.Record{}, nil, nil
+	})
+	for _, body := range []string{`{"input":"example.com\r\nother.test"}`, `{"input":"-h.example"}`, `{"input":"example.com","server":"attacker.test"}`, `{"input":"example.com"}{}`, `{"input":"` + strings.Repeat("x", 17000) + `"}`} {
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "POST", "/api/lookup", body))
+		if w.Code != 400 {
+			t.Fatalf("%d", w.Code)
+		}
+	}
+}
+
+func TestDeepLinksAssetsAndSecurityHeaders(t *testing.T) {
+	s, _ := New("test", nil)
+	for _, path := range []string{"/", "/example.com", "/https%3A//www.google.com", "/https%3A%2F%2Fwww.example.com%2Fpath"} {
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "GET", path, ""))
+		if w.Code != 200 || !strings.Contains(w.Body.String(), "Domain Check") || strings.Contains(w.Body.String(), "/*BOOT*/") {
+			t.Fatalf("deep link failed: %s %d", path, w.Code)
+		}
+		if !strings.Contains(w.Header().Get("Content-Security-Policy"), "frame-ancestors 'none'") || w.Header().Get("Referrer-Policy") != "no-referrer" {
+			t.Fatal("missing security headers")
+		}
+	}
+	for _, path := range []string{"/assets/../server.go", "/assets/index.html", "/api/missing"} {
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "GET", path, ""))
+		if w.Code != 404 {
+			t.Fatal(path, w.Code)
+		}
+	}
+	for _, path := range []string{"/assets/logo.svg", "/assets/style.css", "/assets/app.js", "/favicon.ico"} {
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "GET", path, ""))
+		if w.Code != 200 || w.Body.Len() == 0 {
+			t.Fatal(path, w.Code)
+		}
+	}
+	logo, _ := assets.ReadFile("assets/logo.svg")
+	if strings.Contains(string(logo), "<text") {
+		t.Fatal("logo contains text")
+	}
+}
+
+func TestSessionAndNegativeResult(t *testing.T) {
+	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		return registry.Record{Domain: domain, Result: registry.Reserved}, nil, nil
+	})
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "GET", "/api/session", ""))
+	var session map[string]string
+	_ = json.Unmarshal(w.Body.Bytes(), &session)
+	if session["token"] != s.token || len(session["token"]) != 64 {
+		t.Fatal("invalid token")
+	}
+	w = httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.com"}`))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"result":"reserved"`) {
+		t.Fatal(w.Code, w.Body.String())
+	}
+}
+
+func TestWebConcurrencyAndRateLimits(t *testing.T) {
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		started <- struct{}{}
+		<-release
+		return registry.Record{Domain: domain}, nil, nil
+	})
+	done := make(chan struct{}, 2)
+	for range 2 {
+		go func() {
+			defer func() { done <- struct{}{} }()
+			s.ServeHTTP(httptest.NewRecorder(), request(s, "POST", "/api/lookup", `{"input":"example.com"}`))
+		}()
+	}
+	<-started
+	<-started
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.com"}`))
+	if w.Code != 429 {
+		t.Fatal("concurrency unbounded")
+	}
+	close(release)
+	<-done
+	<-done
+	for range 30 {
+		s.admit()
+	}
+	if s.admit() {
+		t.Fatal("rate unbounded")
+	}
+}
+
+func TestUnknownErrorsDoNotExposeInputs(t *testing.T) {
+	s, _ := New("test", func(context.Context, string) (registry.Record, []string, error) {
+		return registry.Record{}, nil, io.ErrUnexpectedEOF
+	})
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.com"}`))
+	if w.Code != 502 || strings.Contains(w.Body.String(), "example.com") {
+		t.Fatal(w.Code, w.Body.String())
+	}
+}

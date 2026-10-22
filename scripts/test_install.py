@@ -57,7 +57,9 @@ destination.write_bytes(source.read_bytes())
             script = script.replace('mv -fh "$pending"', 'mv -fT "$pending"')
         self.script = self.root / "install.sh"
         self.script.write_text(script)
-        self.env = dict(os.environ, DOMAIN_INSTALL_TEST_FIXTURES=str(self.fixture), TMPDIR=str(self.root))
+        self.env = dict(os.environ, DOMAIN_INSTALL_TEST_FIXTURES=str(self.fixture), TMPDIR=str(self.root),
+                        DOMAIN_CONFIG_DIR=str(self.root / "configuration"),
+                        DOMAIN_CACHE_DIR=str(self.root / "cache"))
         self.make_archive()
 
     def python_tool(self, name, code):
@@ -113,6 +115,21 @@ destination.write_bytes(source.read_bytes())
         self.make_archive("legacy-flat")
         self.run_installer()
         self.assertEqual((self.target / "domain").read_bytes(), b"synthetic executable")
+
+    def test_installed_executable_refreshes_its_own_web_service(self):
+        source = self.root / "source"
+        marker = self.root / "refresh-calls"
+        source.write_text("#!/bin/sh\nprintf '%s\\n' \"$1\" >> " + shlex.quote(str(marker)) + "\n")
+        self.run_installer(str(source))
+        self.assertEqual(marker.read_text().splitlines(), ["--version", "--web-refresh"])
+
+    def test_failed_web_refresh_preserves_installation_and_path_setup(self):
+        source = self.root / "source"
+        source.write_text('#!/bin/sh\n[ "$1" != "--web-refresh" ]\n')
+        result = self.run_installer(str(source))
+        self.assertIn('domain setup', result.stderr)
+        self.assertEqual((self.target / "domain").read_bytes(), source.read_bytes())
+        self.assertEqual(self.profile.read_text().count('export PATH="$HOME/.local/bin:$PATH"'), 1)
 
     def test_unsupported_macos_never_replaces_the_executable(self):
         destination = self.target / "domain"

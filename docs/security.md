@@ -20,7 +20,13 @@ Include the affected release, macOS version, expected and observed behavior, and
 
 **Safe terminal presentation.** Remote fields and diagnostics are sanitized to neutralize terminal escape sequences, control characters, and Unicode formatting controls. Internationalized domain display is generated locally and round-trip validated, including supported joined emoji. The ASCII identity is always displayed first for consistent domain identification.
 
-**Minimal local storage.** Persistent application data consists of the language preference and two complete IANA datasets. Reads accept bounded regular files and reject symlinks, special files, and files writable by other users. Writes use private temporary files and atomic replacement. Queried domains, pasted URLs, and registry responses remain in memory for the current lookup.
+**Minimal local storage.** Persistent application data consists of the CLI language preference, two complete IANA datasets, and optional local-web settings and LaunchAgent configuration. The browser stores only theme and language choices. Reads accept bounded regular files and reject symlinks, special files, and files writable by other users. Writes use private temporary files and atomic replacement. Queried domains, pasted URLs, and registry responses remain in memory for the current lookup.
+
+**Loopback-only browser access.** The optional web service binds IPv4 and IPv6 loopback addresses only. Requests must use an allowlisted Host, preventing DNS-rebinding access through arbitrary hostnames. Browser requests are checked against their Origin and Fetch Metadata. Lookup POSTs require JSON and a cryptographically random per-process token; the service sends no cross-origin access permissions. Request bodies, request times, concurrency, and query frequency are bounded.
+
+**Safe browser rendering.** Registration values enter the page through DOM text nodes. A restrictive Content Security Policy permits only embedded local assets and the exact startup script hash, blocks framing and base-URL overrides, and disables external connections. Responses use no-store caching, no-referrer, and MIME-sniffing protection. The server keeps no access logs or lookup-result storage. Browser controls save appearance and language preferences independently of query data.
+
+**Current-user service management.** Setup uses the current account's LaunchAgent and fixed system executables. Paths are passed as separate arguments and escaped when written to XML. The service requires no administrator access and listens on neither LAN nor public interfaces. Disabling it unloads its job and removes startup registrations.
 
 **Verified installation.** The installer uses macOS system tools and HTTPS-only downloads. It validates release tags, matches the downloaded archive against the published SHA-256 manifest, and checks archive members before installation. Duplicate members, executable links, and traversal paths are rejected. The executable is replaced through a same-directory rename after verification.
 
@@ -28,7 +34,7 @@ Include the affected release, macOS version, expected and observed behavior, and
 
 ## Platform and protocols
 
-Domain Check runs within the current macOS user's environment, using the operating system's resolver and certificate validation. IANA supplies service assignments, and registries supply registration data. HTTPS is preferred whenever a registry advertises it. WHOIS and HTTP-only RDAP use unencrypted connections.
+Domain Check runs within the current macOS user's environment, using the operating system's resolver and certificate validation. IANA supplies service assignments, and registries supply registration data. HTTPS is preferred whenever a registry advertises it. WHOIS and HTTP-only RDAP use unencrypted connections. Browser-to-service HTTP stays on the Mac's loopback interface; registry connections retain the same transport and destination controls as CLI queries.
 
 Results retain the registry's disclosed information and distinguish registration records, explicit policy results, and service errors. The education-registry DNS fallback provides public nameserver records.
 

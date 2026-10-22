@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sd800/domain-check/internal/localweb"
 	"github.com/sd800/domain-check/internal/output"
 	"github.com/sd800/domain-check/internal/registry"
 	"golang.org/x/term"
@@ -23,6 +24,7 @@ type options struct {
 	help       bool
 	version    bool
 	update     bool
+	setup      bool
 }
 
 func parseArgs(args []string, lang output.Language) (options, error) {
@@ -44,6 +46,8 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 			o.version = true
 		case "update", "-update", "--update":
 			o.update = true
+		case "setup", "-setup", "--setup":
+			o.setup = true
 		default:
 			if strings.HasPrefix(arg, "-") || o.domain != "" {
 				return o, fmt.Errorf("unexpected argument; expected one domain or URL")
@@ -52,6 +56,12 @@ func parseArgs(args []string, lang output.Language) (options, error) {
 		}
 	}
 	if o.help || o.version {
+		return o, nil
+	}
+	if o.setup {
+		if o.domain != "" || o.update {
+			return o, fmt.Errorf("setup cannot be combined with a domain, URL, or update")
+		}
 		return o, nil
 	}
 	if o.update {
@@ -77,6 +87,24 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer, version string, client *registry.Client) int {
+	if len(args) == 1 && args[0] == "--web-serve" {
+		if err := localweb.Run(ctx, version); err != nil {
+			fmt.Fprintln(stderr, "domain: "+registry.Clean(err.Error()))
+			return 3
+		}
+		return 0
+	}
+	if len(args) == 1 && args[0] == "--web-refresh" {
+		manager, err := localweb.NewManager(version)
+		if err == nil {
+			err = manager.Refresh(ctx)
+		}
+		if err != nil {
+			fmt.Fprintln(stderr, "domain: "+registry.Clean(err.Error()))
+			return 3
+		}
+		return 0
+	}
 	o, err := parseArgs(args, preferredLanguage())
 	if o.preference == "" {
 		if saved, loadErr := loadLanguagePreference(); loadErr != nil {
@@ -86,7 +114,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 		}
 	}
 	if err != nil {
-		fmt.Fprintln(stderr, output.Text(o.lang, "Usage: domain [en|zh|auto] [domain|URL|update]", "用法: domain [en|zh|auto] [域名|URL|update]"))
+		fmt.Fprintln(stderr, output.Text(o.lang, "Usage: domain [en|zh|auto] [domain|URL|update|setup]", "用法: domain [en|zh|auto] [域名|URL|update|setup]"))
 		fmt.Fprintln(stderr, "domain: "+output.Text(o.lang, "Invalid arguments, domain, or URL", "参数、域名或 URL 无效")+": "+registry.Clean(err.Error()))
 		return 2
 	}
@@ -97,6 +125,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 	if o.version {
 		fmt.Fprintln(stdout, "Domain Check from Registries "+version)
 		return 0
+	}
+	if o.setup {
+		manager, err := localweb.NewManager(version)
+		if err != nil {
+			fmt.Fprintln(stderr, "domain: "+registry.Clean(err.Error()))
+			return 3
+		}
+		return setup(ctx, os.Stdin, stdout, stderr, o.lang, manager, systemBrowser)
 	}
 	if o.intro {
 		var message string
@@ -195,26 +231,28 @@ func introduction(lang output.Language, version string) string {
 	return "Domain Check from Registries\nversion " + version + "\n© 2026 Songming.org\n\n" + output.Text(lang, `Query domain registration information directly from registries.
 Registrar referrals are never followed.
 
-Usage: domain [en|zh|auto] [domain|URL|update]
+Usage: domain [en|zh|auto] [domain|URL|update|setup]
 
   domain example.com          Use the default language
   domain -en example.com      English for this query
   domain zh example.com       Simplified Chinese for this query
   domain auto                 Follow the device language
   domain update               Refresh IANA RDAP and WHOIS data now
+  domain setup                Set up the local web interface
 
 Language selectors apply only to the current query.
 Run domain en, domain zh, or domain auto on its own to save the default.
 Run domain --help for more options.
 `, `直接向注册局查询域名注册信息，始终不跟随注册商。
 
-用法: domain [en|zh|auto] [域名|URL|update]
+用法: domain [en|zh|auto] [域名|URL|update|setup]
 
   domain example.com          使用默认语言
   domain -en example.com      本次查询使用英文
   domain zh example.com       本次查询使用简体中文
   domain auto                 跟随设备语言
   domain update               立即更新 IANA RDAP 和 WHOIS 数据
+  domain setup                设置本机网页版查询
 
 查询时的语言参数仅本次有效。
 单独运行 domain en、domain zh 或 domain auto 才会保存默认设置。
@@ -225,21 +263,22 @@ Run domain --help for more options.
 func help(lang output.Language) string {
 	return output.Text(lang, `Domain Check from Registries
 
-Usage: domain [en|zh|auto] [domain|URL|update]
+Usage: domain [en|zh|auto] [domain|URL|update|setup]
 
   domain example.com          Use the default language
   domain -en example.com      English for this query
   domain zh example.com       Simplified Chinese for this query
   domain auto                 Follow the device language
   domain update               Refresh IANA RDAP and WHOIS data now
+  domain setup                Set up the local web interface
   domain https://example.com/path
 
 Language selectors accept zero, one, or two leading hyphens and may appear
 before or after the domain. The last selector wins for the current command.
 Run domain en, domain zh, or domain auto on its own to save the default.
-With a domain, URL, help, version, or update, language selection is temporary.
+With a domain, URL, help, version, update, or setup, language selection is temporary.
 Use auto, -auto, or --auto to follow the device language.
-Other device languages use English. update, help, and version also accept
+Other device languages use English. update, setup, help, and version also accept
 zero, one, or two leading hyphens. -h and -v are shorthand for help and version.
 
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
@@ -251,20 +290,21 @@ Dates use YYYY-MM-DD; timestamps use YYYY-MM-DD HH:MM:SS.
 Zoned timestamps are converted to UTC and carry a UTC suffix.
 `, `Domain Check from Registries
 
-用法: domain [en|zh|auto] [域名|URL|update]
+用法: domain [en|zh|auto] [域名|URL|update|setup]
 
   domain example.com          使用默认语言
   domain -en example.com      本次查询使用英文
   domain zh example.com       本次查询使用简体中文
   domain auto                 跟随设备语言
   domain update               立即更新 IANA RDAP 和 WHOIS 数据
+  domain setup                设置本机网页版查询
   domain https://example.com/path
 
 语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数决定本次语言。
 单独运行 domain en、domain zh 或 domain auto 才会保存默认设置。
-与域名、URL、help、version 或 update 一起使用时，语言选择仅本次有效。
+与域名、URL、help、version、update 或 setup 一起使用时，语言选择仅本次有效。
 使用 auto、-auto 或 --auto 跟随设备语言。
-其他设备语言使用英文。update、help、version 也允许不加横线、一个或两个横线。
+其他设备语言使用英文。update、setup、help、version 也允许不加横线、一个或两个横线。
 -h 和 -v 分别是帮助和版本命令的简写。
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。

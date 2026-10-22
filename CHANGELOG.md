@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.10.22.1
+
+- Add an optional local browser interface with direct domain and URL lookups, bilingual results, adaptive appearance, and a text-free logo.
+- Add current-user setup controls for web access and login startup, with private local operation and automatic refresh after executable updates.
+- Extend security checks, browser and service validation, and public documentation for the new interface.
+
 ## 26.10.21.32
 
 - Refine the project overview.

@@ -81,7 +81,7 @@ Turning off automatic startup keeps the service loaded for the current login ses
 | `~/Library/Application Support/domain-check/config.json` | CLI language preference. |
 | `~/Library/Application Support/domain-check/web.json` | Web enabled and start-at-login choices. |
 | `~/Library/Application Support/domain-check/web-agent.plist` | Current-session LaunchAgent when login startup is off. |
-| `~/Library/LaunchAgents/org.songming.domain-check.web.plist` | LaunchAgent when login startup is on. |
+| `~/Library/LaunchAgents/localhost.domain-check.web.plist` | LaunchAgent when login startup is on. |
 | Browser local storage | Web theme and language choices only. |
 
 `DOMAIN_CACHE_DIR` and `DOMAIN_CONFIG_DIR` override the respective directories. Neither interface writes queried domains, pasted URLs, responses, or lookup history. Browser and shell history follow their own settings.

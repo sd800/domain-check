@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.7
+
+- Refine local service naming and integration.
+
 ## 26.10.22.6
 
 - Preserve the full disclosed EDUCAUSE registrant block in aligned CLI and browser results.

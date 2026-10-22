@@ -21,7 +21,7 @@ import (
 	"github.com/sd800/domain-check/internal/safeio"
 )
 
-const serviceLabel = "org.songming.domain-check.web"
+const serviceLabel = "localhost.domain-check.web"
 
 type Settings struct {
 	Enabled bool `json:"enabled"`

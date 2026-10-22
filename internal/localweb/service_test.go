@@ -108,6 +108,31 @@ func TestWebServiceLifecycleAndNoLoginByDefault(t *testing.T) {
 	}
 }
 
+func TestWebServiceUsesLocalhostIdentity(t *testing.T) {
+	m, _, commands := fakeManager(t)
+	const label = "localhost.domain-check.web"
+	wantPath := filepath.Join(m.Home, "Library", "LaunchAgents", label+".plist")
+	if serviceLabel != label || m.agentPath(true) != wantPath || m.job() != m.target()+"/"+label {
+		t.Fatal("unexpected local service identity", serviceLabel, m.agentPath(true), m.job())
+	}
+	if err := m.SetLogin(context.Background(), true); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(wantPath)
+	if err != nil || !strings.Contains(string(data), "<key>Label</key><string>"+label+"</string>") {
+		t.Fatal("plist identity differs from its filename", err)
+	}
+	found := false
+	for _, command := range *commands {
+		if command == "bootstrap "+m.target()+" "+wantPath {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("launchd did not receive the expected plist path", *commands)
+	}
+}
+
 func readTestFile(path string) ([]byte, os.FileInfo, error) {
 	data, err := os.ReadFile(path)
 	info, statErr := os.Stat(path)

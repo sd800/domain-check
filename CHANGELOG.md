@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.22.8
+
+- Show disclosed registrar country codes in ordinary-domain RDAP results.
+- Improve registry routing, field normalization, and special-namespace result handling.
+
 ## 26.10.22.7
 
 - Refine local service naming and integration.

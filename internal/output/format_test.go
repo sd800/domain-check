@@ -65,6 +65,18 @@ func TestNegativeLayout(t *testing.T) {
 	}
 }
 
+func TestUndisclosedNamespaceResultDoesNotImplyAvailability(t *testing.T) {
+	for lang, want := range map[Language]string{English: "Domain-specific registration data not provided", Chinese: "注册局未提供此域名的独立注册信息"} {
+		var b bytes.Buffer
+		if err := Format(&b, registry.Record{Domain: "example.edu.tw", Result: registry.NotProvided}, lang, 100); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(b.String(), want) || strings.Count(b.String(), "\n") != 2 {
+			t.Fatal(b.String())
+		}
+	}
+}
+
 func TestTLDLayoutAndAddressContinuation(t *testing.T) {
 	r := registry.Record{Domain: "zz", TLD: true, Registration: "1994-04-08 04:00:00 UTC", Changed: "2026-10-22", Expiration: "must omit", Registrar: "must omit", Statuses: []string{"inactive"}, Registrant: "Example Registry", RegistrantAddress: []string{"One Registry Road", "Example City 12345", "Example Country"}, RegistrationURL: "http://registry.example.test/", Admin: "Alex Example", AdminOrganization: "Example Organization", AdminRole: "Operations Lead", AdminPhones: []string{"+1-555-0100", "+1-555-0101"}, AdminEmails: []string{"admin@example.test"}, Nameservers: []string{"ns1.example.test"}, DNSSEC: "signed"}
 	var b bytes.Buffer

@@ -109,7 +109,7 @@ func (c *Client) rdapEndpoint(ctx context.Context, domain, endpoint string, endp
 		}
 		if status == http.StatusNotFound {
 			response.Body.Close()
-			return Record{Domain: domain, Result: NoRecord}, nil
+			return Record{Domain: domain, Result: registryAbsence(domain, endpoint)}, nil
 		}
 		if status != http.StatusOK {
 			detail := fmt.Sprintf("HTTP %d", status)
@@ -140,6 +140,9 @@ func parseRDAP(domain string, data []byte) (Record, error) {
 	if err := unmarshalResponse(data, &d); err != nil {
 		return Record{}, queryError("invalid-response", "invalid RDAP JSON: "+err.Error())
 	}
+	if strings.HasSuffix(domain, ".sn") && d.ObjectClass == "" && d.ErrorCode == 0 {
+		return parseSNEnvelope(domain, data)
+	}
 	if d.ErrorCode != 0 || d.ObjectClass != "domain" {
 		return Record{}, queryError("invalid-response", "response is not an RDAP domain object")
 	}
@@ -157,6 +160,14 @@ func parseRDAP(domain string, data []byte) (Record, error) {
 	}
 	normalized, err := normalize(name)
 	if err != nil || normalized != domain {
+		if err == nil && !isTLD && namespaceParent(domain, normalized) {
+			if d.UnicodeName == "" {
+				return Record{Domain: domain, Result: NotProvided}, nil
+			}
+			if alternate, err := normalize(d.UnicodeName); err == nil && alternate == normalized {
+				return Record{Domain: domain, Result: NotProvided}, nil
+			}
+		}
 		return Record{}, queryError("invalid-response", "response domain does not match the query")
 	}
 	if d.UnicodeName != "" {
@@ -243,9 +254,12 @@ func collectEntities(entities []rdapEntity, r *Record) {
 			if role != "registrar" && role != "registrant" {
 				continue
 			}
-			name, emails := vcard(entity.VCardArray)
+			name, emails, country := vcard(entity.VCardArray)
 			if role == "registrar" && r.Registrar == "" {
 				r.Registrar = name
+				if name != "" && country != "" {
+					r.Registrar += " [" + country + "]"
+				}
 			} else if role == "registrant" {
 				if r.Registrant == "" {
 					r.Registrant = name
@@ -259,13 +273,13 @@ func collectEntities(entities []rdapEntity, r *Record) {
 	}
 }
 
-func vcard(card []json.RawMessage) (string, []string) {
+func vcard(card []json.RawMessage) (string, []string, string) {
 	contact := readContactCard(card, false)
 	name := contact.Organization
 	if name == "" {
 		name = contact.Name
 	}
-	return name, contact.Emails
+	return name, contact.Emails, contact.Country
 }
 
 func vcardText(value any) string {

@@ -33,13 +33,14 @@ make dist
 | --- | --- |
 | Domain / URL input | Validate label boundaries and ASCII identity; normalize IDNs and allowed emoji; discard URL secrets locally; never fetch a pasted URL. |
 | Command selection | Accept zero-to-two-hyphen selectors; save language only when standalone; keep temporary selectors temporary; show an offline introduction successfully. |
-| Discovery | Use longest-suffix IANA RDAP routing, prefer HTTPS, and use bulk TLD WHOIS discovery only when RDAP is absent. |
+| Discovery | Use longest-suffix IANA RDAP routing, prefer HTTPS, verify the explicit `.tw` WHOIS route and fixed `.ac.uk` / `.gov.uk` namespace registry routes, and preserve ordinary no-fallback behavior. |
 | Registry boundary | Never follow registrar referrals, linked entities, or unresolved handles; constrain redirects to the same query at listed registry endpoints. |
 | Network destinations | Reject invalid hosts, forbidden URL components, private or mixed DNS answers, and disguised local addresses; connect to the validated IPs. |
 | Cache / preferences | Store only full IANA documents, language, and optional web settings; enforce calendar-month refresh, validated stale fallback, bounded reads, private writes, and explicit partial-save errors. |
 | TLD allocation | Query only IANA RDAP, bypass discovery caches, preserve command priority and dotted inputs, select administrative contacts by RDAP roles, retain address lines and separate jCard roles, and distinguish absent, inactive, reserved, and failed responses. |
-| RDAP parsing | Validate domain and Unicode identities, events, embedded roles and jCards, signing data, and response-size/depth/field limits. |
-| WHOIS parsing | Verify positive and negative identities, exact labels, EDUCAUSE institution/department/address continuation boundaries and redactions, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
+| RDAP parsing | Keep registrar country codes scoped to the selected registrar, validate two-letter codes and conflicting addresses, exclude TLD annotation, and validate domain and Unicode identities, events, embedded roles and jCards, signing data, and response-size/depth/field limits. |
+| WHOIS parsing | Verify explicit `.tw` routing and special namespace disclosures, comma-separated statuses and UTC+8 dates, positive and negative identities, exact labels, EDUCAUSE institution/department/address continuation boundaries and redactions, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
+| Special namespaces | Keep parent delegations separate from child registrations, reject unrelated or contradictory identities, parse Jisc fields and date-only ordinals, retain JPRS category reservations, recognize exact usage restrictions, and decode NIC Senegal's bounded HTTPS WHOIS envelope without secondary requests. |
 | Contact attribution | Prefer a disclosed registrant organization; do not substitute administrative, technical, billing, or registrar contact values. |
 | Dates | Preserve date precision, normalize recognized formats, use Chinese year/month/day presentation only for Chinese output, convert only explicit zones to UTC, and exclude contact/database timestamps from domain events. |
 | Output | Omit undisclosed fields; align English and Chinese by display cells; preserve grapheme clusters and safe local IDN display; neutralize terminal controls in fields and errors. |
@@ -74,6 +75,8 @@ The domain target checks that accepted normalized identities cannot become addit
 ## Registry-format verification
 
 Service inventories must include every active IANA suffix with WHOIS and no RDAP entry, including `.edu`, `.arpa`, and IDN suffixes across scripts. Coverage includes both country and non-country namespaces. Compare independently identified benign registered names, registry-operated names with exceptional formats, and explicit negative candidates. Negative results are classified from the registry's explicit response.
+
+Special-namespace reviews inventory `edu`, `ac`, `gov`, and `mil` beneath every active country-code TLD, with additional public-suffix categories for education, government, justice, health, and other institutional uses. A public-suffix entry is a namespace boundary, not proof of registration eligibility. Select real samples from search-result URLs without visiting institutional sites, query only registry services, and retain the source, response, and parsing outcome in the ignored developer corpus. Keep non-public services, access restrictions, rate limits, timeouts, and unattempted probes separate from parsed records. Normal tests never run collection helpers.
 
 Private developer samples may be retained separately for regression analysis. They are ignored by Git, never loaded by the CLI, and must not be copied into public fixtures or reports. Parser changes must be compared against the reviewed corpus baseline; every intended output difference requires inspection before the baseline is updated. Connection failures and access restrictions must remain distinct from parsed negative answers.
 

@@ -28,6 +28,7 @@ const (
 	ugandanDomainUpdate
 	bulgarianStatus
 	multilineRegistrant
+	twnicContactFields
 )
 
 func (p whoisProfile) has(flag whoisProfile) bool { return p&flag != 0 }
@@ -61,6 +62,9 @@ var whoisProfiles = map[string]whoisProfile{
 	"sm":              dayFirstDates,
 	"tn":              dayFirstDates | domainDNSSECAfterContact,
 	"tr":              periodDateSuffix,
+	"tw":              twnicContactFields,
+	"uk":              ordinalDates,
+	"sn":              domainDNSSECAfterContact,
 	"ug":              ugandanDomainUpdate,
 	"ve":              dayFirstDates | registrantHandle,
 	"xn--4dbrk0ce":    dayFirstDates | changeHistoryDates | domainContactEmail,

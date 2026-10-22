@@ -11,6 +11,7 @@ var commentedWHOISError = regexp.MustCompile(`(?i)^error:\s*(?:\d+:\s*)?(.*)$`)
 var numberedWHOISError = regexp.MustCompile(`^-?\d+:\s*%?\s*(.*)$`)
 var namedWHOISResult = regexp.MustCompile(`(?i)^(?:domain\s+)?(\S+)\s+(is free|is reserved|has been reserved by .+?)[.!]?$`)
 var namedWHOISMissing = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)^no such domain\s+["']?([^\s"']+?)["']?[.!]?$`),
 	regexp.MustCompile(`(?i)^(?:the\s+)?domain\s+["']?([^\s"']+?)["']?\s+(?:was\s+)?not found[.!]?$`),
 	regexp.MustCompile(`(?i)^no (?:match(?: found)?|matching record|record found|data found) for\s+(?:domain\s*:?\s*)?["']?([^\s"']+?)["']?[.!]?$`),
 	regexp.MustCompile(`(?i)^([^\s"']+):\s*no entries found[.!]?$`),
@@ -27,8 +28,12 @@ func whoisFailure(line string) bool {
 	if match := numberedWHOISError.FindStringSubmatch(message); match != nil {
 		message = match[1]
 	}
-	switch strings.ToLower(strings.TrimRight(Clean(message), ".!")) {
-	case "malformed request", "invalid domain name", "invalid pattern", "object is blocked", "wrong top level domain name in query", "tld not supported by this registry interface", "erreur syntax [ domain ]", "whois.nic.bo solo acepta consultas con dominios .bo":
+	lower := strings.ToLower(Clean(message))
+	if strings.HasPrefix(lower, "warning: query rate is now high,") || strings.HasPrefix(lower, "blacklisted: you have exceeded the query limit") || strings.HasPrefix(lower, "subdomains such as ") && strings.HasSuffix(lower, " are not supported") || strings.HasPrefix(lower, "invalid domain name: ") {
+		return true
+	}
+	switch strings.TrimRight(lower, ".!") {
+	case "malformed request", "invalid input", "invalid request", "invalid query", "invalid query format", "invalid domain name", "invalid .lt domain name", "invalid pattern", "object is blocked", "wrong top level domain name in query", "wrong second level domain name in query", "wrong syntax", "cadena_invalida/invalid_string", "too many requests", "maximum query rate reached", "the whois service is temporarily unavailable", "token: invalid_query_error", "tld not supported by this registry interface", "erreur syntax [ domain ]", "whois.nic.bo solo acepta consultas con dominios .bo":
 		return true
 	}
 	return false

@@ -30,6 +30,14 @@ The project's registry-only policy additionally constrains redirects to the same
 
 Domain Check verifies the returned domain identity before displaying registration details. It reads disclosed contact information from embedded entities and does not retrieve linked objects to fill missing rows. Registry omissions and redactions remain omissions in the output.
 
+Registrar country annotations use the address `cc` parameter described in [RFC 8605](https://www.rfc-editor.org/rfc/rfc8605.html#section-3.1), when disclosed by the registrar entity embedded in the registry response. The country label is presentation data and triggers no additional lookup.
+
+## Delegated namespace registries
+
+[Jisc's domain registry](https://www.jisc.ac.uk/domain-registry?lang=en) identifies it as the `.ac.uk` registry. Its [WHOIS guidance](https://www.jisc.ac.uk/domain-registry/whois) documents the `whois.ja.net` command-line service. Domain Check uses that service for `.ac.uk` child registrations, rather than treating a response from the parent `.uk` registry as the child's record.
+
+[Nominet's `.gov.uk` registry documentation](https://registrars.nominet.uk/registry/dot-gov-uk/) describes its separate registry and RDAP access. Domain Check queries its dedicated `https://rdap.nominet.uk/gov.uk/` service directly. These namespace routes are fixed registry destinations; response referrals do not supply new endpoints.
+
 ## RDAP Web Client
 
 [RDAP Web Client](https://github.com/rdap-org/client.rdap.org) provided a reference for direct registry discovery, HTTPS endpoint preference, and the distinction between registry responses and registrar referrals. It helped frame the registry-first behavior while Domain Check implements its own Go CLI, parsing, local state, and terminal presentation.

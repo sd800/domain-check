@@ -6,7 +6,7 @@ Domain Check from Registries is a macOS CLI written in Go, with an optional loca
 
 1. Parse one command or one domain/URL, with optional language selectors. Introduction, help, version, setup, and standalone language commands finish without registry discovery.
 2. Validate a domain and convert internationalized labels to lowercase ASCII/Punycode. For URL input, discard credentials, port, path, query, and fragment locally, then select the registry-level registrable domain. The pasted URL is never fetched.
-3. For a single-label TLD, query `https://rdap.iana.org/domain/<tld>` directly and skip discovery. For an ordinary domain, load the complete IANA `dns.json` document and select the longest matching suffix. Prefer an advertised HTTPS endpoint. If IANA advertises RDAP, use it even when it fails; failure never triggers a WHOIS fallback.
+3. For a single-label TLD, query `https://rdap.iana.org/domain/<tld>` directly and skip discovery. Delegated `.ac.uk` and `.gov.uk` names use their documented namespace registry services below. For `.tw` domain names, select registry WHOIS directly from the complete IANA TLD data and skip RDAP bootstrap discovery. For other ordinary domains, load the complete IANA `dns.json` document and select the longest matching suffix. Prefer an advertised HTTPS endpoint. If IANA advertises RDAP, use it even when it fails; failure never triggers a WHOIS fallback.
 4. When no RDAP endpoint is advertised, obtain the active suffix's WHOIS hostname from the complete IANA `tlds.json` document and make one TCP port 43 query. Its `rdap_base_urls` fields do not override `dns.json`.
 5. Validate the response's domain identity and extract fields. Use only embedded entities and objects already present in the same response. Never fetch registrar referrals, entity links, contact URLs, or unresolved handles.
 6. Sanitize remote values and write the standardized layout. Missing and redacted values are omitted. A service error never becomes an availability claim.
@@ -25,9 +25,9 @@ The first output row contains the ASCII domain. When a safe round-trip Unicode r
 
 | Output | Extraction rule |
 | --- | --- |
-| Domain | Must agree with the requested identity; conflicting declarations are rejected. |
+| Domain | A registration record must agree with the requested identity; parent-only namespace objects are reported separately and conflicting declarations are rejected. |
 | Registration / expiration / last changed | Domain events and domain-scoped WHOIS dates; contact and database-refresh timestamps are excluded. |
-| Registrar | Explicit registrar role or registry field. |
+| Registrar | Explicit registrar role or registry field. Ordinary-domain RDAP results append a disclosed two-letter country code from that same registrar entity; TLD results do not. |
 | Status | Registry domain status, preserving source vocabulary. |
 | Registrant | Disclosed registrant organization or name; administrative, technical, and billing contacts do not fill missing ownership data. |
 | Registrant email | Only registrant-scoped disclosed addresses. |
@@ -36,11 +36,35 @@ The first output row contains the ASCII domain. When a safe round-trip Unicode r
 
 For EDUCAUSE `.edu` WHOIS responses, the Registrant row retains the indented institution, department, and postal lines under one label. Continuation collection stops at the end of that block, a contact heading, or a recognized field; administrative and technical contacts remain separate. Redacted institutions do not promote address lines into a name. The block shares the parser's field limits and output sanitization.
 
+For ordinary-domain RDAP, registrar country annotation reads the jCard address `cc` parameter (RFC 8605), falling back only to an address country component that itself contains two ASCII letters. The code is uppercased and belongs to the same selected registrar entity as the name. Full country names are not mapped, other contact countries are not substituted, and conflicting address codes are omitted. TLD allocation names and organizations remain unannotated.
+
 RDAP parsing consumes domain events and embedded jCard entities. WHOIS parsing tokenizes labeled and multiline records once, identifies object and contact scopes, and applies shared field aliases plus observed registry-family syntax rules. Registry-operated names may have exceptional minimal records, so format verification also uses ordinary benign domains and explicit negative replies.
 
 Dates retain source precision: English uses `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps; Chinese uses `YYYY 年 M 月 D 日` with the supplied time appended. The CLI and web interface share the same date presentation function. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text retains the registry's original wording.
 
 RDAP `404` is reported as no registry record. Registration availability and restrictions are reported separately through explicit WHOIS statements such as not registered, reserved, not allowed, or restricted. Access denial, rate limits, timeouts, malformed data, and unknown syntax remain operational errors.
+
+## TWNIC domain handling
+
+Ordinary names ending in `.tw` use the WHOIS host published in the complete IANA TLD dataset, even when `dns.json` advertises RDAP. This explicit routing choice does not contact RDAP first and is not an automatic fallback. The TLD query `tw` still goes directly to IANA RDAP.
+
+TWNIC parsing separates comma-delimited domain statuses, extracts email-shaped values only within the registrant section, recognizes its registration-service-provider field, and converts explicitly supplied UTC offsets while preserving date precision. Referrals and registration-service URLs remain response data and are never fetched.
+
+A child `.edu.tw` query may receive only the `edu.tw` manager's record. A child `.gov.tw` query may receive only a government RWHOIS referral. The observed `.mil.tw` reply rejects the namespace query without disclosing registration data. These specific responses produce Domain-specific registration data not provided, retaining the requested domain and making no availability claim. A real domain-specific record, an explicit absence, a reserved parent name, and service errors remain distinct.
+
+## Delegated and special-purpose namespaces
+
+Names beneath `.ac.uk` go directly to the Jisc namespace registry's `whois.ja.net:43` service. Names beneath `.gov.uk` go directly to `https://rdap.nominet.uk/gov.uk/`. These fixed routes apply before ordinary TLD discovery, rather than after a failed lookup. Querying the parent `ac.uk` or `gov.uk` itself still uses normal `.uk` discovery. These services are namespace registries; no registrar referral supplies or changes a destination. Redirects remain confined to the selected registry route and the same query.
+
+Jisc's owner, registration agent, server list, renewal, entry-created, and entry-updated fields map to the standard layout. Ordinal weekday dates retain date-only precision. Postal lines and contact names do not replace the institution; a disclosed registrant email is read only from its contact block.
+
+For child names in `.nhs.uk`, `.police.uk`, `.mod.uk`, `.mil.uk`, and `.parliament.uk`, a 404 specifically from Nominet's parent `.uk` interface means registration data not provided. That response does not establish absence at the independently administered namespace. Successful matching records are parsed normally, access and transport failures remain errors, and parent-name queries retain ordinary behavior.
+
+An RDAP or WHOIS object identifying only a known ICANN public namespace above the query produces registration data not provided. The requested identity remains visible and all parent contact, date, and delegation fields are discarded. The observed RNIDS `.mil.rs` parent-only response has the same explicit handling. Unrelated identities, private hosting suffixes, contradictory objects, and negative statements about another name remain errors. A direct query for the namespace itself is interpreted as its own record.
+
+JPRS's reserved category records can contain delegation nameservers; an explicit reserved state for the category itself remains Reserved. Exact usage-restriction responses observed at the `.ie`, `.nz`, and `.sx` registry interfaces remain restrictions. Query-syntax failures, rate limits, refusal, and temporary unavailability stay service errors. Registration eligibility alone never suppresses a disclosed record or determines a name's availability.
+
+NIC Senegal's IANA-listed HTTPS interface returns a single-field `whois43response` JSON envelope. For `.sn`, that exact envelope is decoded locally and passed to the bounded WHOIS parser, with its escaped line separators normalized. French domain labels and holder/contact sections map to the standard fields; contact-modification dates do not replace the domain's last change. This compatibility rule uses the original HTTPS response and makes no port 43 or referral request.
 
 ## TLD allocation records
 

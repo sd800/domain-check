@@ -74,15 +74,27 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 	if strings.HasSuffix(domain, ".edu.cn") {
 		return c.eduCN(ctx, domain)
 	}
-	b, err := c.bootstrap(ctx)
-	if err != nil {
-		// Do not guess WHOIS when the presence of registry RDAP is unknown.
-		return Record{}, err
-	}
-	if endpoints := b.endpoints(domain); len(endpoints) > 0 {
-		return c.rdap(ctx, domain, endpoints)
+	if rdap, whois := namespaceService(domain); rdap != "" {
+		return c.rdap(ctx, domain, []string{rdap})
+	} else if whois != "" {
+		response, err := c.whois(ctx, whois, domain)
+		if err != nil {
+			return Record{}, queryError("whois-failed", err.Error())
+		}
+		return parseWHOIS(domain, response)
 	}
 	tld := domain[strings.LastIndexByte(domain, '.')+1:]
+	// .tw explicitly uses registry WHOIS; this is not a fallback after RDAP failure.
+	if tld != "tw" {
+		b, err := c.bootstrap(ctx)
+		if err != nil {
+			// Do not guess WHOIS when the presence of registry RDAP is unknown.
+			return Record{}, err
+		}
+		if endpoints := b.endpoints(domain); len(endpoints) > 0 {
+			return c.rdap(ctx, domain, endpoints)
+		}
+	}
 	host, err := c.whoisServer(ctx, tld)
 	if err != nil {
 		return Record{}, err

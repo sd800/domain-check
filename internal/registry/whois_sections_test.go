@@ -259,7 +259,7 @@ Expiration date: 2030-10-21
 Registrant: Example Registry
 Name Server: ns1.example.test
 `)
-	if err == nil || r.Domain != "" || r.Registration != "" || r.Registrant != "" || len(r.Nameservers) != 0 {
+	if err != nil || r.Domain != "child.ac.rs" || r.Result != NotProvided || r.Registration != "" || r.Registrant != "" || len(r.Nameservers) != 0 {
 		t.Fatalf("parent record became a child-domain result: %+v, %v", r, err)
 	}
 }

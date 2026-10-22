@@ -27,7 +27,32 @@ Run `domain update` to refresh routing against the latest IANA publications. The
 
 ## RDAP suffixes
 
-The full current RDAP list and endpoint assignments are available in the [official DNS bootstrap](https://data.iana.org/rdap/dns.json). Domain Check selects the longest matching suffix and prefers HTTPS. It never follows registrar referrals or switches to WHOIS after an advertised RDAP service fails.
+The full current RDAP list and endpoint assignments are available in the [official DNS bootstrap](https://data.iana.org/rdap/dns.json). Domain Check selects the longest matching suffix and prefers HTTPS. It never follows registrar referrals or switches to WHOIS after an advertised RDAP service fails. `.tw` domain queries have an explicit WHOIS routing override; the advertisement counts above continue to describe IANA's published dataset, while the `.tw` allocation query itself still uses IANA RDAP.
+
+## Explicit `.tw` WHOIS routing
+
+Domain Check queries the [IANA-published TWNIC WHOIS service](https://www.iana.org/domains/root/db/tw.html) for names under `.tw`. Its parser covers ordinary and multilabel registrations, comma-delimited statuses, registrant contact lines, UTC+8 timestamps, reserved namespace names, and negative responses.
+
+[TWNIC's namespace policy](https://twnic.tw/dnservice/policy/contents.php?id=4&lang=zh-tw) assigns `.edu.tw`, `.gov.tw`, and `.mil.tw` to separate public authorities. A parent-only education record, government referral, or recognized military-namespace refusal is displayed as registration data not provided; none establishes the child's owner or availability. The [education authority's public WHOIS link](https://depart.moe.edu.tw/ed2700/cp.aspx?n=2EA55D7D4B421245&s=EC480F252DFCA938) is identified as an IPv4 management lookup. The [government registry service](https://gsn.nat.gov.tw/GSNFAQ/FAQContents/6) documents a separate registration portal. These public references are distinct from a verified domain-query API.
+
+## Education, government, and other special namespaces
+
+The 2026-10-22 review inventories `edu`, `ac`, `gov`, and `mil` beneath all **309 active country-code TLDs**, plus additional ICANN public-suffix categories for schools, local government, justice, health, research, professional bodies, and other institutional uses. The inventory contains **1,780 candidate namespaces**: 1,236 from the four core labels and 544 additional categories. A candidate or public-suffix entry describes a name boundary; it does not establish registration eligibility or availability.
+
+Verification compares namespace records, generated absence probes, and real institutional names selected from search-result URLs. Institutional websites are not visited. Queries go only to registry services; complete responses and source provenance remain in the private development corpus. Services without IANA discovery, timeouts, access limits, empty replies, syntax errors, and parsed registration or policy results are tracked separately. The inventory records verified service behavior, parsing coverage, and the outcomes of bounded registry probes.
+
+| Namespace or response family | Handling |
+| --- | --- |
+| `.ac.uk` | Query the [Jisc namespace registry](https://www.jisc.ac.uk/domain-registry?lang=en) through `whois.ja.net:43`; normalize owner, registration agent, servers, and ordinal entry/renewal dates. |
+| `.gov.uk` | Query [Nominet's separate government registry](https://registrars.nominet.uk/registry/dot-gov-uk/) through its dedicated HTTPS RDAP route. |
+| `.nhs.uk`, `.police.uk`, `.mod.uk`, `.mil.uk`, `.parliament.uk` children | A 404 from Nominet's parent `.uk` interface means child registration data not provided. Successful disclosed records remain visible. These [public-sector namespaces](https://www.gov.uk/guidance/check-if-your-organisation-can-get-a-govuk-domain-name) have distinct administration; a parent-registry absence does not determine child availability. |
+| Parent-only RDAP / WHOIS objects | Report domain-specific data not provided when the object identifies a known public namespace above the queried child; discard the parent's contact and delegation data. This also covers the observed RNIDS `.mil.rs` delegation response. |
+| `.ac.jp`, `.ed.jp`, `.go.jp`, `.lg.jp` category names | Preserve JPRS's explicit Reserved result, including category records with delegation nameservers. Child registrations retain their own disclosed fields. [JPRS defines the eligible organization types](https://jprs.jp/about/jp-dom/spec/). |
+| `.sn` HTTPS WHOIS envelope | Decode the registry's single-field JSON wrapper locally, normalize French domain and holder labels, and preserve contact/date scope. No second query is made. |
+| Exact `.ie`, `.nz`, `.sx` usage-restriction replies | Report the registry's restriction without inventing an owner or availability result. |
+| Eligibility-controlled categories with ordinary records | Parse the disclosed record normally. For example, [Registro.br's category rules](https://registro.br/dominio/categorias) include education, government, military, judicial, legislative, and professional uses; [auDA](https://www.auda.org.au/au-domain-names/the-different-au-domain-names/) defines education and government categories. Eligibility rules alone do not change a lookup result. |
+
+Other services continue through ordinary IANA discovery and shared parsing. Fixed namespace-registry routes are selected before querying; registrar referrals never provide destinations. Unrelated identities and contradictory records remain errors. A direct query for a namespace, such as `ac.uk` or `gov.rs`, asks for that namespace's own record.
 
 ## WHOIS-only suffixes
 

@@ -98,8 +98,13 @@ func parseWHOIS(domain, response string) (Record, error) {
 		return Record{Domain: domain, Result: Reserved}, nil
 	}
 	lines := tokenizeWHOIS(response)
+	tuneNamespaceWHOIS(domain, lines)
+	if namespaceUsageRestriction(domain, lines) {
+		return Record{Domain: domain, Result: UsageRestricted}, nil
+	}
 	tld := domain[strings.LastIndexByte(domain, '.')+1:]
 	profile := whoisProfiles[tld]
+	jisc := strings.HasSuffix(domain, ".ac.uk")
 	if err := markWHOISBundle(domain, lines, profile); err != nil {
 		return Record{}, err
 	}
@@ -168,6 +173,10 @@ func parseWHOIS(domain, response string) (Record, error) {
 			continue
 		}
 		key, value, labeled := token.key, token.value, token.labeled
+		if jisc && key == "registrant address" {
+			scope, pending, plainName = "registrant", "", false
+			continue
+		}
 		if profile.has(lithuanianContacts) {
 			switch key {
 			case "contact organization":
@@ -222,6 +231,10 @@ func parseWHOIS(domain, response string) (Record, error) {
 		}
 		blank = false
 		if !labeled {
+			if profile.has(twnicContactFields) && scope == "registrant" && value == "" {
+				pending, plainName = "", false
+				continue // A redacted name must not consume the following country/address.
+			}
 			if pending != "" {
 				if pending == "domain" {
 					value = whoisFieldValue("domain", raw)
@@ -240,7 +253,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 					continue
 				}
 				key = "nameserver"
-			} else if profile.has(twnicVariantNames) && scope == "registrant" && value != "" && whoisEmail.FindString(value) == value {
+			} else if (profile.has(twnicVariantNames) || jisc) && scope == "registrant" && value != "" && whoisEmail.FindString(value) == value {
+				key, plainName = "registrant email", false
+			} else if profile.has(twnicContactFields) && scope == "registrant" && whoisEmail.MatchString(value) {
 				key, plainName = "registrant email", false
 			} else if (scope == "registrant" || scope == "manager") && plainName {
 				// Only the first unlabelled line of an explicit owner section
@@ -431,7 +446,11 @@ func parseWHOIS(domain, response string) (Record, error) {
 			if index := strings.Index(value, " http"); index >= 0 {
 				value = value[:index]
 			}
-			if strings.EqualFold(value, "not available") {
+			if profile.has(twnicContactFields) {
+				for _, status := range strings.Split(value, ",") {
+					r.Statuses = appendUnique(r.Statuses, status)
+				}
+			} else if strings.EqualFold(value, "not available") {
 				if !strings.Contains(strings.ToLower(strings.Join(r.Statuses, "\n")), "not available") {
 					r.Statuses = append(r.Statuses, value)
 				}
@@ -521,6 +540,11 @@ func parseWHOIS(domain, response string) (Record, error) {
 		if mismatched && !found {
 			return Record{}, queryError("invalid-response", "response domain does not match the query")
 		}
+		// JPRS publishes delegation nameservers for its reserved category
+		// names. That delegation does not contradict their reservation.
+		if found && r.Result == Reserved && profile.has(jprsContactFields) && namespaceParent("probe."+domain, domain) {
+			return Record{Domain: domain, Result: Reserved}, nil
+		}
 		if found && (r.Registration != "" || len(r.Nameservers) > 0) {
 			return Record{}, queryError("invalid-response", "contradictory WHOIS response")
 		}
@@ -532,6 +556,12 @@ func parseWHOIS(domain, response string) (Record, error) {
 		found = true
 	}
 	if !found {
+		if whoisNamespaceOnly(domain, lines) {
+			return Record{Domain: domain, Result: NotProvided}, nil
+		}
+		if profile.has(twnicContactFields) && twnicNamespaceOnly(domain, lines) {
+			return Record{Domain: domain, Result: NotProvided}, nil
+		}
 		return Record{}, queryError("invalid-response", "unrecognized or mismatched WHOIS response")
 	}
 	if object, ok := objects[whoisObjectID("contact", holder)]; ok {

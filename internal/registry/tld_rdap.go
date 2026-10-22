@@ -6,8 +6,8 @@ import (
 )
 
 type contactCard struct {
-	Name, Organization, Role string
-	Address, Phones, Emails  []string
+	Name, Organization, Role, Country string
+	Address, Phones, Emails           []string
 }
 
 func readContactCard(card []json.RawMessage, details bool) contactCard {
@@ -19,6 +19,7 @@ func readContactCard(card []json.RawMessage, details bool) contactCard {
 	if json.Unmarshal(card[1], &properties) != nil {
 		return result
 	}
+	ambiguousCountry := false
 	for _, property := range properties {
 		if len(property) < 4 {
 			continue
@@ -26,8 +27,8 @@ func readContactCard(card []json.RawMessage, details bool) contactCard {
 		var kind string
 		_ = json.Unmarshal(property[0], &kind)
 		switch kind {
-		case "fn", "org", "email":
-		case "role", "tel", "adr":
+		case "fn", "org", "email", "adr":
+		case "role", "tel":
 			if !details {
 				continue
 			}
@@ -49,7 +50,14 @@ func readContactCard(card []json.RawMessage, details bool) contactCard {
 		case "tel":
 			result.Phones = appendUnique(result.Phones, text)
 		case "adr":
-			if len(result.Address) == 0 {
+			if country := contactCountry(property[1], value); country != "" && !ambiguousCountry {
+				if result.Country != "" && result.Country != country {
+					result.Country, ambiguousCountry = "", true
+				} else {
+					result.Country = country
+				}
+			}
+			if details && len(result.Address) == 0 {
 				result.Address = contactAddress(property[1], value)
 			}
 		}

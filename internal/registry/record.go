@@ -12,12 +12,14 @@ import (
 type Result string
 
 const (
-	NoRecord      Result = "no-record"
-	NotRegistered Result = "not-registered"
-	Reserved      Result = "reserved"
-	NotAllowed    Result = "not-allowed"
-	Restricted    Result = "registration-restricted"
-	Unavailable   Result = "not-available"
+	NoRecord        Result = "no-record"
+	NotProvided     Result = "not-provided"
+	NotRegistered   Result = "not-registered"
+	Reserved        Result = "reserved"
+	NotAllowed      Result = "not-allowed"
+	Restricted      Result = "registration-restricted"
+	UsageRestricted Result = "usage-restricted"
+	Unavailable     Result = "not-available"
 )
 
 type Record struct {

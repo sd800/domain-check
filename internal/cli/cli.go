@@ -215,7 +215,7 @@ func errorText(lang output.Language, err error) string {
 		"rdap-failed":         {"Registry RDAP query failed", "注册局 RDAP 查询失败"},
 		"whois-failed":        {"Registry WHOIS query failed", "注册局 WHOIS 查询失败"},
 		"invalid-response":    {"Invalid registry response", "注册局响应无效"},
-		"redirect-blocked":    {"Redirect blocked: queries stay within IANA-listed registry endpoints", "已阻止重定向：仅查询 IANA 列出的注册局端点"},
+		"redirect-blocked":    {"Redirect blocked: queries stay within the selected registry endpoints", "已阻止重定向：仅查询选定的注册局端点"},
 		"rate-limited":        {"Registry rate limit reached; try again later", "已触发注册局查询频率限制，请稍后重试"},
 		"access-denied":       {"Registry denied access", "注册局拒绝访问"},
 		"invalid-domain":      {"Invalid domain", "域名无效"},
@@ -288,7 +288,9 @@ Other device languages use English. update, setup, help, and version also accept
 zero, one, or two leading hyphens. -h and -v are shorthand for help and version.
 
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
-IANA lists no RDAP service. Registrar referrals are never followed.
+IANA lists no RDAP service. .tw domain names use registry WHOIS directly.
+Delegated .ac.uk and .gov.uk names use their namespace registries directly.
+Registrar referrals are never followed.
 Automatic IANA refresh is checked during lookups, once per calendar month.
 Use domain update to refresh dns.json and tlds.json immediately, regardless of cache age.
 Single-label TLDs are queried directly at IANA RDAP. A leading dot is ignored.
@@ -318,7 +320,9 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
 -h 和 -v 分别是帮助和版本命令的简写。
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。
-始终不跟随注册商。IANA 数据的自动更新只在查询时检查，每个日历月周期更新一次。
+.tw 下的域名直接查询注册局 WHOIS，始终不跟随注册商。
+.ac.uk 和 .gov.uk 下的域名直接查询各自的命名空间注册局。
+IANA 数据的自动更新只在查询时检查，每个日历月周期更新一次。
 运行 domain update 可立即更新 dns.json 和 tlds.json，不受缓存时间限制。
 单标签的顶级域名直接查询 IANA RDAP。忽略域名开头的一个点。
 不带点的命令名称优先作为命令；加上前导点可查询同名顶级域名。

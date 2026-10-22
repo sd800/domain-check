@@ -154,7 +154,7 @@ The standardized layout with Simplified Chinese labels:
 DNSSEC:       unsigned
 ```
 
-Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language. For `.edu` WHOIS records, the Registrant row also includes the disclosed department and postal lines, with each continuation aligned beneath the institution name.
+Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language. For ordinary domain RDAP results, a two-letter country code disclosed in the selected registrar's address is appended with one space and square brackets, such as `Example Registrar [US]`. No country is inferred, and TLD allocation results receive no country annotation. For `.edu` WHOIS records, the Registrant row also includes the disclosed department and postal lines, with each continuation aligned beneath the institution name.
 
 WHOIS parsing supports registry-specific labels, contact sections, linked contact objects included in the same response, and multiline nameserver and DNSSEC records. Format checks include non-country namespaces such as `.edu` and `.arpa`, and internationalized top-level domains across scripts. Explicit policy notices remain distinct from registered records and service failures. Domain dates remain separate from contact-object dates, and administrative, technical, and registrar email addresses are not substituted for a registrant email. Access restrictions, timeouts, and unrecognized responses are reported as service errors, keeping them distinct from registration results.
 
@@ -180,12 +180,14 @@ Result:              No registry record
 查询结果:     注册局无记录
 ```
 
-An RDAP `404` is displayed as `No registry record`; for a TLD query, it is `No IANA TLD record` (`IANA 无此顶级域名记录` in Chinese). An absent TLD record makes no claim that the name can be registered. Disclosed TLD statuses such as `inactive` or `reserved` remain visible alongside the allocation details. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
+`Domain-specific registration data not provided` (`注册局未提供此域名的独立注册信息`) identifies a namespace-only reply or a recognized non-disclosure response, including the observed `.edu.tw`, `.gov.tw`, and `.mil.tw` cases. It makes no availability claim and does not substitute the parent namespace's manager for the queried domain's registrant.
+
+By default, an RDAP `404` is displayed as `No registry record`; for a TLD query, it is `No IANA TLD record` (`IANA 无此顶级域名记录` in Chinese). An absent TLD record makes no claim that the name can be registered. Disclosed TLD statuses such as `inactive` or `reserved` remain visible alongside the allocation details. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. `Domain usage restricted` preserves an explicit registry usage restriction separately from registration eligibility. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
 
 | Exit code | Meaning |
 | --- | --- |
 | `0` | A registry record was returned, language preferences or IANA data were saved, or setup, the introduction, help, or version finished successfully |
-| `1` | No registry record, or an explicit registration restriction |
+| `1` | No registry record, registration data not provided, or an explicit registration restriction |
 | `2` | Invalid arguments or domain |
 | `3` | Discovery, configuration, network, service, response, or output error |
 
@@ -217,11 +219,13 @@ The service listens only on your Mac's loopback addresses. It does not expose th
 ## Registry-only queries
 
 - TLD allocation queries go directly to `https://rdap.iana.org/domain/<tld>`, without fetching discovery datasets.
-- Ordinary domain RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
+- `.tw` domain queries use the registry WHOIS host from the complete IANA TLD dataset directly. The `.tw` TLD allocation query itself still uses IANA RDAP.
+- Delegated `.ac.uk` and `.gov.uk` names use their documented namespace registries directly: Jisc WHOIS and Nominet's dedicated RDAP service, respectively.
+- Other ordinary domain RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
 - Response links and entity links are never fetched, including registrar `related` links.
-- HTTP redirects are accepted only for the same domain query at an IANA-listed endpoint for that suffix, including an HTTP-to-HTTPS upgrade. Arbitrary paths, external hosts, and redirects with query parameters are blocked.
+- HTTP redirects are accepted only for the same domain query within the selected registry endpoints, including an HTTP-to-HTTPS upgrade. Arbitrary paths, external hosts, and redirects with query parameters are blocked.
 - When RDAP is absent, WHOIS uses the registry host in IANA's complete `tlds.json` dataset, then queries that registry directly on TCP port 43. Registrar WHOIS fields and referrals in the registry response are ignored. The `rdap_base_urls` field in `tlds.json` does not override `dns.json`.
-- When IANA lists RDAP, an RDAP failure does not trigger a WHOIS fallback.
+- Apart from the explicit registry routes above, advertised RDAP remains the selected protocol; failures do not trigger a WHOIS fallback.
 
 WHOIS parsing combines shared field extraction with registry-specific format rules, including CNNIC and Nominet-style records. Labeled fields, multiline sections, and explicit service responses are processed consistently; unrecognized replies produce a clear error. WHOIS requires outbound TCP port 43.
 
@@ -281,7 +285,7 @@ Domain Check from Registries is designed to keep your domain lookups private.
 
 **Minimal data is stored.** Domain Check stores your CLI language preference, two complete IANA service-discovery datasets, and settings for the optional local web service. The browser stores only your theme and language choices. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. The local web service keeps no access logs. Your shell and browser may keep their own command or navigation history, according to their settings.
 
-**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. For ordinary domain lookups, IANA's service-discovery datasets are downloaded in full without disclosing the queried domain or suffix to IANA. When you query a TLD itself, IANA acts as its root registry and receives that TLD query directly. Domain Check uses HTTPS whenever a registry offers it.
+**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. For ordinary domain lookups, IANA's service-discovery datasets are downloaded in full without disclosing the queried domain or suffix to IANA. When you query a TLD itself, IANA acts as its root registry and receives that TLD query directly. RDAP connections prefer HTTPS when advertised by the registry; `.tw` domain lookups use the registry's WHOIS service.
 
 **Third-party services.** Registries, IANA, GitHub, and DNS providers are independent services, and their own privacy policies govern how they handle your information. Domain Check does not control their practices. Installing or updating Domain Check downloads files from GitHub. As with any internet connection, network operators along the path may be able to observe some traffic, including WHOIS queries, which use a standard protocol without encryption.
 

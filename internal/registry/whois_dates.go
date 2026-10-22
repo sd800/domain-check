@@ -94,7 +94,7 @@ func formatWHOISTime(tld, value string) string {
 			return parsed.Format("2006-01-02 15:04:05")
 		}
 	}
-	for _, layout := range []string{"Mon Jan 2 2006", "20060102"} {
+	for _, layout := range []string{"Mon Jan 2 2006", "20060102", "Monday 2 January 2006", "Monday 2 Jan 2006"} {
 		if parsed, err := time.Parse(layout, value); err == nil {
 			return parsed.Format("2006-01-02")
 		}

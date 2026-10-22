@@ -17,8 +17,8 @@ const (
 )
 
 var labels = map[Language][]string{
-	English: {"Domain Name", "Registration Time", "Expiration Time", "Last Changed Time", "Domain Status", "Registrar", "Registrant", "Registrant Email", "Name Server", "DNSSEC", "Result", "IDN"},
-	Chinese: {"域名", "注册时间", "过期时间", "更新时间", "状态", "注册商", "注册人", "联系邮箱", "域名服务器", "DNSSEC", "查询结果", "国际化域名"},
+	English: {"Domain Name", "Registration Time", "Expiration Time", "Last Changed Time", "Domain Status", "Registrar", "Registrant", "Registrant Email", "Name Server", "DNSSEC", "Result", "IDN", "Address", "Registration URL", "Admin", "Organization", "Role", "Phone", "Email"},
+	Chinese: {"域名", "注册时间", "过期时间", "更新时间", "状态", "注册商", "注册人", "联系邮箱", "域名服务器", "DNSSEC", "查询结果", "国际化域名", "地址", "注册网址", "管理联系人", "组织", "角色", "电话", "邮箱"},
 }
 
 type entry struct {
@@ -65,32 +65,41 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 	column := longest + 4 // colon plus three spaces after the longest label
 	var b strings.Builder
 	row := func(index int, value string) {
-		if index != 11 { // The locally validated IDN may contain emoji ZWJ.
-			value = registry.Clean(value)
-		}
-		if index >= 1 && index <= 3 {
-			value = DateText(lang, value)
-		}
-		if value == "" {
-			return
-		}
 		label := names[index]
 		padding := column - uniseg.StringWidth(label) - 1
 		prefix := label + ":" + strings.Repeat(" ", padding)
-		for i, line := range wrap(value, max(2, width-column)) {
-			if i == 0 {
-				b.WriteString(prefix)
-			} else {
-				b.WriteString(strings.Repeat(" ", column))
+		lines := []string{value}
+		if index == 12 { // Postal address lines share one label and content column.
+			lines = strings.Split(value, "\n")
+		}
+		first := true
+		for _, value := range lines {
+			if index != 11 { // The locally validated IDN may contain emoji ZWJ.
+				value = registry.Clean(value)
 			}
-			b.WriteString(line)
-			b.WriteByte('\n')
+			if index >= 1 && index <= 3 {
+				value = DateText(lang, value)
+			}
+			for _, line := range wrap(value, max(2, width-column)) {
+				if first {
+					b.WriteString(prefix)
+					first = false
+				} else {
+					b.WriteString(strings.Repeat(" ", column))
+				}
+				b.WriteString(line)
+				b.WriteByte('\n')
+			}
 		}
 	}
 	row(0, record.Domain)
 	row(11, unicodeDomain(record.Domain))
 	if record.Result != "" {
-		row(10, ResultText(lang, record.Result))
+		result := ResultText(lang, record.Result)
+		if record.TLD && record.Result == registry.NoRecord {
+			result = Text(lang, "No IANA TLD record", "IANA 无此顶级域名记录")
+		}
+		row(10, result)
 		_, err := io.WriteString(w, b.String())
 		return err
 	}
@@ -98,16 +107,36 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 	groups := [][]entry{
 		{{1, record.Registration}, {2, record.Expiration}, {3, record.Changed}},
 	}
-	registrarGroup := []entry{{5, record.Registrar}}
+	var registrarGroup []entry
+	if record.TLD {
+		groups[0] = []entry{{1, record.Registration}, {3, record.Changed}}
+	} else {
+		registrarGroup = append(registrarGroup, entry{5, record.Registrar})
+	}
 	for _, status := range record.Statuses {
 		registrarGroup = append(registrarGroup, entry{4, status})
 	}
-	groups = append(groups, registrarGroup)
 	contactGroup := []entry{{6, record.Registrant}}
-	for _, email := range record.RegistrantEmail {
-		contactGroup = append(contactGroup, entry{7, email})
+	if record.TLD {
+		contactGroup = append(registrarGroup, contactGroup...)
+		contactGroup = append(contactGroup, entry{12, strings.Join(record.RegistrantAddress, "\n")}, entry{13, record.RegistrationURL})
+	} else {
+		groups = append(groups, registrarGroup)
+		for _, email := range record.RegistrantEmail {
+			contactGroup = append(contactGroup, entry{7, email})
+		}
 	}
 	groups = append(groups, contactGroup)
+	if record.TLD {
+		admin := []entry{{14, record.Admin}, {15, record.AdminOrganization}, {16, record.AdminRole}}
+		for _, phone := range record.AdminPhones {
+			admin = append(admin, entry{17, phone})
+		}
+		for _, email := range record.AdminEmails {
+			admin = append(admin, entry{18, email})
+		}
+		groups = append(groups, admin)
+	}
 	var nsGroup []entry
 	for _, ns := range record.Nameservers {
 		nsGroup = append(nsGroup, entry{8, ns})

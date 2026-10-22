@@ -6,7 +6,7 @@ Domain Check from Registries is a macOS CLI written in Go, with an optional loca
 
 1. Parse one command or one domain/URL, with optional language selectors. Introduction, help, version, setup, and standalone language commands finish without registry discovery.
 2. Validate a domain and convert internationalized labels to lowercase ASCII/Punycode. For URL input, discard credentials, port, path, query, and fragment locally, then select the registry-level registrable domain. The pasted URL is never fetched.
-3. Load the complete IANA `dns.json` document and select the longest matching suffix. Prefer an advertised HTTPS endpoint. If IANA advertises RDAP, use it even when it fails; failure never triggers a WHOIS fallback.
+3. For a single-label TLD, query `https://rdap.iana.org/domain/<tld>` directly and skip discovery. For an ordinary domain, load the complete IANA `dns.json` document and select the longest matching suffix. Prefer an advertised HTTPS endpoint. If IANA advertises RDAP, use it even when it fails; failure never triggers a WHOIS fallback.
 4. When no RDAP endpoint is advertised, obtain the active suffix's WHOIS hostname from the complete IANA `tlds.json` document and make one TCP port 43 query. Its `rdap_base_urls` fields do not override `dns.json`.
 5. Validate the response's domain identity and extract fields. Use only embedded entities and objects already present in the same response. Never fetch registrar referrals, entity links, contact URLs, or unresolved handles.
 6. Sanitize remote values and write the standardized layout. Missing and redacted values are omitted. A service error never becomes an availability claim.
@@ -15,11 +15,11 @@ The dedicated education-registry interface and DNS fallback are described in the
 
 ## Domain and URL handling
 
-Domain validation accepts a trailing dot and enforces DNS label and length rules. IP literals, embedded commands, URL components in a domain identity, and control characters are rejected. Unicode input uses IDNA lookup mapping. Joined emoji are supported through complete validated pictographic grapheme clusters, with registration eligibility determined by each registry.
+Command names are recognized before query normalization. Bare commands keep priority; a dotted name such as `.setup` explicitly selects a TLD lookup. Query normalization ignores one leading dot for both TLDs and ordinary domains, so `.github.io` and `github.io` share the same identity. Multiple leading dots are rejected. Domain validation accepts a trailing dot and enforces DNS label and length rules. IP literals, embedded commands, URL components in a domain identity, and control characters are rejected. Unicode input uses IDNA lookup mapping. Joined emoji are supported through complete validated pictographic grapheme clusters, with registration eligibility determined by each registry.
 
 Direct domain input keeps its normalized identity. URL input uses the ICANN portion of the bundled public suffix data to find the registry-level domain. Private hosting suffixes do not become registry boundaries: `https://user.github.io/` queries `github.io`. A multi-label namespace such as `net.cn` may itself be queried.
 
-The first output row contains the ASCII domain. When a safe round-trip Unicode representation exists, an `IDN` / `国际化域名` row follows. The ASCII name remains the primary identity alongside its validated Unicode display.
+The first output row contains the ASCII domain. When a safe round-trip Unicode representation exists, an `IDN` / `国际化域名` row follows. The ASCII name remains the primary identity alongside its validated Unicode display. CLI values use no hyperlink escape sequences. Browser values use text nodes, and format detection is disabled for URLs, email addresses, telephone numbers, dates, and addresses.
 
 ## Response interpretation
 
@@ -40,11 +40,19 @@ Dates retain source precision: English uses `YYYY-MM-DD` for dates and `YYYY-MM-
 
 RDAP `404` is reported as no registry record. Registration availability and restrictions are reported separately through explicit WHOIS statements such as not registered, reserved, not allowed, or restricted. Access denial, rate limits, timeouts, malformed data, and unknown syntax remain operational errors.
 
+## TLD allocation records
+
+Single-label queries use IANA RDAP as the authoritative root registry, including IDN TLDs. Only the fixed IANA endpoint may receive the query or an allowed redirect; alternate RDAP services and entity links in the response are never followed. These lookups neither load discovery caches nor save responses.
+
+TLD status and registrant details share one output group with no intervening blank line or divider. The TLD layout shows domain registration and last-changed events, status, registrant, address, registration URL, administrative contact, nameservers, and DNSSEC. An entity with RDAP `roles: ["administrative"]` supplies the administrative block; the jCard `role` property supplies only the separate Role row. Name, organization, phone, and email values remain within that selected contact. Voice and fax numbers use repeated Phone rows. Registrant addresses prefer the jCard address label, retaining its line structure, with structured postal components as a fallback. The registration URL is the domain object's related link titled Registration URL, displayed only when it is an HTTP(S) URL. All displayed values are text; no link is fetched.
+
+IANA HTTP 404 produces No IANA TLD record, without inferring registration availability. A successful inactive or reserved object retains its disclosed status and fields. Access denials, rate limits, service failures, malformed objects, and mismatched identities remain errors, with no WHOIS fallback.
+
 ## Presentation and commands
 
 Label width is measured in terminal display cells. The content column follows the longest label's colon by three spaces. `DNSSEC` does not determine the Chinese column. Continuations begin at the same content column; wrapping preserves grapheme clusters. Terminal dimensions take precedence over `COLUMNS`, with an 80-column fallback.
 
-`en`, `zh`, and `auto` accept zero, one, or two leading hyphens. A standalone language command saves and confirms the default. With a domain, URL, help, version, update, or setup, the selection applies only to that invocation and bypasses reading the saved language. The last selector wins. Device language supplies the initial default; explicit locale overrides and fallback behavior are documented in [Usage](../README.md#usage).
+`en`, `zh`, and `auto-lang` accept zero, one, or two leading hyphens. A standalone language command saves and confirms the default. With a domain, URL, help, version, update, or setup, the selection applies only to that invocation and bypasses reading the saved language. The last selector wins. The stored automatic-language value remains `auto` for compatibility; the command is `auto-lang`, and bare `auto` queries the `.auto` TLD. Device language supplies the initial default; explicit locale overrides and fallback behavior are documented in [Usage](../README.md#usage).
 
 ## Local browser interface
 
@@ -56,7 +64,7 @@ HTML, CSS, JavaScript, and the text-free SVG logo are embedded in the executable
 
 Before first paint, a small CSP-hashed script applies the saved theme and language. Browser language and system appearance supply the initial defaults. Queries use `fetch` without navigation; the current record stays in place while another query is pending and is replaced atomically on success. Field columns retain a fixed alignment across languages, with a wider gap between labels and values. Long records scroll with the page. Submitting an empty input clears the result and returns to the initial view, cancelling any pending lookup. Only the theme and language are stored in browser local storage, separately from CLI preferences.
 
-A direct route such as `/example.com` or `/https%3A//www.google.com` decodes into the search input. The server avoids automatic path-cleaning redirects, preserving embedded URL separators. Input is submitted in a bounded JSON POST to the same-origin API and passes through the shared domain/URL normalizer before registry access. The browser does not load the pasted URL. After a successful query the address returns to `/` without creating a new history entry. Reloading starts with an empty result; responses and query inputs are not persisted.
+A direct route such as `/example.com`, `/.com`, `/.github.io`, or `/https%3A//www.google.com` decodes into the search input. The server avoids automatic path-cleaning redirects, preserving embedded URL separators. Input is submitted in a bounded JSON POST to the same-origin API and passes through the shared domain/URL normalizer before registry access. The browser does not load the pasted URL. After a successful query the address returns to `/` without creating a new history entry. Reloading starts with an empty result; responses and query inputs are not persisted.
 
 The API requires a per-process random token, a permitted Host, loopback client address, and same-origin browser request metadata. It accepts at most two simultaneous lookups and thirty starts per minute, with a 45-second query deadline. The shared registry client retains its destination validation and registry-only routing. HTTP access and error logging are disabled; the LaunchAgent directs process output to `/dev/null`.
 

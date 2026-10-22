@@ -42,7 +42,7 @@ func TestLanguagePersistsAcrossInvocations(t *testing.T) {
 		t.Fatalf("invalid invocation returned %d", code)
 	}
 	run(nil, "用法:")
-	for _, selector := range []string{"auto", "-auto", "--auto"} {
+	for _, selector := range []string{"auto-lang", "-auto-lang", "--auto-lang"} {
 		run([]string{selector}, "Language set to follow the device language. Preference saved.")
 		run(nil, "Usage:")
 		t.Setenv("LC_ALL", "zh_CN.UTF-8")
@@ -86,7 +86,7 @@ func TestPreferenceWriteFailureIsReported(t *testing.T) {
 
 func TestStandaloneLanguageConfirmationIsSavedAndOffline(t *testing.T) {
 	for _, locale := range []string{"en_US.UTF-8", "zh_CN.UTF-8"} {
-		for _, selector := range []string{"en", "zh", "auto"} {
+		for _, selector := range []string{"en", "zh", "auto-lang"} {
 			for _, prefix := range []string{"", "-", "--"} {
 				t.Run(locale+"/"+prefix+selector, func(t *testing.T) {
 					t.Setenv("LC_ALL", locale)
@@ -100,7 +100,7 @@ func TestStandaloneLanguageConfirmationIsSavedAndOffline(t *testing.T) {
 					want := "Language switched to English and saved as the default.\n"
 					if selector == "zh" {
 						want = "语言已切换为简体中文，并保存为默认语言。\n"
-					} else if selector == "auto" {
+					} else if selector == "auto-lang" {
 						want = "Language set to follow the device language. Preference saved.\n"
 						if strings.HasPrefix(locale, "zh") {
 							want = "语言已切换为跟随设备语言，并保存设置。\n"
@@ -109,7 +109,7 @@ func TestStandaloneLanguageConfirmationIsSavedAndOffline(t *testing.T) {
 					if code != 0 || errOut.Len() != 0 || out.String() != want {
 						t.Fatalf("exit=%d, stdout=%q, stderr=%q; want %q", code, out.String(), errOut.String(), want)
 					}
-					if saved, err := loadLanguagePreference(); err != nil || string(saved) != selector {
+					if saved, err := loadLanguagePreference(); err != nil || saved != map[string]output.Language{"en": output.English, "zh": output.Chinese, "auto-lang": automaticLanguage}[selector] {
 						t.Fatalf("confirmation without saved preference: %s, %v", saved, err)
 					}
 					if entries, err := os.ReadDir(cache); err != nil || len(entries) != 0 {
@@ -143,7 +143,7 @@ func temporaryLanguageQueryClient(t *testing.T) *registry.Client {
 func TestQueryLanguageIsTemporary(t *testing.T) {
 	t.Setenv("LC_ALL", "en_US.UTF-8")
 	t.Setenv("COLUMNS", "80")
-	for _, selector := range []string{"en", "zh", "auto"} {
+	for _, selector := range []string{"en", "zh", "auto-lang"} {
 		for _, prefix := range []string{"", "-", "--"} {
 			for _, input := range []string{"example.com", "https://www.example.com/path?item=1"} {
 				for _, after := range []bool{false, true} {
@@ -196,7 +196,7 @@ func TestQueryLanguageIsTemporary(t *testing.T) {
 func TestTemporaryLanguageDoesNotCreateOrWritePreferences(t *testing.T) {
 	t.Setenv("LC_ALL", "zh_CN.UTF-8")
 	for _, blocked := range []bool{false, true} {
-		for _, selector := range []string{"en", "zh", "auto"} {
+		for _, selector := range []string{"en", "zh", "auto-lang"} {
 			t.Run(fmt.Sprintf("%s/blocked=%t", selector, blocked), func(t *testing.T) {
 				config := filepath.Join(t.TempDir(), "preferences")
 				if blocked {
@@ -224,5 +224,27 @@ func TestTemporaryLanguageDoesNotCreateOrWritePreferences(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestAutoTLDIsAQueryAndSavedAutoPreferenceRemainsCompatible(t *testing.T) {
+	t.Setenv("DOMAIN_CONFIG_DIR", t.TempDir())
+	t.Setenv("LC_ALL", "en_US.UTF-8")
+	if err := saveLanguagePreference(automaticLanguage); err != nil {
+		t.Fatal(err)
+	}
+	c := registry.NewClient(t.TempDir())
+	c.HTTP.Transport = updateTransport(func(req *http.Request) (*http.Response, error) {
+		if req.URL.String() != "https://rdap.iana.org/domain/auto" {
+			t.Fatal(req.URL)
+		}
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"objectClassName":"domain","ldhName":"auto","status":["active"]}`)), Request: req}, nil
+	})
+	var out, errOut bytes.Buffer
+	if code := run(context.Background(), []string{"auto"}, &out, &errOut, "test", c); code != 0 || errOut.Len() != 0 || !strings.Contains(out.String(), "Domain Name:") || !strings.Contains(out.String(), "active") || strings.Contains(out.String(), "Preference saved") {
+		t.Fatal(code, out.String(), errOut.String())
+	}
+	if saved, err := loadLanguagePreference(); err != nil || saved != automaticLanguage {
+		t.Fatal("existing automatic preference changed", saved, err)
 	}
 }

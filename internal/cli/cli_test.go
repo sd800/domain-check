@@ -32,6 +32,36 @@ func TestLanguageSelectors(t *testing.T) {
 	}
 }
 
+func TestCommandNamesTakePrecedenceAndLeadingDotForcesLookup(t *testing.T) {
+	for _, name := range []string{"setup", "update", "help", "version", "en", "zh", "auto-lang"} {
+		command, err := parseArgs([]string{name}, output.English)
+		if err != nil || command.domain != "" {
+			t.Fatal(name, command, err)
+		}
+		query, err := parseArgs([]string{"." + name}, output.English)
+		if err != nil || query.domain != name || query.setup || query.update || query.help || query.version || query.preference != "" {
+			t.Fatal("leading dot did not force a TLD lookup", name, query, err)
+		}
+	}
+	for input, want := range map[string]string{"auto": "auto", "cn": "cn", ".com": "com", ".github.io": "github.io"} {
+		o, err := parseArgs([]string{input}, output.English)
+		if err != nil || o.domain != want || o.preference != "" {
+			t.Fatal(input, o, err)
+		}
+	}
+	for _, prefix := range []string{"", "-", "--"} {
+		o, err := parseArgs([]string{prefix + "auto-lang", "cn"}, output.Chinese)
+		if err != nil || o.preference != automaticLanguage || o.domain != "cn" || o.lang != output.Chinese {
+			t.Fatal(o, err)
+		}
+	}
+	for _, old := range []string{"-auto", "--auto"} {
+		if _, err := parseArgs([]string{old}, output.English); err == nil {
+			t.Fatal("old language selector still active", old)
+		}
+	}
+}
+
 func TestURLArgumentsWithLanguageSelectors(t *testing.T) {
 	for _, args := range [][]string{
 		{"https://www.example.com/path?item=1", "zh"},

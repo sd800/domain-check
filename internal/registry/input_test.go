@@ -9,6 +9,14 @@ import (
 func TestDomainAndURLInputs(t *testing.T) {
 	for input, want := range map[string]string{
 		"example.com":      "example.com",
+		".github.io":       "github.io",
+		".com":             "com",
+		"cn":               "cn",
+		"CN.":              "cn",
+		"auto":             "auto",
+		".中国":              "xn--fiqs8s",
+		"https://cn/":      "cn",
+		"cn/../other":      "cn",
 		"net.cn":           "net.cn",
 		"home.cn":          "home.cn",
 		"example.net.cn":   "example.net.cn",
@@ -45,10 +53,20 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"https:///missing-host", "mailto:user@example.com",
 		"file:///etc/passwd", "https://example.com:invalid/", "https://user:secret@/path",
 		"https://-bad.com/", "https://exa\nmple.com/", "example.com\nother.com",
+		"..github.io", "..cn", ".", "123", "-cn",
 	} {
 		if _, err := NormalizeInput(input); err == nil {
 			t.Errorf("accepted invalid input %q", input)
 		}
+	}
+}
+
+func TestTLDInputDoesNotRelaxServiceOrWHOISValidation(t *testing.T) {
+	if _, err := normalizeQueryIdentity("cn\r\nother"); err == nil {
+		t.Fatal("TLD query accepted line injection")
+	}
+	if _, err := NormalizeDomain("cn"); err == nil || validServiceHost("cn") || validWHOISQuery("whois.registry.test", "cn") {
+		t.Fatal("single-label lookup relaxed transport validation")
 	}
 }
 
@@ -68,5 +86,19 @@ func TestURLLookupOnlyContactsRegistry(t *testing.T) {
 	seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
 	if _, err := c.Lookup(context.Background(), domain); err != nil || calls != 1 {
 		t.Fatalf("%v, calls %d", err, calls)
+	}
+}
+
+func TestLeadingDotOnOrdinaryDomainKeepsRegistryRouting(t *testing.T) {
+	c := fixtureClient(t, func(req *http.Request) (*http.Response, error) {
+		if req.URL.String() != "https://registry.test/domain/github.io" {
+			t.Fatalf("leading dot changed routing: %s", req.URL)
+		}
+		return reply(req, 200, `{"objectClassName":"domain","ldhName":"github.io"}`), nil
+	})
+	seedBootstrap(t, c, `[[["io"],["https://registry.test/"]]]`)
+	r, err := c.Lookup(context.Background(), ".github.io")
+	if err != nil || r.Domain != "github.io" || r.TLD {
+		t.Fatal(r, err)
 	}
 }

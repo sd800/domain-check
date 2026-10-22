@@ -94,7 +94,7 @@ func TestWebInvalidAndOversizedInputDoNotQuery(t *testing.T) {
 
 func TestDeepLinksAssetsAndSecurityHeaders(t *testing.T) {
 	s, _ := New("test", nil)
-	for _, path := range []string{"/", "/example.com", "/https%3A//www.google.com", "/https%3A%2F%2Fwww.example.com%2Fpath"} {
+	for _, path := range []string{"/", "/example.com", "/cn", "/.com", "/.github.io", "/https%3A//www.google.com", "/https%3A%2F%2Fwww.example.com%2Fpath"} {
 		w := httptest.NewRecorder()
 		s.ServeHTTP(w, request(s, "GET", path, ""))
 		if w.Code != 200 || !strings.Contains(w.Body.String(), "Domain Check") || strings.Contains(w.Body.String(), "/*BOOT*/") {
@@ -121,6 +121,36 @@ func TestDeepLinksAssetsAndSecurityHeaders(t *testing.T) {
 	logo, _ := assets.ReadFile("assets/logo.svg")
 	if strings.Contains(string(logo), "<text") {
 		t.Fatal("logo contains text")
+	}
+}
+
+func TestWebTLDFieldsAreSanitizedAndNamesNormalized(t *testing.T) {
+	const payload = "text\x1b]8;;https://evil.test\x07\u202e"
+	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		return registry.Record{Domain: domain, TLD: !strings.Contains(domain, "."), Admin: payload, AdminOrganization: payload, AdminRole: payload, AdminPhones: []string{payload}, AdminEmails: []string{payload}, RegistrationURL: "http://registry.example.test/", RegistrantAddress: []string{"One Street", payload, "Country"}}, nil, nil
+	})
+	for input, want := range map[string]string{"cn": "cn", ".com": "com", ".github.io": "github.io", ".setup": "setup"} {
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"`+input+`"}`))
+		var result struct {
+			Record struct {
+				Domain, Admin, Organization, Role, Address string
+				URL                                        string `json:"registration_url"`
+				Phones, Emails                             []string
+				AdminEmails                                []string `json:"admin_emails"`
+				TLD                                        bool
+			}
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil || w.Code != 200 {
+			t.Fatal(err, w.Code, w.Body.String())
+		}
+		r := result.Record
+		if r.Domain != want || r.TLD != !strings.Contains(want, ".") || r.Admin == "" || r.Organization == "" || r.Role == "" || len(r.Phones) != 1 || len(r.AdminEmails) != 1 || len(r.Emails) != 0 || r.URL != "http://registry.example.test/" || !strings.HasPrefix(r.Address, "One Street\n") || !strings.HasSuffix(r.Address, "\nCountry") || strings.ContainsAny(w.Body.String(), "\x1b\u202e") {
+			t.Fatal(w.Body.String())
+		}
+	}
+	if !strings.Contains(string(s.index), `name="format-detection"`) {
+		t.Fatal("browser auto-link detection was not disabled")
 	}
 }
 

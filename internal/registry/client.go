@@ -61,11 +61,16 @@ func (c *Client) warning(message string) {
 }
 
 func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
-	normalized, err := NormalizeDomain(domain)
+	normalized, err := normalizeQueryIdentity(domain)
 	if err != nil {
 		return Record{}, queryError("invalid-domain", err.Error())
 	}
 	domain = normalized
+	if !strings.Contains(domain, ".") {
+		record, err := c.rdap(ctx, domain, []string{"https://rdap.iana.org/"})
+		record.TLD = true
+		return record, err
+	}
 	if strings.HasSuffix(domain, ".edu.cn") {
 		return c.eduCN(ctx, domain)
 	}

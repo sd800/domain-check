@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode"
 
 	"golang.org/x/net/publicsuffix"
 )
@@ -20,7 +21,7 @@ func NormalizeInput(input string) (string, error) {
 	}
 	isURL := strings.Contains(input, "://") || strings.ContainsAny(input, "/?#:")
 	if !isURL {
-		return NormalizeDomain(input)
+		return normalizeQueryIdentity(input)
 	}
 	value := input
 	if !strings.Contains(value, "://") {
@@ -35,11 +36,14 @@ func NormalizeInput(input string) (string, error) {
 		// Do not echo the URL: it may include credentials or private query data.
 		return "", fmt.Errorf("invalid URL hostname")
 	}
-	host, err := NormalizeDomain(u.Hostname())
+	host, err := normalizeQueryIdentity(u.Hostname())
 	if err != nil {
 		return "", fmt.Errorf("URL must contain a valid public domain name")
 	}
 	suffix, icann := publicsuffix.PublicSuffix(host)
+	if !strings.Contains(host, ".") && !icann {
+		return "", fmt.Errorf("URL must contain a valid public domain name")
+	}
 	// Private hosting suffixes describe tenancy, not registry registrations.
 	// For example, a URL on user.github.io is a query for github.io at .io.
 	for !icann && strings.Contains(suffix, ".") {
@@ -54,4 +58,25 @@ func NormalizeInput(input string) (string, error) {
 		parent = parent[index+1:]
 	}
 	return parent + "." + suffix, nil
+}
+
+// Single-label queries address the root registry. Service hosts and ordinary
+// response identities continue to use strict multi-label NormalizeDomain rules.
+func normalizeQueryIdentity(input string) (string, error) {
+	if len(input) > 4096 || strings.ContainsFunc(input, unicode.IsControl) {
+		return "", fmt.Errorf("invalid domain length or control character")
+	}
+	input = strings.TrimPrefix(strings.TrimSpace(input), ".")
+	if domain, err := NormalizeDomain(input); err == nil {
+		return domain, nil
+	}
+	return normalizeTLD(input)
+}
+
+func normalizeTLD(input string) (string, error) {
+	domain, err := NormalizeDomain("tld." + input)
+	if err != nil || strings.Count(domain, ".") != 1 {
+		return "", fmt.Errorf("expected a domain or top-level domain such as cn")
+	}
+	return strings.TrimPrefix(domain, "tld."), nil
 }

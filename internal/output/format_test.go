@@ -65,6 +65,51 @@ func TestNegativeLayout(t *testing.T) {
 	}
 }
 
+func TestTLDLayoutAndAddressContinuation(t *testing.T) {
+	r := registry.Record{Domain: "zz", TLD: true, Registration: "1994-04-08 04:00:00 UTC", Changed: "2026-10-22", Expiration: "must omit", Registrar: "must omit", Statuses: []string{"inactive"}, Registrant: "Example Registry", RegistrantAddress: []string{"One Registry Road", "Example City 12345", "Example Country"}, RegistrationURL: "http://registry.example.test/", Admin: "Alex Example", AdminOrganization: "Example Organization", AdminRole: "Operations Lead", AdminPhones: []string{"+1-555-0100", "+1-555-0101"}, AdminEmails: []string{"admin@example.test"}, Nameservers: []string{"ns1.example.test"}, DNSSEC: "signed"}
+	var b bytes.Buffer
+	if err := Format(&b, r, English, 100); err != nil {
+		t.Fatal(err)
+	}
+	want := "Domain Name:         zz\n\nRegistration Time:   1994-04-08 04:00:00 UTC\nLast Changed Time:   2026-10-22\n\nDomain Status:       inactive\nRegistrant:          Example Registry\nAddress:             One Registry Road\n                     Example City 12345\n                     Example Country\nRegistration URL:    http://registry.example.test/\n\nAdmin:               Alex Example\nOrganization:        Example Organization\nRole:                Operations Lead\nPhone:               +1-555-0100\nPhone:               +1-555-0101\nEmail:               admin@example.test\n\nName Server:         ns1.example.test\nDNSSEC:              signed\n"
+	if b.String() != want {
+		t.Fatalf("TLD layout:\n%s\nwant:\n%s", b.String(), want)
+	}
+	for _, lang := range []Language{English, Chinese} {
+		b.Reset()
+		if err := Format(&b, r, lang, 43); err != nil {
+			t.Fatal(err)
+		}
+		column := 21
+		if lang == Chinese {
+			column = 14
+			if !strings.Contains(b.String(), "1994 年 4 月 8 日") {
+				t.Fatal(b.String())
+			}
+		}
+		for _, line := range strings.Split(b.String(), "\n") {
+			if uniseg.StringWidth(line) > 43 {
+				t.Fatalf("TLD row overflow: %q", line)
+			}
+			if strings.HasPrefix(line, " ") && !strings.HasPrefix(line, strings.Repeat(" ", column)) {
+				t.Fatalf("TLD continuation misaligned: %q", line)
+			}
+		}
+	}
+}
+
+func TestTLDNoRecordDoesNotClaimAvailability(t *testing.T) {
+	for lang, want := range map[Language]string{English: "No IANA TLD record", Chinese: "IANA 无此顶级域名记录"} {
+		var b bytes.Buffer
+		if err := Format(&b, registry.Record{Domain: "example-unregistered", TLD: true, Result: registry.NoRecord}, lang, 120); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(b.String(), want) || strings.Count(b.String(), "\n") != 2 {
+			t.Fatal(b.String())
+		}
+	}
+}
+
 func TestRestrictedRegistrationResult(t *testing.T) {
 	for lang, want := range map[Language]string{
 		English: "Registration restricted (online registration unavailable)",

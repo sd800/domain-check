@@ -21,17 +21,25 @@ const (
 )
 
 type Record struct {
-	Domain          string
-	Registration    string
-	Expiration      string
-	Changed         string
-	Statuses        []string
-	Registrar       string
-	Registrant      string
-	RegistrantEmail []string
-	Nameservers     []string
-	DNSSEC          string
-	Result          Result
+	Domain            string
+	Registration      string
+	Expiration        string
+	Changed           string
+	Statuses          []string
+	Registrar         string
+	Registrant        string
+	RegistrantEmail   []string
+	Nameservers       []string
+	DNSSEC            string
+	Result            Result
+	TLD               bool     `json:",omitempty"`
+	RegistrantAddress []string `json:",omitempty"`
+	RegistrationURL   string   `json:",omitempty"`
+	Admin             string   `json:",omitempty"`
+	AdminOrganization string   `json:",omitempty"`
+	AdminRole         string   `json:",omitempty"`
+	AdminPhones       []string `json:",omitempty"`
+	AdminEmails       []string `json:",omitempty"`
 }
 
 // QueryError describes a failed query, never an availability determination.

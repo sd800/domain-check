@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.22.4
+
+- Add direct IANA RDAP queries for TLD allocation records with aligned contact and delegation details in the CLI and browser.
+- Accept one leading dot on domain queries and rename the device-language selector to auto-lang, preserving command priority.
+
 ## 26.10.22.3
 
 - Highlight setup menu choices in cyan on terminals, keeping redirected output plain and respecting NO_COLOR and basic-terminal settings.

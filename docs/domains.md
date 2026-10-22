@@ -2,6 +2,12 @@
 
 Domain Check accepts domain names and full URLs, including internationalized labels. Routing follows the current IANA datasets. This inventory records their service assignments and the corresponding registry-format verification.
 
+## TLD allocation queries
+
+Query a TLD itself with `domain cn` or `domain .com`; internationalized TLDs are accepted in Unicode or Punycode. These allocation queries go directly to IANA RDAP, independently of the domain-registration service coverage below. IANA's disclosed allocation record supplies the result, including any inactive or reserved status. No record means no IANA TLD record, without implying that the name is available for registration.
+
+One leading dot is also accepted on ordinary domains: `domain .github.io` queries `github.io`. Bare command names take priority; use a leading dot to query a matching TLD name.
+
 ## IANA snapshot
 
 Source: the complete [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.json), generated **2026-10-21T21:54:03+00:00**, and [IANA RDAP DNS bootstrap data](https://data.iana.org/rdap/dns.json), published **2026-09-30T23:00:03Z**. The TLD registry's RDAP fields do not replace the DNS bootstrap as the RDAP routing source.

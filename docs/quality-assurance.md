@@ -37,6 +37,7 @@ make dist
 | Registry boundary | Never follow registrar referrals, linked entities, or unresolved handles; constrain redirects to the same query at listed registry endpoints. |
 | Network destinations | Reject invalid hosts, forbidden URL components, private or mixed DNS answers, and disguised local addresses; connect to the validated IPs. |
 | Cache / preferences | Store only full IANA documents, language, and optional web settings; enforce calendar-month refresh, validated stale fallback, bounded reads, private writes, and explicit partial-save errors. |
+| TLD allocation | Query only IANA RDAP, bypass discovery caches, preserve command priority and dotted inputs, select administrative contacts by RDAP roles, retain address lines and separate jCard roles, and distinguish absent, inactive, reserved, and failed responses. |
 | RDAP parsing | Validate domain and Unicode identities, events, embedded roles and jCards, signing data, and response-size/depth/field limits. |
 | WHOIS parsing | Verify positive and negative identities, exact labels, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
 | Contact attribution | Prefer a disclosed registrant organization; do not substitute administrative, technical, billing, or registrar contact values. |
@@ -54,7 +55,7 @@ Public tests use synthetic records to protect registrant privacy. Test transport
 
 When changing the browser interface, run the server from a native build and inspect it in a current browser at `http://domain-check.localhost:20771`. Use synthetic records for screenshots and deterministic browser checks. Verify desktop and phone widths, both languages, system/light/dark appearance, and saved preferences on reload. Confirm a 15px body base, 14px field labels, 11px copyright, normal letter spacing, no remote fonts or assets, keyboard submission, stable search-box borders on focus, visible button focus, and natural page scrolling for long records without horizontal overflow.
 
-Exercise direct paths containing a domain, a partially encoded full URL, and a fully encoded URL. Confirm URL normalization through the shared registry engine, safe rendering of HTML-shaped text, explicit negative results, and useful errors. A new query must retain the current result while pending; theme switches must preserve result nodes. The console must show no script or CSP errors. Browser storage must contain only appearance and language choices.
+Exercise direct paths containing a domain, a TLD, a dotted TLD or ordinary domain, a partially encoded full URL, and a fully encoded URL. Confirm URL normalization through the shared registry engine, safe text-only rendering of HTML-shaped text, registration URLs, email addresses, and telephone numbers, multiline address alignment, explicit negative results, and useful errors. A new query must retain the current result while pending; theme switches must preserve result nodes. The console must show no script or CSP errors. Browser storage must contain only appearance and language choices.
 
 On macOS, test the actual two-step setup menu with web enable/disable and login startup enable/disable. Inspect the user LaunchAgent registration, verify both loopback listeners, and confirm the service survives closing the terminal. Check that disabling removes registrations, that no administrator prompt or hosts-file change occurs, and that executable installation refreshes a loaded service without rewriting its LaunchAgent or settings. Repeating an enabled option must preserve file identity and modification times; normal CLI queries must leave the service PID and registration unchanged. Restore the desired user settings after the checks.
 
@@ -84,9 +85,11 @@ The published [coverage snapshot](domains.md) records the source date, observed 
 ./build/bin/domain
 ./build/bin/domain --version
 ./build/bin/domain en example.com
+./build/bin/domain en cn
+./build/bin/domain en .github.io
 ```
 
-The first two checks are offline. The final command verifies a current registry connection and standardized output. Additional live checks should be bounded, use benign names, and respect registry rate limits. Network-dependent checks are separate from deterministic regression tests.
+The first two checks are offline. The remaining commands verify current registry connections and standardized ordinary-domain and TLD output. Additional live checks should be bounded, use benign names, and respect registry rate limits. Network-dependent checks are separate from deterministic regression tests.
 
 Verify archive contents and checksums before distribution:
 
@@ -103,7 +106,7 @@ Archives must contain one regular `domain` executable, the root release document
 2. Complete the required checks with the release toolchain. Resolve actionable vulnerability findings before publication.
 3. Verify both architecture builds, archive layout, and checksum manifests. Keep the public documentation and installation paths consistent.
 4. Commit with exactly `Release YY.M.D.NUM`, push the commit, and push its matching `vYY.M.D.NUM` tag.
-5. Confirm successful check and release workflows, then verify the downloadable assets before announcing publication.
+5. Let GitHub build and publish asynchronously after the push. Before announcing downloadable assets as published, verify successful workflows and the actual assets; reporting a push does not require waiting for publication.
 
 Workflow actions are pinned to full commit hashes. Check jobs have read-only repository permissions; only the release job receives the permission needed to publish assets. Release descriptions are empty.
 

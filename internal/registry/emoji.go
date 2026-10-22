@@ -55,7 +55,7 @@ func emojiJoiners(name string) bool {
 // UnicodeDomain returns a locally decoded display name only after validating
 // its ASCII identity and round trip. It never queries another service.
 func UnicodeDomain(domain string) string {
-	ascii, err := NormalizeDomain(domain)
+	ascii, err := normalizeQueryIdentity(domain)
 	if err != nil {
 		return ""
 	}
@@ -69,7 +69,7 @@ func UnicodeDomain(domain string) string {
 	if name == ascii {
 		return ""
 	}
-	if roundTrip, err := NormalizeDomain(name); err != nil || roundTrip != ascii {
+	if roundTrip, err := normalizeQueryIdentity(name); err != nil || roundTrip != ascii {
 		return ""
 	}
 	// Preserve emoji ZWJ only in this validated name. Other formatting and

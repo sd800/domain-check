@@ -8,11 +8,15 @@ The [IANA RDAP DNS bootstrap registry](https://www.iana.org/assignments/rdap-dns
 
 The bootstrap is the routing source of truth. Domain Check retains RDAP routing when an advertised service returns an error and caches the complete document locally.
 
+## IANA root-registry RDAP
+
+[IANA RDAP](https://rdap.iana.org/) supplies allocation records for TLDs themselves; for example, the [`.cn` domain object](https://rdap.iana.org/domain/cn). Domain Check sends single-label TLD queries directly to this service, separately from bootstrap discovery for ordinary domains. Embedded registrant and administrative entities, domain events, and delegation fields supply the TLD layout. Response links remain display data and are never fetched.
+
 ## IANA TLD Registry Data
 
 [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.json) and its [schema](https://data.iana.org/TLD/v1/tlds-schema.json) describe top-level domains, their status, and published WHOIS hosts. Domain Check uses the WHOIS hostname for an active suffix only when the RDAP bootstrap has no matching service. RDAP fields in this dataset do not override dns.json.
 
-Downloading the complete document avoids asking IANA about a specific queried suffix. The public coverage inventory in [domains.md](domains.md) is a dated snapshot of these discovery sources; actual routing uses the locally validated datasets and their update policy.
+Downloading the complete document avoids asking IANA about a specific suffix during ordinary domain discovery. Explicit TLD allocation queries use IANA RDAP directly, as described above. The public coverage inventory in [domains.md](domains.md) is a dated snapshot of these discovery sources; actual routing uses the locally validated datasets and their update policy.
 
 ## RDAP over HTTP
 

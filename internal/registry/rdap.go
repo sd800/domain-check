@@ -20,7 +20,12 @@ type rdapDomain struct {
 	LDHName     string   `json:"ldhName"`
 	UnicodeName string   `json:"unicodeName"`
 	Status      []string `json:"status"`
-	Events      []struct {
+	Links       []struct {
+		Rel   string `json:"rel"`
+		Href  string `json:"href"`
+		Title string `json:"title"`
+	} `json:"links"`
+	Events []struct {
 		Action string `json:"eventAction"`
 		Date   string `json:"eventDate"`
 	} `json:"events"`
@@ -138,24 +143,29 @@ func parseRDAP(domain string, data []byte) (Record, error) {
 	if d.ErrorCode != 0 || d.ObjectClass != "domain" {
 		return Record{}, queryError("invalid-response", "response is not an RDAP domain object")
 	}
-	if len(d.Events) > 256 || len(d.Status) > 256 || len(d.Nameservers) > 256 || !boundedEntities(d.Entities, new(int)) {
+	if len(d.Events) > 256 || len(d.Status) > 256 || len(d.Nameservers) > 256 || len(d.Links) > 256 || !boundedEntities(d.Entities, new(int)) {
 		return Record{}, queryError("invalid-response", "RDAP record exceeds parsing limits")
 	}
 	name := d.LDHName
 	if name == "" {
 		name = d.UnicodeName
 	}
-	normalized, err := NormalizeDomain(name)
+	normalize := NormalizeDomain
+	isTLD := !strings.Contains(domain, ".")
+	if isTLD {
+		normalize = normalizeTLD
+	}
+	normalized, err := normalize(name)
 	if err != nil || normalized != domain {
 		return Record{}, queryError("invalid-response", "response domain does not match the query")
 	}
 	if d.UnicodeName != "" {
-		unicodeName, err := NormalizeDomain(d.UnicodeName)
+		unicodeName, err := normalize(d.UnicodeName)
 		if err != nil || unicodeName != domain {
 			return Record{}, queryError("invalid-response", "response Unicode domain does not match the query")
 		}
 	}
-	r := Record{Domain: domain}
+	r := Record{Domain: domain, TLD: isTLD}
 	for _, event := range d.Events {
 		switch event.Action {
 		case "registration":
@@ -169,7 +179,22 @@ func parseRDAP(domain string, data []byte) (Record, error) {
 	for _, status := range d.Status {
 		r.Statuses = appendUnique(r.Statuses, status)
 	}
-	collectEntities(d.Entities, &r)
+	if isTLD {
+		collectTLDEntities(d.Entities, &r)
+		for _, link := range d.Links {
+			if link.Rel != "related" || link.Title != "Registration URL" {
+				continue
+			}
+			text := useful(link.Href)
+			u, err := url.Parse(text)
+			if err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Hostname() != "" && u.User == nil {
+				r.RegistrationURL = text
+				break
+			}
+		}
+	} else {
+		collectEntities(d.Entities, &r)
+	}
 	for _, ns := range d.Nameservers {
 		r.Nameservers = appendUnique(r.Nameservers, strings.ToLower(strings.TrimSuffix(ns.LDHName, ".")))
 	}
@@ -235,37 +260,12 @@ func collectEntities(entities []rdapEntity, r *Record) {
 }
 
 func vcard(card []json.RawMessage) (string, []string) {
-	if len(card) != 2 {
-		return "", nil
+	contact := readContactCard(card, false)
+	name := contact.Organization
+	if name == "" {
+		name = contact.Name
 	}
-	var properties [][]json.RawMessage
-	if json.Unmarshal(card[1], &properties) != nil {
-		return "", nil
-	}
-	var name, organization string
-	var emails []string
-	for _, property := range properties {
-		if len(property) < 4 {
-			continue
-		}
-		var kind string
-		_ = json.Unmarshal(property[0], &kind)
-		var value any
-		_ = json.Unmarshal(property[3], &value)
-		s := useful(vcardText(value))
-		switch kind {
-		case "fn":
-			name = s
-		case "org":
-			organization = s
-		case "email":
-			emails = appendUnique(emails, s)
-		}
-	}
-	if organization != "" {
-		name = organization
-	}
-	return name, emails
+	return name, contact.Emails
 }
 
 func vcardText(value any) string {

@@ -221,12 +221,21 @@ func (s *Server) query(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := map[string]any{"domain": registry.Clean(record.Domain), "idn": registry.UnicodeDomain(record.Domain), "registration": registry.Clean(record.Registration), "expiration": registry.Clean(record.Expiration), "changed": registry.Clean(record.Changed), "registrar": registry.Clean(record.Registrar), "registrant": registry.Clean(record.Registrant), "dnssec": registry.Clean(record.DNSSEC), "result": record.Result}
+	values["tld"], values["registration_url"] = record.TLD, registry.Clean(record.RegistrationURL)
+	values["admin"], values["organization"], values["role"] = registry.Clean(record.Admin), registry.Clean(record.AdminOrganization), registry.Clean(record.AdminRole)
+	var address []string
+	for _, line := range record.RegistrantAddress {
+		if clean := registry.Clean(line); clean != "" {
+			address = append(address, clean)
+		}
+	}
+	values["address"] = strings.Join(address, "\n")
 	dates := make(map[string]string, 3)
 	for _, key := range []string{"registration", "expiration", "changed"} {
 		dates[key] = output.DateText(output.Chinese, values[key].(string))
 	}
 	values["dates_zh"] = dates
-	for name, items := range map[string][]string{"statuses": record.Statuses, "emails": record.RegistrantEmail, "nameservers": record.Nameservers} {
+	for name, items := range map[string][]string{"statuses": record.Statuses, "emails": record.RegistrantEmail, "nameservers": record.Nameservers, "phones": record.AdminPhones, "admin_emails": record.AdminEmails} {
 		clean := make([]string, 0, len(items))
 		for _, item := range items {
 			if value := registry.Clean(item); value != "" {

@@ -163,16 +163,25 @@ func TestExcessiveWHOISFieldsFailWithoutSilentTruncation(t *testing.T) {
 }
 
 func FuzzDomainCannotInjectWHOISOrURL(f *testing.F) {
-	for _, input := range []string{"example.com", "😀.ws", "example.com\r\nother.com", "-h.example", "例子.中国", "a;b.com"} {
+	for _, input := range []string{"example.com", ".github.io", ".com", "cn", ".中国", "auto", "https://www.example.com/private?token=1", "😀.ws", "example.com\r\nother.com", "-h.example", "例子.中国", "a;b.com"} {
 		f.Add(input)
 	}
 	f.Fuzz(func(t *testing.T, input string) {
-		domain, err := NormalizeDomain(input)
+		domain, err := NormalizeInput(input)
 		if err != nil {
 			return
 		}
-		if !validWHOISQuery("whois.registry.test", domain) || strings.ContainsAny(domain, "\r\n\x00/?#@; ") {
+		if strings.ContainsAny(domain, "\r\n\x00/?#@; ") {
 			t.Fatalf("unsafe normalized domain: %q", domain)
+		}
+		if !strings.Contains(domain, ".") {
+			if normalized, err := normalizeTLD(domain); err != nil || normalized != domain || validWHOISQuery("whois.registry.test", domain) {
+				t.Fatalf("unsafe normalized TLD: %q", domain)
+			}
+			return
+		}
+		if !validWHOISQuery("whois.registry.test", domain) {
+			t.Fatalf("unsafe normalized WHOIS domain: %q", domain)
 		}
 		for _, host := range []string{"whois.jprs.jp", "whois.denic.de", "whois.punktum.dk"} {
 			if !validWHOISQuery(host, registryWHOISQuery(host, domain)) {
@@ -186,6 +195,7 @@ func FuzzUntrustedRegistryResponses(f *testing.F) {
 	for _, body := range []string{
 		"Domain Name: example.test\nRegistrant: Synthetic Owner\n",
 		`{"objectClassName":"domain","ldhName":"example.test"}`,
+		allocationFixture,
 		"Domain Name: example.test\nRegistrant: \x1b]52;c;YXR0YWNr\a\n",
 		"No match for example.test",
 	} {
@@ -197,5 +207,6 @@ func FuzzUntrustedRegistryResponses(f *testing.F) {
 		}
 		_, _ = parseWHOIS("example.test", body)
 		_, _ = parseRDAP("example.test", []byte(body))
+		_, _ = parseRDAP("zz", []byte(body))
 	})
 }

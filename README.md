@@ -70,11 +70,15 @@ domain example.com               # Saved language, or device language initially
 domain -en example.com           # English for this query
 domain zh example.com            # Simplified Chinese for this query
 domain --zh example.com          # Simplified Chinese for this query
-domain auto example.com          # Device language for this query
+domain auto-lang example.com     # Device language for this query
 domain example.com en            # Selectors also work after the domain
+domain cn                        # TLD allocation details from IANA RDAP
+domain .com                      # A leading dot is accepted
+domain .github.io                # Queries github.io
+domain auto                      # Queries the .auto TLD
 domain zh                        # Save Simplified Chinese as the default
 domain en                        # Save English as the default
-domain auto                      # Restore device-language detection
+domain auto-lang                 # Restore device-language detection
 domain update                    # Refresh IANA RDAP and WHOIS data immediately
 domain --update                  # Same explicit refresh
 domain setup                     # Configure the optional local web interface
@@ -86,7 +90,7 @@ domain --version
 
 Running `domain` without arguments prints the program name, version, copyright notice, a short introduction, and usage examples in the default language, then exits successfully. This is an offline installation smoke test and does not update the IANA cache. To also verify network access, run `domain example.com`.
 
-Use `domain en` or `domain zh` to switch and save the default language, or `domain auto` to restore device-language detection. These standalone language commands print a short confirmation after the preference has been saved, without performing a lookup or updating the IANA cache.
+Use `domain en` or `domain zh` to switch and save the default language, or `domain auto-lang` to restore device-language detection. These standalone language commands print a short confirmation after the preference has been saved, without performing a lookup or updating the IANA cache.
 
 Language selectors accept zero, one, or two leading hyphens:
 
@@ -94,11 +98,11 @@ Language selectors accept zero, one, or two leading hyphens:
 | --- | --- |
 | English | `en`, `-en`, `--en` |
 | Simplified Chinese | `zh`, `-zh`, `--zh` |
-| Device language | `auto`, `-auto`, `--auto` |
+| Device language | `auto-lang`, `-auto-lang`, `--auto-lang` |
 
 The `update`, `setup`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update` and `setup` without a domain or URL.
 
-The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, `update`, or `setup`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto` commands save the default language. With no saved selection, or after standalone `domain auto`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
+The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, `update`, or `setup`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto-lang` commands save the default language. With no saved selection, or after standalone `domain auto-lang`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
 
 Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. If reading a saved preference fails, other commands can continue in the device language with a warning. An explicit language selector bypasses reading the saved preference.
 
@@ -106,7 +110,7 @@ Pass one domain or URL per invocation. URLs are automatically reduced to their r
 
 Quote URLs containing shell-special characters such as `?`, `&`, `*`, or parentheses, as shown above, so the shell passes the complete URL to `domain`.
 
-Direct domain inputs are queried exactly as supplied. A trailing dot is accepted. Internationalized names, including emoji and joined emoji sequences, are converted to ASCII/Punycode for querying. The domain line shows that ASCII name, with a separate Unicode display name when it can be decoded and validated.
+Direct domain inputs retain their normalized identity. One leading dot is ignored, so `domain .github.io` queries `github.io`; a trailing dot is also accepted. Single-label names query the TLD itself: `domain cn` and `domain .cn` both retrieve its allocation record directly from IANA RDAP. Bare command names take priority, so `domain setup` opens settings while `domain .setup` queries that TLD name. `auto` now queries the `.auto` TLD; use `auto-lang` for device-language detection. Internationalized names, including emoji and joined emoji sequences, are converted to ASCII/Punycode for querying. The domain line shows that ASCII name, with a separate Unicode display name when it can be decoded and validated.
 
 ## Output
 
@@ -158,6 +162,12 @@ Content begins in a fixed column determined by the longest label, with three spa
 
 English dates use `YYYY-MM-DD`, including values returned as `23-May-1985`, and timestamps use `YYYY-MM-DD HH:MM:SS`. Chinese output uses `YYYY 年 M 月 D 日`, followed by the original `HH:MM:SS` when supplied. Explicitly zoned timestamps are converted to UTC and labeled with a ` UTC` suffix. Unzoned timestamps retain their source wall time without a timezone label; date-only records retain date precision. Approximate or unrecognized date text is preserved. The RDAP database refresh timestamp is not substituted for a domain's last-changed time. DNSSEC is shown only when the registry supplies enough information to determine it.
 
+### TLD allocation records
+
+TLD queries use IANA's root-registry RDAP service directly, in both the CLI and browser. Their layout shows registration and last-changed dates, status, the registrant and postal address, registration URL, administrative contact, and delegation details when disclosed. The administrative contact is selected by the RDAP `administrative` role; its separate `Role` row displays the contact's jCard role. Voice and fax numbers appear as individual `Phone` rows. Multiline addresses retain their line structure and align with the value column.
+
+All result values are plain text, including URLs, email addresses, and telephone numbers. Domain Check does not create hyperlinks or fetch registration URLs.
+
 ### Missing records and registration restrictions
 
 ```text
@@ -170,7 +180,7 @@ Result:              No registry record
 查询结果:     注册局无记录
 ```
 
-An RDAP `404` is displayed as `No registry record`. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
+An RDAP `404` is displayed as `No registry record`; for a TLD query, it is `No IANA TLD record` (`IANA 无此顶级域名记录` in Chinese). An absent TLD record makes no claim that the name can be registered. Disclosed TLD statuses such as `inactive` or `reserved` remain visible alongside the allocation details. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -195,6 +205,8 @@ Type a domain or paste a URL in the search box, or open a direct lookup:
 
 ```text
 http://domain-check.localhost:20771/example.com
+http://domain-check.localhost:20771/.com
+http://domain-check.localhost:20771/.github.io
 http://domain-check.localhost:20771/https%3A//www.google.com
 ```
 
@@ -204,7 +216,8 @@ The service listens only on your Mac's loopback addresses. It does not expose th
 
 ## Registry-only queries
 
-- RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
+- TLD allocation queries go directly to `https://rdap.iana.org/domain/<tld>`, without fetching discovery datasets.
+- Ordinary domain RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
 - Response links and entity links are never fetched, including registrar `related` links.
 - HTTP redirects are accepted only for the same domain query at an IANA-listed endpoint for that suffix, including an HTTP-to-HTTPS upgrade. Arbitrary paths, external hosts, and redirects with query parameters are blocked.
 - When RDAP is absent, WHOIS uses the registry host in IANA's complete `tlds.json` dataset, then queries that registry directly on TCP port 43. Registrar WHOIS fields and referrals in the registry response are ignored. The `rdap_base_urls` field in `tlds.json` does not override `dns.json`.
@@ -223,7 +236,7 @@ The tool caches two complete, official IANA datasets on macOS:
 
 `dns.json` determines RDAP routing. The complete TLD registry in `tlds.json` supplies WHOIS server addresses; entries are not selected or written according to queried suffixes. Set `DOMAIN_CACHE_DIR` to use another cache directory.
 
-Cache freshness is checked only during a lookup, when the corresponding dataset is needed. After one calendar month from its last successful fetch, the next lookup that needs that file refreshes it. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. The introduction, help, version, setup, and standalone language commands do not fetch or refresh IANA data.
+Cache freshness is checked only during a lookup, when the corresponding dataset is needed. TLD allocation queries go straight to IANA RDAP and do not read or update either cache. After one calendar month from its last successful fetch, the next lookup that needs that file refreshes it. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. The introduction, help, version, setup, and standalone language commands do not fetch or refresh IANA data.
 
 Run `domain update` to download and validate both current datasets immediately, even when the local caches are fresh. Both downloads are validated before either cached file is replaced. Each replacement is atomic and restarts that file's one-month freshness period. Download, validation, or cache-write failures return exit code `3`; an incomplete update never reports success. If saving one file succeeds before saving the other fails, that file remains refreshed and the other keeps its previous contents.
 
@@ -268,7 +281,7 @@ Domain Check from Registries is designed to keep your domain lookups private.
 
 **Minimal data is stored.** Domain Check stores your CLI language preference, two complete IANA service-discovery datasets, and settings for the optional local web service. The browser stores only your theme and language choices. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. The local web service keeps no access logs. Your shell and browser may keep their own command or navigation history, according to their settings.
 
-**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. IANA's service-discovery datasets are downloaded in full, so IANA receives no information about the domains or suffixes you look up. Domain Check uses HTTPS whenever a registry offers it.
+**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. For ordinary domain lookups, IANA's service-discovery datasets are downloaded in full without disclosing the queried domain or suffix to IANA. When you query a TLD itself, IANA acts as its root registry and receives that TLD query directly. Domain Check uses HTTPS whenever a registry offers it.
 
 **Third-party services.** Registries, IANA, GitHub, and DNS providers are independent services, and their own privacy policies govern how they handle your information. Domain Check does not control their practices. Installing or updating Domain Check downloads files from GitHub. As with any internet connection, network operators along the path may be able to observe some traffic, including WHOIS queries, which use a standard protocol without encryption.
 

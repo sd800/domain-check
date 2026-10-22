@@ -13,6 +13,8 @@ Source: the complete [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.
 | Neither RDAP nor a WHOIS hostname published | 70 |
 | Total active TLDs in this snapshot | 1437 |
 
+Together, these services cover **1,367 TLDs**, including **141 internationalized TLDs**.
+
 WHOIS-only coverage includes 119 ordinary ASCII TLDs and 45 internationalized TLDs. IDN classification refers to the top-level suffix itself; a Unicode label under `.com` does not make `.com` an IDN TLD.
 
 Run `domain update` to refresh routing against the latest IANA publications. The tables record advertised services; the verification section separately reports observed responses and parsed records.

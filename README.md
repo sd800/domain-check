@@ -9,6 +9,8 @@ domain https://www.example.com/path
 
 Type a domain name or paste a full URL straight from the browser. The command picks out the domain and prints its key registration details in one aligned view.
 
+**One command. 1,367 TLDs. Straight to the registry.** Coverage spans **1,203 TLDs via RDAP** and **164 via registry WHOIS**, including **141 internationalized TLDs**. [Explore TLD coverage](docs/domains.md).
+
 ## Product statement
 
 Domain Check from Registries is built around a simple principle: **a domain lookup should go straight to the source and come back easy to read.** It works right in the macOS Terminal, from query out to answer back.

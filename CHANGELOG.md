@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.30
+
+- Update the project overview.
+
 ## 26.10.21.29
 
 - Refine public project documentation for clarity and consistency.

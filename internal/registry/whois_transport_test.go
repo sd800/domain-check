@@ -73,6 +73,7 @@ func TestWHOISIncludedObjectsDoNotCauseAdditionalQueries(t *testing.T) {
 		return nil, nil
 	})
 	seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+	seedTLDs(t, c, map[string]string{"at": "whois.nic.at"})
 	var destinations []string
 	c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
 		destinations = append(destinations, address)
@@ -81,8 +82,6 @@ func TestWHOISIncludedObjectsDoNotCauseAdditionalQueries(t *testing.T) {
 			defer server.Close()
 			_, _ = bufio.NewReader(server).ReadString('\n')
 			switch address {
-			case "whois.iana.org:43":
-				fmt.Fprint(server, "domain: AT\nwhois: whois.nic.at\n")
 			case "whois.nic.at:43":
 				fmt.Fprint(server, "domain: example.at\nregistrant: SHARED1\nnsset: SHARED1\nkeyset: SHARED1\nRegistrar WHOIS Server: whois.registrar.test\n\nnic-hdl: SHARED1\norg: Example Owner\ne-mail: owner@example.test\n\nnsset: SHARED1\nnserver: ns1.example.test\n\nkeyset: SHARED1\ndnskey: 257 3 13 ABCDEF0123456789\n\nnic-hdl: UNRELATED\norg: Wrong Organization\ne-mail: tech@example.test\nurl: https://registrar.test/contact\n")
 			default:
@@ -92,10 +91,10 @@ func TestWHOISIncludedObjectsDoNotCauseAdditionalQueries(t *testing.T) {
 		return client, nil
 	}
 	r, err := c.Lookup(context.Background(), "example.at")
-	if err != nil || len(destinations) != 2 || r.Registrant != "Example Owner" || strings.Join(r.RegistrantEmail, ",") != "owner@example.test" || strings.Join(r.Nameservers, ",") != "ns1.example.test" || r.DNSSEC != "signedDelegation" {
+	if err != nil || len(destinations) != 1 || r.Registrant != "Example Owner" || strings.Join(r.RegistrantEmail, ",") != "owner@example.test" || strings.Join(r.Nameservers, ",") != "ns1.example.test" || r.DNSSEC != "signedDelegation" {
 		t.Fatalf("%+v, %v, destinations=%v", r, err, destinations)
 	}
-	assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/at.json"}, "example.at", "SHARED1", "Example Owner", "owner@example.test", "whois.registrar.test", "registrar.test/contact")
+	assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, "example.at", "SHARED1", "Example Owner", "owner@example.test", "whois.registrar.test", "registrar.test/contact")
 }
 
 func TestCNNICRestrictedNamesStopAtRegistry(t *testing.T) {
@@ -110,6 +109,7 @@ func TestCNNICRestrictedNamesStopAtRegistry(t *testing.T) {
 				return nil, nil
 			})
 			seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+			seedTLDs(t, c, map[string]string{"cn": "whois.cnnic.cn"})
 			var destinations []string
 			c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
 				destinations = append(destinations, address)
@@ -118,11 +118,6 @@ func TestCNNICRestrictedNamesStopAtRegistry(t *testing.T) {
 					defer server.Close()
 					query, _ := bufio.NewReader(server).ReadString('\n')
 					switch address {
-					case "whois.iana.org:43":
-						if query != "cn\r\n" {
-							t.Errorf("unexpected suffix query %q", query)
-						}
-						fmt.Fprint(server, "domain: CN\nwhois: whois.cnnic.cn\n")
 					case "whois.cnnic.cn:43":
 						if query != domain+"\r\n" {
 							t.Errorf("namespace name was rewritten: %q", query)
@@ -135,10 +130,10 @@ func TestCNNICRestrictedNamesStopAtRegistry(t *testing.T) {
 				return client, nil
 			}
 			r, err := c.Lookup(context.Background(), domain)
-			if err != nil || r.Domain != domain || r.Result != Restricted || len(destinations) != 2 {
+			if err != nil || r.Domain != domain || r.Result != Restricted || len(destinations) != 1 {
 				t.Fatalf("%+v, %v, destinations=%v", r, err, destinations)
 			}
-			assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/cn.json"}, domain)
+			assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, domain)
 		})
 	}
 }

@@ -20,7 +20,7 @@ type updateTransport func(*http.Request) (*http.Response, error)
 
 func (f updateTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-func TestUpdateCommandsRefreshOnlyBootstrapData(t *testing.T) {
+func TestUpdateCommandsRefreshBothIANADocuments(t *testing.T) {
 	for _, lang := range []string{"en", "zh"} {
 		for _, prefix := range []string{"", "-", "--"} {
 			t.Run(lang+" "+prefix+"update", func(t *testing.T) {
@@ -32,29 +32,34 @@ func TestUpdateCommandsRefreshOnlyBootstrapData(t *testing.T) {
 				const data = `{"services":[[["com"],["https://registry.test/"]]]}`
 				c.HTTP.Transport = updateTransport(func(r *http.Request) (*http.Response, error) {
 					calls++
-					if r.URL.String() != "https://data.iana.org/rdap/dns.json" {
+					body := data
+					switch r.URL.String() {
+					case "https://data.iana.org/rdap/dns.json":
+					case "https://data.iana.org/TLD/v1/tlds.json":
+						body = `{"meta":{"specversion":1},"domains":[{"name":"cn","status":"active","whois_server":"whois.registry.test"}]}`
+					default:
 						t.Fatalf("update queried a domain: %s", r.URL)
 					}
-					return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(data)), Request: r}, nil
+					return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
 				})
 				c.DialWHOIS = func(context.Context, string, string) (net.Conn, error) {
 					t.Error("update must not perform WHOIS queries")
 					return nil, fmt.Errorf("unexpected WHOIS query")
 				}
 				var out, errOut bytes.Buffer
-				if code := run(context.Background(), []string{prefix + "update", lang}, &out, &errOut, "test", c); code != 0 || errOut.Len() != 0 || calls != 1 {
+				if code := run(context.Background(), []string{prefix + "update", lang}, &out, &errOut, "test", c); code != 0 || errOut.Len() != 0 || calls != 2 {
 					t.Fatalf("exit=%d, stdout=%q, stderr=%q, calls=%d", code, out.String(), errOut.String(), calls)
 				}
-				want := "IANA DNS bootstrap data updated."
+				want := "IANA RDAP and WHOIS routing data updated."
 				if lang == "zh" {
-					want = "IANA DNS 引导数据已更新。"
+					want = "IANA RDAP 和 WHOIS 路由数据已更新。"
 				}
 				if strings.TrimSpace(out.String()) != want {
 					t.Fatalf("unexpected update message: %q", out.String())
 				}
 				cached, err := os.ReadFile(filepath.Join(c.CacheDir, "dns.json"))
 				files, listErr := os.ReadDir(c.CacheDir)
-				if err != nil || listErr != nil || string(cached) != data || len(files) != 1 {
+				if err != nil || listErr != nil || string(cached) != data || len(files) != 2 {
 					t.Fatalf("unexpected cache data: %q, %v, %v, %v", cached, err, files, listErr)
 				}
 				if files, err := os.ReadDir(config); err != nil || len(files) != 0 {
@@ -73,7 +78,7 @@ func TestFailedUpdateCommandReportsFailure(t *testing.T) {
 		return &http.Response{StatusCode: 503, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("unavailable")), Request: r}, nil
 	})
 	var out, errOut bytes.Buffer
-	if code := run(context.Background(), []string{"update"}, &out, &errOut, "test", c); code != 3 || out.Len() != 0 || !strings.Contains(errOut.String(), "Cannot update IANA DNS bootstrap data") {
+	if code := run(context.Background(), []string{"update"}, &out, &errOut, "test", c); code != 3 || out.Len() != 0 || !strings.Contains(errOut.String(), "Cannot update IANA routing data") {
 		t.Fatalf("exit=%d, stdout=%q, stderr=%q", code, out.String(), errOut.String())
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -82,68 +81,7 @@ func (c *Client) cachePath(name string) string {
 }
 
 func (c *Client) bootstrap(ctx context.Context) (bootstrap, error) {
-	path := c.cachePath("dns.json")
-	cached, readErr := os.ReadFile(path)
-	b, parseErr := decodeBootstrap(cached)
-	validCache := readErr == nil && parseErr == nil
-	if info, err := os.Stat(path); validCache && err == nil && fresh(info.ModTime(), c.Now()) {
-		return b, nil
-	}
-	data, err := c.downloadBootstrap(ctx)
-	if err != nil {
-		if validCache {
-			c.warning("stale-bootstrap")
-			return b, nil
-		}
-		return bootstrap{}, queryError("bootstrap-failed", err.Error())
-	}
-	b, err = decodeBootstrap(data)
-	if err != nil {
-		if validCache {
-			c.warning("stale-bootstrap")
-			return decodeBootstrap(cached)
-		}
-		return bootstrap{}, queryError("bootstrap-failed", err.Error())
-	}
-	if err := c.writeCache("dns.json", data); err != nil {
-		c.warning("cache-write-failed")
-	}
-	return b, nil
-}
-
-// UpdateBootstrap forces an online refresh, regardless of cache age. Unlike
-// automatic refresh during a lookup, failure is returned instead of hidden by
-// a usable stale cache, and invalid downloads never replace the existing file.
-func (c *Client) UpdateBootstrap(ctx context.Context) error {
-	data, err := c.downloadBootstrap(ctx)
-	if err != nil {
-		return queryError("bootstrap-update-failed", err.Error())
-	}
-	if _, err := decodeBootstrap(data); err != nil {
-		return queryError("bootstrap-update-failed", err.Error())
-	}
-	if err := c.writeCache("dns.json", data); err != nil {
-		return queryError("bootstrap-cache-failed", err.Error())
-	}
-	return nil
-}
-
-func (c *Client) downloadBootstrap(ctx context.Context) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BootstrapURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Domain-Check-from-Registries/1.0 (+https://github.com/sd800/domain-check)")
-	response, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("IANA returned HTTP %d", response.StatusCode)
-	}
-	return readLimited(response.Body)
+	return loadMetadata(c, ctx, "dns.json", c.BootstrapURL, "bootstrap-failed", "stale-bootstrap", decodeBootstrap)
 }
 
 func (c *Client) writeCache(name string, data []byte) error {

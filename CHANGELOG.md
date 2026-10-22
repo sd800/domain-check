@@ -1,5 +1,12 @@
 # Changelog
 
+## 26.10.21.22
+
+- Replace per-suffix WHOIS discovery caches with IANA's complete TLD registry JSON, keeping cached contents independent of queried suffixes.
+- Remove the legacy WHOIS cache on the next lookup or explicit update, and query registry WHOIS servers directly without a separate IANA port-43 discovery request.
+- Refresh both complete IANA datasets with `domain update`, retain monthly validation and stale-cache handling, and preserve RDAP routing precedence.
+- Share bounded metadata downloads and cache loading, reject invalid or inactive TLD routing entries, and cover privacy, migration, IDN routing, refresh failures, and redirect blocking with offline tests.
+
 ## 26.10.21.21
 
 - Replace the long, repeated README installation blocks with a short copy-and-paste entry point and a commented shared installer.

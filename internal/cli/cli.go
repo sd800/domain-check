@@ -117,7 +117,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 	}
 	client.Warn = func(code string) {
 		message := output.Text(o.lang, "Cannot save the local cache; continuing online.", "无法保存本地缓存，继续使用在线数据。")
-		if code == "stale-bootstrap" || code == "stale-whois" {
+		if code == "stale-bootstrap" || code == "stale-tlds" {
 			message = output.Text(o.lang, "Cannot refresh IANA data; using a previously validated cache.", "无法更新 IANA 数据，使用已验证的旧缓存。")
 		}
 		fmt.Fprintln(stderr, "domain: "+message)
@@ -125,11 +125,11 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, version s
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	if o.update {
-		if err := client.UpdateBootstrap(ctx); err != nil {
+		if err := client.UpdateIANA(ctx); err != nil {
 			fmt.Fprintln(stderr, "domain: "+errorText(o.lang, err))
 			return 3
 		}
-		if _, err := fmt.Fprintln(stdout, output.Text(o.lang, "IANA DNS bootstrap data updated.", "IANA DNS 引导数据已更新。")); err != nil {
+		if _, err := fmt.Fprintln(stdout, output.Text(o.lang, "IANA RDAP and WHOIS routing data updated.", "IANA RDAP 和 WHOIS 路由数据已更新。")); err != nil {
 			fmt.Fprintln(stderr, "domain: "+registry.Clean(err.Error()))
 			return 3
 		}
@@ -168,21 +168,22 @@ func errorText(lang output.Language, err error) string {
 		return output.Text(lang, "Query failed", "查询失败") + ": " + registry.Clean(err.Error())
 	}
 	messages := map[string][2]string{
-		"edu-cn-failed":           {"Domain query failed", "域名查询失败"},
-		"dns-failed":              {"DNS nameserver query failed", "DNS 域名服务器查询失败"},
-		"bootstrap-failed":        {"Cannot load IANA RDAP bootstrap data", "无法读取 IANA RDAP 引导数据"},
-		"bootstrap-update-failed": {"Cannot update IANA DNS bootstrap data", "无法更新 IANA DNS 引导数据"},
-		"bootstrap-cache-failed":  {"Cannot save the IANA DNS bootstrap cache", "无法保存 IANA DNS 引导数据缓存"},
-		"iana-whois-failed":       {"Cannot discover the registry WHOIS server from IANA", "无法通过 IANA 获取注册局 WHOIS 服务器"},
-		"unsupported-suffix":      {"Unknown or unsupported domain suffix", "未知或不支持的域名后缀"},
-		"no-registry-service":     {"No public registry RDAP or WHOIS service", "注册局没有公开的 RDAP 或 WHOIS 服务"},
-		"rdap-failed":             {"Registry RDAP query failed", "注册局 RDAP 查询失败"},
-		"whois-failed":            {"Registry WHOIS query failed", "注册局 WHOIS 查询失败"},
-		"invalid-response":        {"Invalid registry response", "注册局响应无效"},
-		"redirect-blocked":        {"Redirect blocked: queries stay within IANA-listed registry endpoints", "已阻止重定向：仅查询 IANA 列出的注册局端点"},
-		"rate-limited":            {"Registry rate limit reached; try again later", "已触发注册局查询频率限制，请稍后重试"},
-		"access-denied":           {"Registry denied access", "注册局拒绝访问"},
-		"invalid-domain":          {"Invalid domain", "域名无效"},
+		"edu-cn-failed":        {"Domain query failed", "域名查询失败"},
+		"dns-failed":           {"DNS nameserver query failed", "DNS 域名服务器查询失败"},
+		"bootstrap-failed":     {"Cannot load IANA RDAP bootstrap data", "无法读取 IANA RDAP 引导数据"},
+		"iana-update-failed":   {"Cannot update IANA routing data", "无法更新 IANA 路由数据"},
+		"iana-cache-failed":    {"Cannot save IANA routing data", "无法保存 IANA 路由数据缓存"},
+		"tld-data-failed":      {"Cannot load IANA TLD registry data", "无法读取 IANA 顶级域名注册表"},
+		"cache-cleanup-failed": {"Cannot remove the legacy WHOIS cache", "无法移除旧版 WHOIS 缓存"},
+		"unsupported-suffix":   {"Unknown or unsupported domain suffix", "未知或不支持的域名后缀"},
+		"no-registry-service":  {"No public registry RDAP or WHOIS service", "注册局没有公开的 RDAP 或 WHOIS 服务"},
+		"rdap-failed":          {"Registry RDAP query failed", "注册局 RDAP 查询失败"},
+		"whois-failed":         {"Registry WHOIS query failed", "注册局 WHOIS 查询失败"},
+		"invalid-response":     {"Invalid registry response", "注册局响应无效"},
+		"redirect-blocked":     {"Redirect blocked: queries stay within IANA-listed registry endpoints", "已阻止重定向：仅查询 IANA 列出的注册局端点"},
+		"rate-limited":         {"Registry rate limit reached; try again later", "已触发注册局查询频率限制，请稍后重试"},
+		"access-denied":        {"Registry denied access", "注册局拒绝访问"},
+		"invalid-domain":       {"Invalid domain", "域名无效"},
 	}
 	message, ok := messages[query.Code]
 	if !ok {
@@ -201,7 +202,7 @@ Usage: domain [en|zh|auto] [domain|URL|update]
   domain -en example.com      English for this query
   domain zh example.com       Simplified Chinese for this query
   domain auto                 Follow the device language
-  domain update               Refresh IANA DNS bootstrap data now
+  domain update               Refresh IANA RDAP and WHOIS data now
 
 Language selectors apply only to the current query.
 Run domain en, domain zh, or domain auto on its own to save the default.
@@ -214,7 +215,7 @@ Run domain --help for more options.
   domain -en example.com      本次查询使用英文
   domain zh example.com       本次查询使用简体中文
   domain auto                 跟随设备语言
-  domain update               立即更新 IANA DNS 引导数据
+  domain update               立即更新 IANA RDAP 和 WHOIS 数据
 
 查询时的语言参数仅本次有效。
 单独运行 domain en、domain zh 或 domain auto 才会保存默认设置。
@@ -231,7 +232,7 @@ Usage: domain [en|zh|auto] [domain|URL|update]
   domain -en example.com      English for this query
   domain zh example.com       Simplified Chinese for this query
   domain auto                 Follow the device language
-  domain update               Refresh IANA DNS bootstrap data now
+  domain update               Refresh IANA RDAP and WHOIS data now
   domain https://example.com/path
 
 Language selectors accept zero, one, or two leading hyphens and may appear
@@ -245,7 +246,7 @@ zero, one, or two leading hyphens. -h and -v are shorthand for help and version.
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
 IANA lists no RDAP service. Registrar referrals are never followed.
 Automatic IANA refresh is checked during lookups, once per calendar month.
-Use domain update to refresh dns.json immediately, regardless of cache age.
+Use domain update to refresh dns.json and tlds.json immediately, regardless of cache age.
 URLs are reduced to their registrable domain; the URL itself is never fetched.
 Dates use YYYY-MM-DD; timestamps use YYYY-MM-DD HH:MM:SS.
 Zoned timestamps are converted to UTC and carry a UTC suffix.
@@ -257,7 +258,7 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
   domain -en example.com      本次查询使用英文
   domain zh example.com       本次查询使用简体中文
   domain auto                 跟随设备语言
-  domain update               立即更新 IANA DNS 引导数据
+  domain update               立即更新 IANA RDAP 和 WHOIS 数据
   domain https://example.com/path
 
 语言参数允许不加横线、一个或两个横线，可置于域名前后；最后一个参数决定本次语言。
@@ -269,7 +270,7 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。
 始终不跟随注册商。IANA 数据的自动更新只在查询时检查，每个日历月周期更新一次。
-运行 domain update 可立即更新 dns.json，不受缓存时间限制。
+运行 domain update 可立即更新 dns.json 和 tlds.json，不受缓存时间限制。
 URL 会自动识别可注册域名，不访问 URL 页面本身。
 日期使用 YYYY-MM-DD，时间使用 YYYY-MM-DD HH:MM:SS。
 带时区的时间转换为 UTC，并添加 UTC 后缀。

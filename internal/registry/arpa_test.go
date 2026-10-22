@@ -63,6 +63,7 @@ func TestARPALookupStopsAtIANADomainRegistry(t *testing.T) {
 		return nil, nil
 	})
 	seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+	seedTLDs(t, c, map[string]string{"arpa": "whois.iana.org"})
 	calls := 0
 	c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
 		calls++
@@ -74,8 +75,6 @@ func TestARPALookupStopsAtIANADomainRegistry(t *testing.T) {
 			defer server.Close()
 			query, _ := bufio.NewReader(server).ReadString('\n')
 			switch query {
-			case "arpa\r\n":
-				fmt.Fprint(server, "domain: ARPA\nwhois: whois.iana.org\n")
 			case "resolver.arpa\r\n":
 				fmt.Fprint(server, arpaRegistryRecord+"refer: whois.external.test\n")
 			default:
@@ -85,8 +84,8 @@ func TestARPALookupStopsAtIANADomainRegistry(t *testing.T) {
 		return client, nil
 	}
 	r, err := c.Lookup(context.Background(), "resolver.arpa")
-	if err != nil || r.Registration != "2000-10-21" || calls != 2 {
+	if err != nil || r.Registration != "2000-10-21" || calls != 1 {
 		t.Fatalf("%+v, %v, calls=%d", r, err, calls)
 	}
-	assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/arpa.json"}, "resolver.arpa", "admin@example.test", "whois.external.test")
+	assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, "resolver.arpa", "admin@example.test", "whois.external.test")
 }

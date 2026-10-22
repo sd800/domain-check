@@ -19,7 +19,7 @@ type Client struct {
 	HTTP         *http.Client
 	CacheDir     string
 	BootstrapURL string
-	IANAWHOIS    string
+	TLDsURL      string
 	Now          func() time.Time
 	Warn         func(string)
 	// DialWHOIS is injectable to verify that no registrar receives a query.
@@ -36,7 +36,7 @@ func NewClient(cacheDir string) *Client {
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 		CacheDir: cacheDir, BootstrapURL: "https://data.iana.org/rdap/dns.json",
-		IANAWHOIS: "whois.iana.org", Now: time.Now, DialWHOIS: dialer.DialContext,
+		TLDsURL: "https://data.iana.org/TLD/v1/tlds.json", Now: time.Now, DialWHOIS: dialer.DialContext,
 		RunDig: func(ctx context.Context, args ...string) ([]byte, error) {
 			return exec.CommandContext(ctx, "dig", args...).Output()
 		},
@@ -65,6 +65,9 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 		return Record{}, queryError("invalid-domain", err.Error())
 	}
 	domain = normalized
+	if err := c.removeLegacyWHOISCache(); err != nil {
+		return Record{}, err
+	}
 	if strings.HasSuffix(domain, ".edu.cn") {
 		return c.eduCN(ctx, domain)
 	}

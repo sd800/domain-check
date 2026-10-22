@@ -10,74 +10,53 @@ import (
 	"testing"
 )
 
-func TestIDNWHOISDiscoveryNormalizesIANASuffix(t *testing.T) {
+func TestIDNWHOISUsesBulkIANARegistry(t *testing.T) {
 	for _, suffix := range []string{"中国", "中國", "香港", "台湾", "澳門"} {
-		domain := idnName(t, "示例."+suffix)
-		tld := domain[strings.LastIndexByte(domain, '.')+1:]
-		for _, spelling := range []string{suffix, strings.ToUpper(tld)} {
-			t.Run(spelling, func(t *testing.T) {
-				c := fixtureClient(t, func(*http.Request) (*http.Response, error) {
-					t.Fatal("unexpected HTTP request")
-					return nil, nil
-				})
-				seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
-				calls := 0
-				c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
-					calls++
-					client, server := net.Pipe()
-					go func() {
-						defer server.Close()
-						query, _ := bufio.NewReader(server).ReadString('\n')
-						switch address {
-						case "whois.iana.org:43":
-							if query != tld+"\r\n" {
-								t.Errorf("unexpected IANA query: %q", query)
-							}
-							fmt.Fprintf(server, "domain: %s\nwhois: whois.registry.test\n", spelling)
-						case "whois.registry.test:43":
-							if query != domain+"\r\n" {
-								t.Errorf("unexpected domain query: %q", query)
-							}
-							fmt.Fprintf(server, "Domain Name: %s\nRegistrant: 示例机构\nRegistrar WHOIS Server: whois.registrar.test\n", domain)
-						default:
-							t.Errorf("followed a registrar referral: %s", address)
-						}
-					}()
-					return client, nil
-				}
-				for iteration := 0; iteration < 2; iteration++ {
-					r, err := c.Lookup(context.Background(), domain)
-					if err != nil || r.Registrant != "示例机构" || calls != 2+iteration {
-						t.Fatalf("%+v, %v, calls=%d", r, err, calls)
-					}
-				}
-				assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/" + tld + ".json"}, domain, "示例机构", "whois.registrar.test")
+		t.Run(suffix, func(t *testing.T) {
+			domain := idnName(t, "示例."+suffix)
+			tld := domain[strings.LastIndexByte(domain, '.')+1:]
+			c := fixtureClient(t, func(*http.Request) (*http.Response, error) {
+				t.Fatal("unexpected HTTP request")
+				return nil, nil
 			})
-		}
-	}
-}
-
-func TestIDNWHOISDiscoveryRejectsOtherSuffixes(t *testing.T) {
-	for _, value := range []string{"中國", "other.中国", "https://中国", "中国:43", ".中国"} {
-		t.Run(value, func(t *testing.T) {
-			c := NewClient(t.TempDir())
+			seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+			seedTLDs(t, c, map[string]string{tld: "whois.registry.test"})
+			calls := 0
 			c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
-				if address != "whois.iana.org:43" {
-					t.Fatalf("unverified registry queried: %s", address)
+				calls++
+				if address != "whois.registry.test:43" {
+					t.Errorf("queried IANA discovery or registrar: %s", address)
 				}
 				client, server := net.Pipe()
 				go func() {
 					defer server.Close()
-					_, _ = bufio.NewReader(server).ReadString('\n')
-					fmt.Fprintf(server, "domain: %s\nwhois: whois.registry.test\n", value)
+					query, _ := bufio.NewReader(server).ReadString('\n')
+					if query != domain+"\r\n" {
+						t.Errorf("unexpected domain query: %q", query)
+					}
+					fmt.Fprintf(server, "Domain Name: %s\nRegistrant: 示例机构\nRegistrar WHOIS Server: whois.registrar.test\n", domain)
 				}()
 				return client, nil
 			}
-			if host, err := c.whoisServer(context.Background(), "xn--fiqs8s"); err == nil || host != "" {
-				t.Fatalf("unverified suffix accepted: %q, %v", host, err)
+			for iteration := 0; iteration < 2; iteration++ {
+				r, err := c.Lookup(context.Background(), domain)
+				if err != nil || r.Registrant != "示例机构" || calls != 1+iteration {
+					t.Fatalf("%+v, %v, calls=%d", r, err, calls)
+				}
 			}
-			assertServiceMetadataOnly(t, c, nil, "whois.registry.test")
+			assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, domain, "示例机构", "whois.registrar.test")
 		})
+	}
+}
+
+func TestIDNWHOISDiscoveryRejectsOtherSuffixes(t *testing.T) {
+	c := fixtureClient(t, func(*http.Request) (*http.Response, error) {
+		t.Fatal("unnecessary network request")
+		return nil, nil
+	})
+	seedTLDs(t, c, map[string]string{"xn--fiqz9s": "whois.registry.test"})
+	if host, err := c.whoisServer(context.Background(), "xn--fiqs8s"); err == nil || host != "" {
+		t.Fatalf("a different IDN suffix was accepted: %q, %v", host, err)
 	}
 }
 

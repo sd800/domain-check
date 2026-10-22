@@ -96,6 +96,7 @@ func TestEDUCAUSELookupStopsAtRegistry(t *testing.T) {
 		return nil, nil
 	})
 	seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+	seedTLDs(t, c, map[string]string{"edu": "whois.educause.edu"})
 	var destinations []string
 	c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
 		destinations = append(destinations, address)
@@ -104,11 +105,6 @@ func TestEDUCAUSELookupStopsAtRegistry(t *testing.T) {
 			defer server.Close()
 			query, _ := bufio.NewReader(server).ReadString('\n')
 			switch address {
-			case "whois.iana.org:43":
-				if query != "edu\r\n" {
-					t.Errorf("unexpected suffix query %q", query)
-				}
-				fmt.Fprint(server, "domain: EDU\nwhois: whois.educause.edu\n")
 			case "whois.educause.edu:43":
 				if query != "example-unregistered.edu\r\n" {
 					t.Errorf("unexpected registry query %q", query)
@@ -121,8 +117,8 @@ func TestEDUCAUSELookupStopsAtRegistry(t *testing.T) {
 		return client, nil
 	}
 	r, err := c.Lookup(context.Background(), "example-unregistered.edu")
-	if err != nil || r.Result != NoRecord || len(destinations) != 2 {
+	if err != nil || r.Result != NoRecord || len(destinations) != 1 {
 		t.Fatalf("%+v, %v, destinations=%v", r, err, destinations)
 	}
-	assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/edu.json"}, "example-unregistered.edu", "registrar.test", "complaints.test")
+	assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, "example-unregistered.edu", "registrar.test", "complaints.test")
 }

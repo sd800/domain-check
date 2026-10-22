@@ -69,7 +69,7 @@ domain example.com en            # Selectors also work after the domain
 domain zh                        # Save Simplified Chinese as the default
 domain en                        # Save English as the default
 domain auto                      # Restore device-language detection
-domain update                    # Refresh IANA dns.json immediately
+domain update                    # Refresh IANA RDAP and WHOIS data immediately
 domain --update                  # Same explicit refresh
 domain 例子.中国                  # Internationalized domain name
 domain 'https://www.example.com/path?item=1&lang=zh'
@@ -177,28 +177,31 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 - RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
 - Response links and entity links are never fetched, including registrar `related` links.
 - HTTP redirects are accepted only for the same domain query at an IANA-listed endpoint for that suffix, including an HTTP-to-HTTPS upgrade. Arbitrary paths, external hosts, and redirects with query parameters are blocked.
-- WHOIS discovery queries `whois.iana.org` for the suffix, then queries only the registry host in IANA's `whois` field. Registrar WHOIS fields and referrals in the registry response are ignored.
+- When RDAP is absent, WHOIS uses the registry host in IANA's complete `tlds.json` dataset, then queries that registry directly on TCP port 43. Registrar WHOIS fields and referrals in the registry response are ignored. The `rdap_base_urls` field in `tlds.json` does not override `dns.json`.
 - When IANA lists RDAP, an RDAP failure does not trigger a WHOIS fallback.
 
 WHOIS response formats vary by registry. The parser handles common labeled formats and multiline sections, including CNNIC and Nominet-style records, but cannot normalize every registry-specific format. Unrecognized replies produce errors instead of guessed registration results. Outbound TCP port 43 must be available to use WHOIS.
 
 ## IANA cache
 
-On macOS, IANA's `dns.json` is cached at:
+The tool caches two complete, official IANA datasets on macOS:
 
 ```text
 ~/Library/Caches/domain-check/dns.json
+~/Library/Caches/domain-check/tlds.json
 ```
 
-Discovered registry WHOIS hosts are cached under `whois/` in the same directory. Set `DOMAIN_CACHE_DIR` to use another cache directory.
+`dns.json` determines RDAP routing. The complete TLD registry in `tlds.json` supplies WHOIS server addresses; entries are not selected or written according to queried suffixes. Set `DOMAIN_CACHE_DIR` to use another cache directory.
 
-Automatic cache freshness is checked only during a domain lookup. After one calendar month from the last successful fetch, the next lookup refreshes the data. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. Help and version commands do not perform network requests.
+Cache freshness is checked only during a lookup, when the corresponding dataset is needed. After one calendar month from its last successful fetch, the next lookup that needs that file refreshes it. Month-end dates are clamped: a January 31 fetch becomes due on February 28, or February 29 in a leap year. The IANA publication date does not determine local cache age. The introduction, help, version, and standalone language commands do not fetch or refresh IANA data.
 
-Run `domain update` to download and validate IANA's current `dns.json` immediately, even when the local cache is fresh. A successful refresh replaces the file atomically and restarts its one-month freshness period. Download, validation, or cache-write failures return exit code `3` and preserve the existing cache; the command reports success only after the new file has been saved.
+Run `domain update` to download and validate both current datasets immediately, even when the local caches are fresh. Both downloads are validated before either cached file is replaced. Each replacement is atomic and restarts that file's one-month freshness period. Download, validation, or cache-write failures return exit code `3`; an incomplete update never reports success. If saving one file succeeds before saving the other fails, that file remains refreshed and the other keeps its previous contents.
 
-If refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. Successful downloads replace cache files atomically. No background process, scheduled job, or lookup-result cache is created.
+If an automatic refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. No background process, scheduled job, or lookup-result cache is created.
 
-The tool does not save queried domains, pasted URLs, registration responses, or a lookup history. Results are written only to terminal output. Persistent application data is limited to IANA service-discovery metadata and language preferences.
+Older versions cached WHOIS hosts in separate `whois/<suffix>.json` files. The next lookup or `domain update` removes that legacy directory without consulting its contents. Failure to remove it is reported as an error. No replacement per-suffix files or timestamps are written.
+
+The tool does not save queried domains, pasted URLs, registration responses, or a lookup history. Results are written only to terminal output. Persistent application data is limited to the complete IANA datasets and language preferences; cache contents do not record which WHOIS suffixes were queried.
 
 ## Development and releases
 
@@ -210,7 +213,7 @@ make dist        # Apple Silicon and Intel archives with checksums
 
 Run `go test ./internal/registry -run '^$' -bench BenchmarkParse -benchmem` to measure offline parser time and allocations. These benchmarks exclude network latency.
 
-Offline tests verify registry-only routing, redirect/referral blocking, RDAP error handling, WHOIS discovery, monthly cache behavior, field extraction, language selectors, and Unicode output alignment.
+Offline tests verify registry-only routing, redirect/referral blocking, RDAP error handling, bulk WHOIS routing, legacy-cache cleanup, monthly cache behavior, field extraction, language selectors, and Unicode output alignment.
 
 `VERSION` is the single source of truth for the embedded version. Versions follow `YY.M.D.NUM`, where `NUM` starts at `1` and increments for each release on the same date. Months, days, and sequence numbers are not zero-padded. Release commits use exactly `Release YY.M.D.NUM`, without a commit body. Changes are recorded in the English [changelog](CHANGELOG.md).
 
@@ -219,7 +222,7 @@ Pushing a `vYY.M.D.NUM` tag runs the release workflow, checks its agreement with
 ## References
 
 - [IANA RDAP bootstrap data](https://www.iana.org/assignments/rdap-dns/)
-- [IANA WHOIS service](https://www.iana.org/whois)
+- [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.json) and its [schema](https://data.iana.org/TLD/v1/tlds-schema.json)
 - [RFC 7480: RDAP over HTTP](https://www.rfc-editor.org/rfc/rfc7480)
 - [RFC 9083: RDAP JSON responses](https://www.rfc-editor.org/rfc/rfc9083)
 - [RDAP Web Client](https://github.com/rdap-org/client.rdap.org), a reference for direct registry discovery, HTTPS endpoint preference, and the distinction between registry responses and registrar referrals. This CLI is an independent Go implementation.

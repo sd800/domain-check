@@ -3,6 +3,7 @@ package registry
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -38,6 +39,30 @@ func fixtureClient(t *testing.T, handle transportFunc) *Client {
 func seedBootstrap(t *testing.T, c *Client, services string) {
 	t.Helper()
 	if err := c.writeCache("dns.json", []byte(`{"services":`+services+`}`)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func tldFixture(t *testing.T, hosts map[string]string) []byte {
+	t.Helper()
+	var domains []map[string]any
+	for name, host := range hosts {
+		var server any
+		if host != "" {
+			server = host
+		}
+		domains = append(domains, map[string]any{"name": name, "status": "active", "whois_server": server})
+	}
+	data, err := json.Marshal(map[string]any{"meta": map[string]int{"specversion": 1}, "domains": domains})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func seedTLDs(t *testing.T, c *Client, hosts map[string]string) {
+	t.Helper()
+	if err := c.writeCache("tlds.json", tldFixture(t, hosts)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -244,6 +269,7 @@ func TestBootstrapSuffixMatchingAndHTTPS(t *testing.T) {
 func TestWHOISStopsAtRegistry(t *testing.T) {
 	c := fixtureClient(t, func(r *http.Request) (*http.Response, error) { t.Fatal("unexpected HTTP request"); return nil, nil })
 	seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
+	seedTLDs(t, c, map[string]string{"cn": "whois.cnnic.cn"})
 	var destinations []string
 	c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
 		destinations = append(destinations, address)
@@ -251,12 +277,7 @@ func TestWHOISStopsAtRegistry(t *testing.T) {
 		go func() {
 			defer server.Close()
 			line, _ := bufio.NewReader(server).ReadString('\n')
-			if address == "whois.iana.org:43" {
-				if line != "cn\r\n" {
-					t.Errorf("IANA query %q", line)
-				}
-				fmt.Fprint(server, "domain: CN\nwhois: whois.cnnic.cn\n")
-			} else if address == "whois.cnnic.cn:43" {
+			if address == "whois.cnnic.cn:43" {
 				if line != "shanghai.cn\r\n" {
 					t.Errorf("registry query %q", line)
 				}
@@ -268,14 +289,14 @@ func TestWHOISStopsAtRegistry(t *testing.T) {
 		return client, nil
 	}
 	r, err := c.Lookup(context.Background(), "shanghai.cn")
-	if err != nil || r.Registrant != "上海溪诚信息科技有限公司" || len(r.RegistrantEmail) != 1 || len(destinations) != 2 {
+	if err != nil || r.Registrant != "上海溪诚信息科技有限公司" || len(r.RegistrantEmail) != 1 || len(destinations) != 1 {
 		t.Fatalf("%+v, %v, %v", r, err, destinations)
 	}
 	_, err = c.Lookup(context.Background(), "shanghai.cn")
-	if err != nil || len(destinations) != 3 || destinations[2] != "whois.cnnic.cn:43" {
-		t.Fatalf("IANA discovery was not cached: %v, %v", err, destinations)
+	if err != nil || len(destinations) != 2 || destinations[1] != "whois.cnnic.cn:43" {
+		t.Fatalf("Bulk IANA routing was not reused: %v, %v", err, destinations)
 	}
-	assertServiceMetadataOnly(t, c, []string{"dns.json", "whois/cn.json"}, "shanghai.cn", "上海溪诚信息科技有限公司", "admin@example.com", "whois.registrar.test")
+	assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, "shanghai.cn", "上海溪诚信息科技有限公司", "admin@example.com", "whois.registrar.test")
 }
 
 func TestWHOISParsing(t *testing.T) {

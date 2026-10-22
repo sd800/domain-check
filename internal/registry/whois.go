@@ -2,10 +2,8 @@ package registry
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -76,57 +74,4 @@ func (c *Client) whois(ctx context.Context, host, query string) (string, error) 
 		}
 	}
 	return string(data), nil
-}
-
-type whoisCache struct {
-	Host      string    `json:"host"`
-	CheckedAt time.Time `json:"checked_at"`
-}
-
-func (c *Client) whoisServer(ctx context.Context, tld string) (string, error) {
-	name := "whois/" + tld + ".json"
-	var cached whoisCache
-	data, _ := os.ReadFile(c.cachePath(name))
-	_ = json.Unmarshal(data, &cached)
-	validCache := validWHOISHost(cached.Host)
-	if validCache && fresh(cached.CheckedAt, c.Now()) {
-		return cached.Host, nil
-	}
-	response, err := c.whois(ctx, c.IANAWHOIS, tld)
-	if err != nil {
-		if validCache {
-			c.warning("stale-whois")
-			return cached.Host, nil
-		}
-		return "", queryError("iana-whois-failed", err.Error())
-	}
-	var host string
-	known := false
-	for _, line := range strings.Split(response, "\n") {
-		key, value, ok := strings.Cut(line, ":")
-		if !ok {
-			continue
-		}
-		switch strings.ToLower(strings.TrimSpace(key)) {
-		case "domain":
-			// IANA returns U-labels for IDN suffixes even when queried by
-			// their A-label. Reuse strict domain validation before comparing.
-			domain, err := NormalizeDomain("iana." + strings.TrimSpace(value))
-			known = err == nil && domain == "iana."+tld
-		case "whois":
-			host = strings.ToLower(strings.TrimSpace(value))
-		}
-	}
-	if !known {
-		return "", queryError("unsupported-suffix", tld)
-	}
-	if !validWHOISHost(host) {
-		return "", queryError("no-registry-service", tld)
-	}
-	cached = whoisCache{Host: host, CheckedAt: c.Now()}
-	data, _ = json.Marshal(cached)
-	if err := c.writeCache(name, data); err != nil {
-		c.warning("cache-write-failed")
-	}
-	return host, nil
 }

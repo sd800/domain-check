@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sd800/domain-check/internal/output"
 	"github.com/sd800/domain-check/internal/registry"
 )
 
@@ -220,6 +221,11 @@ func (s *Server) query(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := map[string]any{"domain": registry.Clean(record.Domain), "idn": registry.UnicodeDomain(record.Domain), "registration": registry.Clean(record.Registration), "expiration": registry.Clean(record.Expiration), "changed": registry.Clean(record.Changed), "registrar": registry.Clean(record.Registrar), "registrant": registry.Clean(record.Registrant), "dnssec": registry.Clean(record.DNSSEC), "result": record.Result}
+	dates := make(map[string]string, 3)
+	for _, key := range []string{"registration", "expiration", "changed"} {
+		dates[key] = output.DateText(output.Chinese, values[key].(string))
+	}
+	values["dates_zh"] = dates
 	for name, items := range map[string][]string{"statuses": record.Statuses, "emails": record.RegistrantEmail, "nameservers": record.Nameservers} {
 		clean := make([]string, 0, len(items))
 		for _, item := range items {

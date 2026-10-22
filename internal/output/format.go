@@ -68,6 +68,9 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 		if index != 11 { // The locally validated IDN may contain emoji ZWJ.
 			value = registry.Clean(value)
 		}
+		if index >= 1 && index <= 3 {
+			value = DateText(lang, value)
+		}
 		if value == "" {
 			return
 		}

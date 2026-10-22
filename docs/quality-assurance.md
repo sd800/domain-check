@@ -40,7 +40,7 @@ make dist
 | RDAP parsing | Validate domain and Unicode identities, events, embedded roles and jCards, signing data, and response-size/depth/field limits. |
 | WHOIS parsing | Verify positive and negative identities, exact labels, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
 | Contact attribution | Prefer a disclosed registrant organization; do not substitute administrative, technical, billing, or registrar contact values. |
-| Dates | Preserve date precision, normalize recognized formats, convert only explicit zones to UTC, and exclude contact/database timestamps from domain events. |
+| Dates | Preserve date precision, normalize recognized formats, use Chinese year/month/day presentation only for Chinese output, convert only explicit zones to UTC, and exclude contact/database timestamps from domain events. |
 | Output | Omit undisclosed fields; align English and Chinese by display cells; preserve grapheme clusters and safe local IDN display; neutralize terminal controls in fields and errors. |
 | Availability | Keep no record, not registered, reserved, restricted, unavailable, and operational failure distinct. |
 | Local web API | Accept only loopback clients, allowlisted Hosts, same-origin metadata, JSON and the session token; enforce body, rate, concurrency and time limits; preserve the registry-only engine. |

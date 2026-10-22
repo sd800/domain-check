@@ -311,7 +311,7 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
 始终不跟随注册商。IANA 数据的自动更新只在查询时检查，每个日历月周期更新一次。
 运行 domain update 可立即更新 dns.json 和 tlds.json，不受缓存时间限制。
 URL 会自动识别可注册域名，不访问 URL 页面本身。
-日期使用 YYYY-MM-DD，时间使用 YYYY-MM-DD HH:MM:SS。
+中文日期使用 YYYY 年 M 月 D 日，有时间时保留 HH:MM:SS。
 带时区的时间转换为 UTC，并添加 UTC 后缀。
 `)
 }

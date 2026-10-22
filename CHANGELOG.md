@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.2
+
+- Use Chinese year, month, and day formatting in Chinese CLI and browser results while retaining source precision, time, and UTC labels.
+
 ## 26.10.22.1
 
 - Add an optional local browser interface with direct domain and URL lookups, bilingual results, adaptive appearance, and a text-free logo.

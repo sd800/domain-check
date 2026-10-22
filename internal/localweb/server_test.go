@@ -185,3 +185,24 @@ func TestUnknownErrorsDoNotExposeInputs(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 }
+
+func TestWebLocalizedDatesPreserveEnglishAndSourcePrecision(t *testing.T) {
+	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		return registry.Record{Domain: domain, Registration: "1994-04-08 04:00:00 UTC", Expiration: "2027-05-23", Statuses: []string{"ok"}}, nil, nil
+	})
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.com"}`))
+	var result struct {
+		Record struct {
+			Registration string            `json:"registration"`
+			Dates        map[string]string `json:"dates_zh"`
+			Statuses     []string          `json:"statuses"`
+		} `json:"record"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Record.Registration != "1994-04-08 04:00:00 UTC" || result.Record.Dates["registration"] != "1994 年 4 月 8 日 04:00:00 UTC" || result.Record.Dates["expiration"] != "2027 年 5 月 23 日" || result.Record.Dates["changed"] != "" || len(result.Record.Statuses) != 1 || result.Record.Statuses[0] != "ok" {
+		t.Fatal(w.Code, w.Body.String())
+	}
+}

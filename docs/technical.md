@@ -36,7 +36,7 @@ The first output row contains the ASCII domain. When a safe round-trip Unicode r
 
 RDAP parsing consumes domain events and embedded jCard entities. WHOIS parsing tokenizes labeled and multiline records once, identifies object and contact scopes, and applies shared field aliases plus observed registry-family syntax rules. Registry-operated names may have exceptional minimal records, so format verification also uses ordinary benign domains and explicit negative replies.
 
-Dates retain source precision: `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text retains the registry's original wording.
+Dates retain source precision: English uses `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps; Chinese uses `YYYY 年 M 月 D 日` with the supplied time appended. The CLI and web interface share the same date presentation function. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text retains the registry's original wording.
 
 RDAP `404` is reported as no registry record. Registration availability and restrictions are reported separately through explicit WHOIS statements such as not registered, reserved, not allowed, or restricted. Access denial, rate limits, timeouts, malformed data, and unknown syntax remain operational errors.
 

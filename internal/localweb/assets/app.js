@@ -57,7 +57,7 @@
       for (const keys of groups) {
         const dl = document.createElement('dl'); dl.className = 'record-group';
         for (const key of keys) {
-          const raw = key === 'result' ? results[record.result] || text.noRecord : record[key];
+          const raw = key === 'result' ? results[record.result] || text.noRecord : language === 'zh' && record.dates_zh && key in record.dates_zh ? record.dates_zh[key] : record[key];
           for (const value of Array.isArray(raw) ? raw : [raw]) {
             if (!value) continue;
             const field = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');

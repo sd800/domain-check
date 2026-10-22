@@ -7,7 +7,7 @@ domain example.com
 domain https://www.example.com/path
 ```
 
-Type a domain name or paste a full URL straight from the browser. The command picks out the domain and prints its key registration details in one aligned view.
+Type a domain name or paste a full URL straight from the browser. The command picks out the domain and prints its key registration details in one aligned view. It supports [1,367 top-level domains](docs/domains.md).
 
 **One command. 1,367 TLDs. Straight to the registry.** Coverage spans **1,203 TLDs via RDAP** and **164 via registry WHOIS**, including **141 internationalized TLDs**. [Explore TLD coverage](docs/domains.md).
 

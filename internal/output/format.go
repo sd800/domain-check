@@ -110,15 +110,17 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 	var registrarGroup []entry
 	if record.TLD {
 		groups[0] = []entry{{1, record.Registration}, {3, record.Changed}}
+		for _, status := range record.Statuses {
+			groups[0] = append(groups[0], entry{4, status})
+		}
 	} else {
 		registrarGroup = append(registrarGroup, entry{5, record.Registrar})
-	}
-	for _, status := range record.Statuses {
-		registrarGroup = append(registrarGroup, entry{4, status})
+		for _, status := range record.Statuses {
+			registrarGroup = append(registrarGroup, entry{4, status})
+		}
 	}
 	contactGroup := []entry{{6, record.Registrant}}
 	if record.TLD {
-		contactGroup = append(registrarGroup, contactGroup...)
 		contactGroup = append(contactGroup, entry{12, strings.Join(record.RegistrantAddress, "\n")}, entry{13, record.RegistrationURL})
 	} else {
 		groups = append(groups, registrarGroup)

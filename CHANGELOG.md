@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.5
+
+- Refine TLD result grouping in the CLI and browser.
+
 ## 26.10.22.4
 
 - Add direct IANA RDAP queries for TLD allocation records with aligned contact and delegation details in the CLI and browser.

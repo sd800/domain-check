@@ -71,7 +71,7 @@ func TestTLDLayoutAndAddressContinuation(t *testing.T) {
 	if err := Format(&b, r, English, 100); err != nil {
 		t.Fatal(err)
 	}
-	want := "Domain Name:         zz\n\nRegistration Time:   1994-04-08 04:00:00 UTC\nLast Changed Time:   2026-10-22\n\nDomain Status:       inactive\nRegistrant:          Example Registry\nAddress:             One Registry Road\n                     Example City 12345\n                     Example Country\nRegistration URL:    http://registry.example.test/\n\nAdmin:               Alex Example\nOrganization:        Example Organization\nRole:                Operations Lead\nPhone:               +1-555-0100\nPhone:               +1-555-0101\nEmail:               admin@example.test\n\nName Server:         ns1.example.test\nDNSSEC:              signed\n"
+	want := "Domain Name:         zz\n\nRegistration Time:   1994-04-08 04:00:00 UTC\nLast Changed Time:   2026-10-22\nDomain Status:       inactive\n\nRegistrant:          Example Registry\nAddress:             One Registry Road\n                     Example City 12345\n                     Example Country\nRegistration URL:    http://registry.example.test/\n\nAdmin:               Alex Example\nOrganization:        Example Organization\nRole:                Operations Lead\nPhone:               +1-555-0100\nPhone:               +1-555-0101\nEmail:               admin@example.test\n\nName Server:         ns1.example.test\nDNSSEC:              signed\n"
 	if b.String() != want {
 		t.Fatalf("TLD layout:\n%s\nwant:\n%s", b.String(), want)
 	}

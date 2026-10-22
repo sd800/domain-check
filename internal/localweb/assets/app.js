@@ -53,7 +53,7 @@
     if (record && (record !== renderedRecord || language !== renderedLanguage)) {
       const fragment = document.createDocumentFragment();
       const details = record.tld
-        ? [['registration', 'changed'], ['statuses', 'registrant', 'address', 'registration_url'], ['admin', 'organization', 'role', 'phones', 'admin_emails'], ['nameservers', 'dnssec']]
+        ? [['registration', 'changed', 'statuses'], ['registrant', 'address', 'registration_url'], ['admin', 'organization', 'role', 'phones', 'admin_emails'], ['nameservers', 'dnssec']]
         : [['registration', 'expiration', 'changed'], ['registrar', 'statuses'], ['registrant', 'emails'], ['nameservers', 'dnssec']];
       const groups = [['domain', 'idn'], ...(record.result ? [['result']] : details)];
       const results = { 'no-record': record.tld ? text.noTLDRecord : text.noRecord, 'not-registered': text.notRegistered, reserved: text.reserved, 'not-allowed': text.notAllowed, 'registration-restricted': text.restricted, 'not-available': text.notAvailable };

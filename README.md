@@ -164,7 +164,7 @@ English dates use `YYYY-MM-DD`, including values returned as `23-May-1985`, and 
 
 ### TLD allocation records
 
-TLD queries use IANA's root-registry RDAP service directly, in both the CLI and browser. Their layout shows registration and last-changed dates, status, the registrant and postal address, registration URL, administrative contact, and delegation details when disclosed. The administrative contact is selected by the RDAP `administrative` role; its separate `Role` row displays the contact's jCard role. Voice and fax numbers appear as individual `Phone` rows. Multiline addresses retain their line structure and align with the value column.
+TLD queries use IANA's root-registry RDAP service directly, in both the CLI and browser. Their layout places status directly after the last-changed date, followed by the registrant and postal address, registration URL, administrative contact, and delegation details when disclosed. The administrative contact is selected by the RDAP `administrative` role; its separate `Role` row displays the contact's jCard role. Voice and fax numbers appear as individual `Phone` rows. Multiline addresses retain their line structure and align with the value column.
 
 All result values are plain text, including URLs, email addresses, and telephone numbers. Domain Check does not create hyperlinks or fetch registration URLs.
 

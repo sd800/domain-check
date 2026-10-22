@@ -45,18 +45,18 @@ Archives and checksum files are also available on the [Releases page](https://gi
 <details>
 <summary>Build and install from source</summary>
 
-Requires Go 1.26 or newer and Git. Run this block from the directory where you want the checkout. It builds the executable, uses the same installer for installation and future zsh sessions, then enables `domain` in the current terminal:
+Requires Go 1.27.3 or newer and Git. Run this block from the directory where you want the checkout. It builds the executable, uses the same installer for installation and future zsh sessions, then enables `domain` in the current terminal:
 
 ```sh
 git clone https://github.com/sd800/domain-check.git &&
 cd domain-check &&
 make build &&
-sh scripts/install.sh bin/domain &&
+sh scripts/install.sh build/bin/domain &&
 export PATH="$HOME/.local/bin:$PATH" &&
 domain --version
 ```
 
-To build without installing, run `make build` and use `./bin/domain`.
+To build without installing, run `make build` and use `./build/bin/domain`.
 
 </details>
 
@@ -209,7 +209,8 @@ The tool does not save queried domains, pasted URLs, registration responses, or 
 
 ```sh
 make check       # Static checks, race-enabled offline tests, formatting
-make build       # Native bin/domain
+make security    # Module verification, vulnerability scan, installer attack tests
+make build       # Native build/bin/domain
 make dist        # Apple Silicon and Intel archives with checksums
 ```
 
@@ -221,17 +222,13 @@ Offline tests verify registry-only routing, redirect/referral blocking, RDAP err
 
 Pushing a `vYY.M.D.NUM` tag runs the release workflow, checks its agreement with `VERSION` and the commit message, and publishes macOS archives and checksums with the title `Release YY.M.D.NUM` and an empty release description.
 
-## References
+## Documentation
 
-- [IANA RDAP bootstrap data](https://www.iana.org/assignments/rdap-dns/)
-- [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.json) and its [schema](https://data.iana.org/TLD/v1/tlds-schema.json)
-- [RFC 7480: RDAP over HTTP](https://www.rfc-editor.org/rfc/rfc7480)
-- [RFC 9083: RDAP JSON responses](https://www.rfc-editor.org/rfc/rfc9083)
-- [RDAP Web Client](https://github.com/rdap-org/client.rdap.org), a reference for direct registry discovery, HTTPS endpoint preference, and the distinction between registry responses and registrar referrals. This CLI is an independent Go implementation.
-
-## Security
-
-Domain Check validates registry destinations, bounds untrusted responses, and neutralizes terminal control characters. See the [security policy](SECURITY.md) for its safeguards, verification commands, reporting guidance, and transport limitations.
+- [Technical details and implementation](docs/technical.md)
+- [Domain suffixes and registry coverage](docs/domains.md)
+- [Security policy and safeguards](docs/security.md)
+- [Quality assurance and verification](docs/quality-assurance.md)
+- [References](docs/references.md)
 
 ## License
 

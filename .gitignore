@@ -1,5 +1,4 @@
-/bin/
-/dist/
+/build/
 /coverage.out
 .DS_Store
 sidenote/

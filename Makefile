@@ -4,7 +4,7 @@ GO ?= go
 .PHONY: build test check security install uninstall dist clean
 
 build:
-	$(GO) build -trimpath -o bin/domain ./cmd/domain
+	$(GO) build -trimpath -o build/bin/domain ./cmd/domain
 
 test:
 	$(GO) test -race ./...
@@ -21,7 +21,7 @@ security:
 
 install: build
 	install -d "$(DESTDIR)$(PREFIX)/bin"
-	install -m 755 bin/domain "$(DESTDIR)$(PREFIX)/bin/domain"
+	install -m 755 build/bin/domain "$(DESTDIR)$(PREFIX)/bin/domain"
 
 uninstall:
 	rm -f "$(DESTDIR)$(PREFIX)/bin/domain"
@@ -30,4 +30,4 @@ dist:
 	sh scripts/dist.sh
 
 clean:
-	rm -rf bin dist coverage.out
+	rm -rf build coverage.out

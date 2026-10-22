@@ -28,4 +28,4 @@ jobs:
       - name: Publish macOS binaries
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Release $(cat VERSION)" --notes ''
+        run: gh release create "$GITHUB_REF_NAME" build/dist/* --verify-tag --title "Release $(cat VERSION)" --notes ''

@@ -1,5 +1,12 @@
 # Changelog
 
+## 26.10.21.27
+
+- Require Go 1.27.3 for local and release builds, replacing the older CI toolchain flagged by vulnerability scanning.
+- Add public technical, domain-coverage, security, quality-assurance, and reference documentation with a consolidated README index.
+- Move the root security policy into docs/security.md and include the public documentation in release archives.
+- Group generated binaries and archives under build/, update installation and publishing paths, and keep the archive allowlist restricted to the documented layout.
+
 ## 26.10.21.26
 
 - Harden injection boundaries with exact WHOIS query validation, system-path DNS execution, defensive diagnostic sanitization, and matching RDAP ASCII and Unicode identities.

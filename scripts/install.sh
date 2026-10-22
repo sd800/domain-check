@@ -59,10 +59,14 @@ if [ "$#" -eq 0 ]; then
       checksums.txt > verify.txt
     shasum -a 256 -c verify.txt
   )
-  # Accept only the expected flat archive, with one regular executable member.
+  # Accept only the expected archive layout, with one regular executable member.
   tar -tf "$work/$archive" > "$work/members.txt"
   awk '
-    $0 !~ /^(domain|README[.]md|CHANGELOG[.]md|LICENSE|VERSION|SECURITY[.]md)$/ || seen[$0]++ { bad=1 }
+    BEGIN {
+      split("domain README.md CHANGELOG.md LICENSE VERSION SECURITY.md docs/ docs/technical.md docs/domains.md docs/security.md docs/quality-assurance.md docs/references.md", names, " ")
+      for (i in names) allowed[names[i]]=1
+    }
+    !allowed[$0] || seen[$0]++ { bad=1 }
     END { exit bad || !seen["domain"] || !seen["README.md"] || !seen["CHANGELOG.md"] || !seen["LICENSE"] || !seen["VERSION"] }
   ' "$work/members.txt"
   tar -tvf "$work/$archive" domain > "$work/domain-entry.txt"

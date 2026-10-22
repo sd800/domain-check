@@ -67,7 +67,15 @@ destination.write_bytes(source.read_bytes())
     def make_archive(self, attack=None):
         (self.fixture / "release.json").write_text(json.dumps({"tag_name": "v" + self.version}))
         with tarfile.open(self.fixture / self.archive, "w:gz") as archive:
-            for name in ["domain", "README.md", "CHANGELOG.md", "LICENSE", "VERSION", "SECURITY.md"]:
+            names = ["domain", "README.md", "CHANGELOG.md", "LICENSE", "VERSION"]
+            if attack != "legacy-flat":
+                directory = tarfile.TarInfo("docs/")
+                directory.type = tarfile.DIRTYPE
+                directory.mode = 0o755
+                archive.addfile(directory)
+                names += ["docs/technical.md", "docs/domains.md", "docs/security.md",
+                          "docs/quality-assurance.md", "docs/references.md"]
+            for name in names:
                 info = tarfile.TarInfo(name)
                 body = b"synthetic executable" if name == "domain" else b"documentation"
                 info.size = len(body)
@@ -99,6 +107,11 @@ destination.write_bytes(source.read_bytes())
         self.run_installer()
         self.assertEqual((self.target / "domain").read_bytes(), b"synthetic executable")
         self.assertEqual(self.profile.read_text().count('export PATH="$HOME/.local/bin:$PATH"'), 1)
+
+    def test_previous_flat_release_remains_installable(self):
+        self.make_archive("legacy-flat")
+        self.run_installer()
+        self.assertEqual((self.target / "domain").read_bytes(), b"synthetic executable")
 
     def test_untrusted_archives_preserve_previous_installation(self):
         for attack in ["traversal", "duplicate", "symlink", "hardlink", "nested-doc"]:

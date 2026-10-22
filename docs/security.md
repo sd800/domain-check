@@ -14,7 +14,7 @@ Include the affected release, macOS version, expected and observed behavior, and
 - **Remote data is bounded.** Response bodies are limited to 8 MiB; HTTP headers, connection times, JSON nesting and string sizes, WHOIS line counts, and extracted field counts have additional limits. Excessive records fail rather than produce silently truncated registration results. DNS retains its normal retries under the command's overall cancellation deadline.
 - **Terminal output is inert.** Remote values and diagnostic details have terminal escape sequences, control characters, and Unicode formatting controls neutralized. The optional IDN display is generated locally and round-trip validated; joined emoji are the narrowly permitted formatting exception. Displayed Unicode names can still resemble other names, so the ASCII domain is always shown first.
 - **Local data stays limited.** Only the language preference and two full IANA datasets are persisted. Reads accept bounded regular files, reject symlinks and files writable by other users, and do not block on named pipes. Writes use private temporary files and same-directory replacement. Lookups and registry responses are never stored by the CLI.
-- **Installation is verified before replacement.** The installer uses system tools, HTTPS-only downloads and redirects, a restricted release-tag format, exact SHA-256 manifest matching, and a flat archive allowlist. It rejects duplicate members, executable links, and traversal paths, then replaces the executable through a same-directory rename. Checksum verification detects corruption and mismatched files; it does not provide an independent signature if the release account itself is compromised.
+- **Installation is verified before replacement.** The installer uses system tools, HTTPS-only downloads and redirects, a restricted release-tag format, exact SHA-256 manifest matching, and a restricted archive allowlist. It rejects duplicate members, executable links, and traversal paths, then replaces the executable through a same-directory rename. Checksum verification detects corruption and mismatched files; it does not provide an independent signature if the release account itself is compromised.
 - **Build checks are repeatable.** Go dependencies are versioned and verified against `go.sum`. GitHub Actions dependencies are pinned to full commit hashes, checkout credentials are not persisted, and check workflows have read-only repository permissions. Checks and releases run the official Go vulnerability scanner and offline installer attack tests.
 
 ## Scope and limitations
@@ -29,7 +29,7 @@ The ignored developer `test/` corpus is separate from runtime behavior and must 
 
 ## Verification
 
-With Go, Python 3, and network access for the public vulnerability database:
+With Go 1.27.3 or newer, Python 3, and network access for the public vulnerability database:
 
 ```sh
 make check

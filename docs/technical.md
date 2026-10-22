@@ -11,15 +11,15 @@ Domain Check from Registries is a macOS CLI written in Go. Its executable is `do
 5. Validate the response's domain identity and extract fields. Use only embedded entities and objects already present in the same response. Never fetch registrar referrals, entity links, contact URLs, or unresolved handles.
 6. Sanitize remote values and write the standardized layout. Missing and redacted values are omitted. A service error never becomes an availability claim.
 
-The dedicated education-registry interface and DNS fallback are described in the README's [privacy policy](../README.md#privacy-policy). DNS delegation alone does not establish registration status.
+The dedicated education-registry interface and DNS fallback are described in the README's [privacy policy](../README.md#privacy-policy). The fallback provides public nameserver records when the registry interface is unavailable.
 
 ## Domain and URL handling
 
-Domain validation accepts a trailing dot and enforces DNS label and length rules. IP literals, embedded commands, URL components in a domain identity, and control characters are rejected. Unicode input uses IDNA lookup mapping. Joined emoji compatibility is limited to complete validated pictographic grapheme clusters; conversion does not establish that the registry permits registration.
+Domain validation accepts a trailing dot and enforces DNS label and length rules. IP literals, embedded commands, URL components in a domain identity, and control characters are rejected. Unicode input uses IDNA lookup mapping. Joined emoji are supported through complete validated pictographic grapheme clusters, with registration eligibility determined by each registry.
 
 Direct domain input keeps its normalized identity. URL input uses the ICANN portion of the bundled public suffix data to find the registry-level domain. Private hosting suffixes do not become registry boundaries: `https://user.github.io/` queries `github.io`. A multi-label namespace such as `net.cn` may itself be queried.
 
-The first output row contains the ASCII domain. When a safe round-trip Unicode representation exists, an `IDN` / `国际化域名` row follows. Homoglyphs can still resemble other names; the Unicode display does not replace the ASCII identity.
+The first output row contains the ASCII domain. When a safe round-trip Unicode representation exists, an `IDN` / `国际化域名` row follows. The ASCII name remains the primary identity alongside its validated Unicode display.
 
 ## Response interpretation
 
@@ -36,9 +36,9 @@ The first output row contains the ASCII domain. When a safe round-trip Unicode r
 
 RDAP parsing consumes domain events and embedded jCard entities. WHOIS parsing tokenizes labeled and multiline records once, identifies object and contact scopes, and applies shared field aliases plus observed registry-family syntax rules. Registry-operated names may have exceptional minimal records, so format verification also uses ordinary benign domains and explicit negative replies.
 
-Dates retain source precision: `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text is preserved rather than assigned a fabricated precision or timezone.
+Dates retain source precision: `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text retains the registry's original wording.
 
-RDAP `404` means no registry record, not confirmed availability. WHOIS results such as not registered, reserved, not allowed, or restricted require an explicit supported registry statement. Access denial, rate limits, timeouts, malformed data, and unknown syntax remain operational errors.
+RDAP `404` is reported as no registry record. Registration availability and restrictions are reported separately through explicit WHOIS statements such as not registered, reserved, not allowed, or restricted. Access denial, rate limits, timeouts, malformed data, and unknown syntax remain operational errors.
 
 ## Presentation and commands
 
@@ -58,7 +58,7 @@ Label width is measured in terminal display cells. The content column follows th
 
 Cache age is checked only when a lookup needs the document. One calendar month after the last successful fetch, that lookup attempts a refresh, clamping month-end dates. A validated stale document may be reused with a warning after a failed automatic refresh; its age is not reset. Invalid documents are never routing evidence.
 
-`domain update` validates both complete downloads before replacing either file. Replacement is atomic per file, not a two-file transaction: a second save failure leaves the first file refreshed and reports failure. There are no background updates or per-suffix cache files.
+`domain update` validates both complete downloads before replacing either file. Each file is replaced atomically; a second save failure preserves the successful first refresh and reports the incomplete update. There are no background updates or per-suffix cache files.
 
 ## Code organization
 
@@ -71,7 +71,7 @@ Cache age is checked only when a lookup needs the document. One calendar month a
 | [`internal/safeio`](../internal/safeio) | Bounded reads of regular local data files. |
 | [`scripts`](../scripts) | Installation, packaging, and installer security checks. |
 
-Security limits and trust boundaries are maintained in [security.md](security.md). Coverage and service availability are described in [domains.md](domains.md).
+Security controls and protocol details are maintained in [security.md](security.md). Coverage and service availability are described in [domains.md](domains.md).
 
 ## Build and release
 

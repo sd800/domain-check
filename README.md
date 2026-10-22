@@ -151,7 +151,7 @@ DNSSEC:       unsigned
 
 Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language.
 
-WHOIS parsing supports registry-specific labels, contact sections, linked contact objects included in the same response, and multiline nameserver and DNSSEC records. Format checks include non-country namespaces such as `.edu` and `.arpa`, and internationalized top-level domains across scripts. Explicit policy notices remain distinct from registered records and service failures. Domain dates remain separate from contact-object dates, and administrative, technical, and registrar email addresses are not substituted for a registrant email. Coverage depends on the registry's public service and disclosed fields; access restrictions, timeouts, and unrecognized responses do not imply that a domain is available.
+WHOIS parsing supports registry-specific labels, contact sections, linked contact objects included in the same response, and multiline nameserver and DNSSEC records. Format checks include non-country namespaces such as `.edu` and `.arpa`, and internationalized top-level domains across scripts. Explicit policy notices remain distinct from registered records and service failures. Domain dates remain separate from contact-object dates, and administrative, technical, and registrar email addresses are not substituted for a registrant email. Access restrictions, timeouts, and unrecognized responses are reported as service errors, keeping them distinct from registration results.
 
 Content begins in a fixed column determined by the longest label, with three spaces after that label's colon. Chinese widths use terminal display cells; `DNSSEC` does not determine the Chinese column. Long values wrap to the terminal width, with continuation lines starting in the content column. When terminal dimensions are unavailable, `COLUMNS` is used, falling back to 80 columns. Very narrow terminals must still accommodate the label column and at least one character.
 
@@ -169,7 +169,7 @@ Result:              No registry record
 查询结果:     注册局无记录
 ```
 
-A normal RDAP `404` means the registry returned no matching record. It does **not** establish that the domain can be registered. `Not registered`, `Reserved`, or `Registration not allowed` is shown only when a supported WHOIS response explicitly states that result. `Not available for registration` preserves an explicit registry availability restriction without assuming the reason. A reply that only rules out online registration is shown as `Registration restricted (online registration unavailable)`; it does not establish permanent reservation. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
+An RDAP `404` is displayed as `No registry record`. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -186,7 +186,7 @@ A normal RDAP `404` means the registry returned no matching record. It does **no
 - When RDAP is absent, WHOIS uses the registry host in IANA's complete `tlds.json` dataset, then queries that registry directly on TCP port 43. Registrar WHOIS fields and referrals in the registry response are ignored. The `rdap_base_urls` field in `tlds.json` does not override `dns.json`.
 - When IANA lists RDAP, an RDAP failure does not trigger a WHOIS fallback.
 
-WHOIS response formats vary by registry. The parser handles common labeled formats and multiline sections, including CNNIC and Nominet-style records, but cannot normalize every registry-specific format. Unrecognized replies produce errors instead of guessed registration results. Outbound TCP port 43 must be available to use WHOIS.
+WHOIS parsing combines shared field extraction with registry-specific format rules, including CNNIC and Nominet-style records. Labeled fields, multiline sections, and explicit service responses are processed consistently; unrecognized replies produce a clear error. WHOIS requires outbound TCP port 43.
 
 ## IANA cache
 

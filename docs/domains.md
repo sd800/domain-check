@@ -1,6 +1,6 @@
 # Domain suffixes and registry coverage
 
-Domain Check accepts domain names and full URLs, including internationalized labels. Routing is discovered from the current IANA datasets; this document is a dated service inventory, not a hardcoded allowlist or a promise that every registry is reachable.
+Domain Check accepts domain names and full URLs, including internationalized labels. Routing follows the current IANA datasets. This inventory records their service assignments and the corresponding registry-format verification.
 
 ## IANA snapshot
 
@@ -15,7 +15,7 @@ Source: the complete [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.
 
 WHOIS-only coverage includes 119 ordinary ASCII TLDs and 45 internationalized TLDs. IDN classification refers to the top-level suffix itself; a Unicode label under `.com` does not make `.com` an IDN TLD.
 
-Run `domain update` to refresh the actual routing datasets. Published services can change after this snapshot. A listed server does not establish current accessibility, successful parsing of every format, registration eligibility, or ownership disclosure.
+Run `domain update` to refresh routing against the latest IANA publications. The tables record advertised services; the verification section separately reports observed responses and parsed records.
 
 ## RDAP suffixes
 
@@ -23,7 +23,7 @@ The full current RDAP list and endpoint assignments are available in the [offici
 
 ## WHOIS-only suffixes
 
-The following tables include every active WHOIS-only suffix in the snapshot, grouped by its published registry hostname. Shared field parsing applies to common formats; dedicated format rules are used only for observed differences. Absence of a dedicated suffix flag does not imply absence of parsing support.
+The following tables include every active WHOIS-only suffix in the snapshot, grouped by its published registry hostname. Shared parsing covers common syntax across suffixes, with dedicated rules for registry-specific differences.
 
 ### Ordinary ASCII TLDs
 
@@ -184,13 +184,13 @@ Unicode names are followed by their ASCII A-label identities. Queries use the AS
 
 ## Verification scope
 
-The registry-format audit corresponding to this snapshot retained 653 developer response samples. Replies were obtained for 149 of the 164 WHOIS-only suffixes; 137 suffixes supplied at least one positive parsed record. The remaining cases include explicit negatives, policy or service responses, and unreachable endpoints. These are observations from a bounded audit, not uptime measurements or universal compatibility guarantees.
+The registry-format audit corresponding to this snapshot retained 653 developer response samples. Replies were obtained for 149 of the 164 WHOIS-only suffixes; 137 suffixes supplied at least one positive parsed record. The remaining cases include explicit negatives, policy or service responses, and unreachable endpoints. The audit records service responses, positive records, and connection outcomes separately.
 
 Coverage checks include non-country namespaces such as `.edu` and `.arpa`, registry-operated names with minimal records, ordinary benign registered domains, and explicit negative candidates. Contact scope, date precision, IDN identities, DNSSEC, and service failures are checked separately. Real response bodies and registrant details remain outside the public repository; public fixtures are synthetic.
 
 ## Suffixes without an advertised service
 
-The following 70 active TLDs had neither an RDAP entry nor a WHOIS hostname in the snapshot. Domain Check reports the absence of a public registry service rather than guessing an endpoint or contacting a commercial lookup site.
+The following 70 active TLDs had neither an RDAP entry nor a WHOIS hostname in the snapshot. Domain Check returns a clear service-discovery error and keeps the query within its registry-only routing policy.
 
 `.al`, `.ao`, `.aq`, `.az`, `.ba`, `.bb`, `.bd`, `.bs`, `.bt`, `.bv`
 
@@ -209,9 +209,9 @@ The following 70 active TLDs had neither an RDAP entry nor a WHOIS hostname in t
 ## Interpreting a query
 
 - `domain example.com` queries that exact normalized domain. A URL such as `https://www.example.com/path` is reduced locally to `example.com`.
-- Internationalized and validated emoji labels are converted to ASCII/Punycode. Successful conversion does not establish that the registry allows the name.
-- Multi-label namespaces and reserved names can return explicit registry restrictions. Missing fields do not mean a domain is unregistered, and DNS absence does not establish availability.
-- A registry may withhold registrant names or emails. Domain Check omits those rows and never queries a registrar to fill them.
-- Some services impose geographic or institutional access restrictions. Transport failures remain errors; the disclosed education-registry DNS fallback reports delegation only.
+- Internationalized and validated emoji labels are converted to ASCII/Punycode for querying. Each registry determines registration eligibility.
+- Multi-label namespaces and reserved names are handled through the registry's explicit responses. Registration records, policy restrictions, and service errors have distinct results.
+- Domain Check displays the registrant details disclosed by the registry and omits undisclosed rows, keeping the lookup at the source.
+- Service access restrictions are reported clearly. For the education-registry fallback described in the privacy policy, public nameserver records provide delegation information.
 
-See [technical.md](technical.md) for routing and parsing, [security.md](security.md) for trust boundaries, and [quality-assurance.md](quality-assurance.md) for validation requirements.
+See [technical.md](technical.md) for routing and parsing, [security.md](security.md) for security controls, and [quality-assurance.md](quality-assurance.md) for validation requirements.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.29
+
+- Refine public project documentation for clarity and consistency.
+
 ## 26.10.21.28
 
 - Document macOS 13 (Ventura) as the minimum supported system for executables built with the updated Go toolchain.

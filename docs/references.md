@@ -1,12 +1,12 @@
 # References
 
-These sources explain the discovery data, RDAP behavior, and reference client that informed Domain Check from Registries. They are background for the implementation, not additional services contacted during a domain lookup.
+These sources explain the discovery data, RDAP behavior, and reference client that informed Domain Check from Registries. Each source is described in relation to the implementation it informs.
 
 ## IANA RDAP bootstrap data
 
 The [IANA RDAP DNS bootstrap registry](https://www.iana.org/assignments/rdap-dns/) publishes the suffix-to-service assignments distributed in [dns.json](https://data.iana.org/rdap/dns.json). Domain Check uses that complete dataset to decide whether the queried suffix has RDAP and which registry endpoints are authoritative. HTTPS endpoints are preferred when advertised.
 
-This is the routing source of truth. A failed RDAP request does not mean that RDAP is absent, so it does not cause a WHOIS fallback. The local cache contains the complete document rather than a query-dependent selection.
+The bootstrap is the routing source of truth. Domain Check retains RDAP routing when an advertised service returns an error and caches the complete document locally.
 
 ## IANA TLD Registry Data
 
@@ -18,7 +18,7 @@ Downloading the complete document avoids asking IANA about a specific queried su
 
 [RFC 7480: HTTP Usage in the Registration Data Access Protocol](https://www.rfc-editor.org/rfc/rfc7480) provides the HTTP foundation for RDAP requests and responses. Domain Check uses HTTP status handling to distinguish a missing record from authentication, access, rate-limit, and service failures.
 
-The project's registry-only policy additionally constrains redirects to the same domain query at an IANA-listed registry endpoint. That restriction is a deliberate product rule: an HTTP response or link must not cause the tool to send a lookup to a registrar.
+The project's registry-only policy additionally constrains redirects to the same domain query at an IANA-listed registry endpoint. This policy keeps each request at the authoritative registry throughout the lookup.
 
 ## RDAP JSON responses
 
@@ -30,4 +30,4 @@ Domain Check verifies the returned domain identity before displaying registratio
 
 [RDAP Web Client](https://github.com/rdap-org/client.rdap.org) provided a reference for direct registry discovery, HTTPS endpoint preference, and the distinction between registry responses and registrar referrals. It helped frame the registry-first behavior while Domain Check implements its own Go CLI, parsing, local state, and terminal presentation.
 
-The reference project's own license governs its source. Domain Check is an independent Go implementation distributed under the [MIT License](../LICENSE). Its implementation boundaries are documented in [technical.md](technical.md).
+Domain Check is an independent Go implementation distributed under the [MIT License](../LICENSE). Its architecture and lookup flow are documented in [technical.md](technical.md).

@@ -10,7 +10,7 @@ This document defines the checks required to change, build, and release Domain C
 - Python 3 for the offline installer security suite.
 - Network access for the official vulnerability database and optional live checks. Core regression tests use synthetic responses and injected transports.
 
-The CI toolchain is read from `go.mod`. Changing that version requires a fresh vulnerability scan; a clean scan using a newer local compiler does not validate an older release compiler.
+CI reads the release toolchain from `go.mod` and runs vulnerability scanning with that toolchain. Toolchain changes receive the same validation before release.
 
 ## Required checks
 
@@ -23,7 +23,7 @@ make build
 make dist
 ```
 
-`make check` runs `go vet`, race-enabled Go tests, and formatting checks. `make security` verifies module checksums, runs the pinned official Go vulnerability scanner, and exercises the installer with synthetic downloads. These installer tests neither download releases nor change the user's installation or shell profile.
+`make check` runs `go vet`, race-enabled Go tests, and formatting checks. `make security` verifies module checksums, runs the pinned official Go vulnerability scanner, and exercises the installer in isolated directories with synthetic release data.
 
 `make build` creates `build/bin/domain`; `make dist` builds both macOS architectures and SHA-256 manifests in `build/dist/`. Generated outputs remain outside the source directories and are excluded from Git.
 
@@ -45,7 +45,7 @@ make dist
 | Availability | Keep no record, not registered, reserved, restricted, unavailable, and operational failure distinct. |
 | Installation | Validate release tags, checksum manifests, expected archive members, links, duplicate paths, source arguments, replacement failures, and repeatable standard PATH setup. |
 
-Public tests use synthetic records so real registrant information is not committed. Test transports assert the actual requested destinations and reject unauthorized requests, rather than relying only on parser output.
+Public tests use synthetic records to protect registrant privacy. Test transports verify the actual requested destinations and reject unauthorized requests alongside the parser assertions.
 
 ## Fuzz testing
 
@@ -57,15 +57,15 @@ go test ./internal/registry -run '^$' -fuzz FuzzUntrustedRegistryResponses -fuzz
 go test ./internal/registry -run '^$' -fuzz FuzzCleanPreservesSanitization -fuzztime 10s
 ```
 
-The domain target checks that accepted normalized identities cannot become additional WHOIS commands or URL components. The response target exercises both parsers with hostile input. The sanitization target checks control-character neutralization. A bounded fuzz run is evidence for the executed cases, not an exhaustive proof.
+The domain target checks that accepted normalized identities cannot become additional WHOIS commands or URL components. The response target exercises both parsers with hostile input. The sanitization target checks control-character neutralization. These targets complement the deterministic regression suite with generated inputs.
 
 ## Registry-format verification
 
-Service inventories must include every active IANA suffix with WHOIS and no RDAP entry, including `.edu`, `.arpa`, and IDN suffixes across scripts. A two-letter country-code filter is insufficient. Compare independently identified benign registered names, registry-operated names with exceptional formats, and explicit negative candidates. A candidate's spelling does not establish that it is unregistered.
+Service inventories must include every active IANA suffix with WHOIS and no RDAP entry, including `.edu`, `.arpa`, and IDN suffixes across scripts. Coverage includes both country and non-country namespaces. Compare independently identified benign registered names, registry-operated names with exceptional formats, and explicit negative candidates. Negative results are classified from the registry's explicit response.
 
 Private developer samples may be retained separately for regression analysis. They are ignored by Git, never loaded by the CLI, and must not be copied into public fixtures or reports. Parser changes must be compared against the reviewed corpus baseline; every intended output difference requires inspection before the baseline is updated. Connection failures and access restrictions must remain distinct from parsed negative answers.
 
-The published [coverage snapshot](domains.md) states its source date and verification limits. Format support does not imply current reachability or complete ownership disclosure.
+The published [coverage snapshot](domains.md) records the source date, observed responses, and positive-record coverage. Service access and disclosed fields are assessed separately from format handling.
 
 ## Optional live smoke checks
 
@@ -89,13 +89,13 @@ Archives must contain one regular `domain` executable, the root release document
 ## Release gate
 
 1. Update root `VERSION` using `YY.M.D.NUM` and add an English changelog entry.
-2. Complete the required checks with the release toolchain. Investigate vulnerability findings; do not disable scanning to publish.
+2. Complete the required checks with the release toolchain. Resolve actionable vulnerability findings before publication.
 3. Verify both architecture builds, archive layout, and checksum manifests. Keep the public documentation and installation paths consistent.
 4. Commit with exactly `Release YY.M.D.NUM`, push the commit, and push its matching `vYY.M.D.NUM` tag.
-5. Require successful check and release workflows and verify the actual downloadable assets before announcing publication. A failed build or a pushed tag alone is not a published release.
+5. Confirm successful check and release workflows, then verify the downloadable assets before announcing publication.
 
 Workflow actions are pinned to full commit hashes. Check jobs have read-only repository permissions; only the release job receives the permission needed to publish assets. Release descriptions are empty.
 
-## Limits of the assurance
+## Ongoing validation
 
-Registry responses, access rules, and IANA service advertisements can change. A passing offline suite does not prove current service availability, registration eligibility, or the accuracy of ownership disclosures. WHOIS and HTTP-only services retain their transport limitations. Vulnerability scanning identifies known reachable findings available at scan time; additional review and future fixes may still be necessary. See [security.md](security.md) for the trust model.
+Deterministic tests validate routing, parsing, privacy, and installation behavior. Live checks assess current registry access, while dated coverage snapshots document observed formats and responses. Every release also checks reachable code against the official Go vulnerability database. Registry changes and new findings inform subsequent regression coverage and updates. See [security.md](security.md) for the implemented controls and protocol details.

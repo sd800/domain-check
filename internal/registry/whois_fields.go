@@ -53,6 +53,9 @@ var whoisKeys = func() map[string]string {
 			keys[label] = field
 		}
 	}
+	keys["exp date"] = "expiration"
+	keys["domain holder organization"] = "organization"
+	keys["domain holder organisation"] = "organization"
 	return keys
 }()
 

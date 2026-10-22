@@ -9,7 +9,24 @@ import (
 
 // tldRegistry indexes only active TLDs; an empty host means no published WHOIS.
 // The cache retains IANA's complete document, including entries never queried.
-type tldRegistry map[string]string
+type tldService struct {
+	WHOIS       string
+	CountryCode bool
+}
+
+// Nominet still publishes this registry service independently of IANA's
+// optional WHOIS field. No response-provided destination can extend this rule.
+func (s tldService) whoisHost(tld string) string {
+	if s.WHOIS != "" {
+		return s.WHOIS
+	}
+	if s.CountryCode && tld == "uk" {
+		return "whois.nic.uk"
+	}
+	return ""
+}
+
+type tldRegistry map[string]tldService
 
 func decodeTLDs(data []byte) (tldRegistry, error) {
 	var document struct {
@@ -18,6 +35,7 @@ func decodeTLDs(data []byte) (tldRegistry, error) {
 		} `json:"meta"`
 		Domains []struct {
 			Name   string          `json:"name"`
+			Type   string          `json:"type"`
 			Status string          `json:"status"`
 			WHOIS  json.RawMessage `json:"whois_server"`
 		} `json:"domains"`
@@ -42,10 +60,11 @@ func decodeTLDs(data []byte) (tldRegistry, error) {
 		}
 		switch entry.Status {
 		case "active":
-			registry[entry.Name] = ""
+			service := tldService{CountryCode: entry.Type == "country-code"}
 			if host != nil {
-				registry[entry.Name] = strings.ToLower(*host)
+				service.WHOIS = strings.ToLower(*host)
 			}
+			registry[entry.Name] = service
 		case "retired", "eligible", "reserved":
 			// A registry service on an inactive TLD must not receive a query.
 		default:
@@ -68,10 +87,11 @@ func (c *Client) whoisServer(ctx context.Context, tld string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	host, known := registry[tld]
+	service, known := registry[tld]
 	if !known {
 		return "", queryError("unsupported-suffix", tld)
 	}
+	host := service.whoisHost(tld)
 	if host == "" {
 		return "", queryError("no-registry-service", tld)
 	}

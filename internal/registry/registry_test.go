@@ -30,7 +30,7 @@ func fixtureClient(t *testing.T, handle transportFunc) *Client {
 	c.Now = func() time.Time { return time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC) }
 	c.HTTP = &http.Client{Transport: handle}
 	c.DialWHOIS = func(context.Context, string, string) (net.Conn, error) {
-		t.Error("WHOIS must not be called for a suffix with RDAP")
+		t.Error("unexpected WHOIS query")
 		return nil, fmt.Errorf("unexpected WHOIS query")
 	}
 	return c

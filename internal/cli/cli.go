@@ -214,6 +214,7 @@ func errorText(lang output.Language, err error) string {
 		"no-registry-service": {"No public registry RDAP or WHOIS service", "注册局没有公开的 RDAP 或 WHOIS 服务"},
 		"rdap-failed":         {"Registry RDAP query failed", "注册局 RDAP 查询失败"},
 		"whois-failed":        {"Registry WHOIS query failed", "注册局 WHOIS 查询失败"},
+		"fallback-failed":     {"Registry RDAP and WHOIS queries failed", "注册局 RDAP 和 WHOIS 查询均失败"},
 		"invalid-response":    {"Invalid registry response", "注册局响应无效"},
 		"redirect-blocked":    {"Redirect blocked: queries stay within the selected registry endpoints", "已阻止重定向：仅查询选定的注册局端点"},
 		"rate-limited":        {"Registry rate limit reached; try again later", "已触发注册局查询频率限制，请稍后重试"},
@@ -288,7 +289,8 @@ Other device languages use English. update, setup, help, and version also accept
 zero, one, or two leading hyphens. -h and -v are shorthand for help and version.
 
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
-IANA lists no RDAP service. .tw domain names use registry WHOIS directly.
+IANA lists no RDAP service. Country-code domains can use registry WHOIS
+after RDAP failure. .tw is WHOIS-only.
 Delegated .ac.uk and .gov.uk names use their namespace registries directly.
 Registrar referrals are never followed.
 Automatic IANA refresh is checked during lookups, once per calendar month.
@@ -320,7 +322,8 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
 -h 和 -v 分别是帮助和版本命令的简写。
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。
-.tw 下的域名直接查询注册局 WHOIS，始终不跟随注册商。
+国家和地区域名在 RDAP 查询失败后可回退至注册局 WHOIS。
+.tw 归为仅 WHOIS，始终不跟随注册商。
 .ac.uk 和 .gov.uk 下的域名直接查询各自的命名空间注册局。
 IANA 数据的自动更新只在查询时检查，每个日历月周期更新一次。
 运行 domain update 可立即更新 dns.json 和 tlds.json，不受缓存时间限制。

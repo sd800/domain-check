@@ -36,7 +36,7 @@ Registrar country annotations use the address `cc` parameter described in [RFC 8
 
 [Jisc's domain registry](https://www.jisc.ac.uk/domain-registry?lang=en) identifies it as the `.ac.uk` registry. Its [WHOIS guidance](https://www.jisc.ac.uk/domain-registry/whois) documents the `whois.ja.net` command-line service. Domain Check uses that service for `.ac.uk` child registrations, rather than treating a response from the parent `.uk` registry as the child's record.
 
-[Nominet's `.gov.uk` registry documentation](https://registrars.nominet.uk/registry/dot-gov-uk/) describes its separate registry and RDAP access. Domain Check queries its dedicated `https://rdap.nominet.uk/gov.uk/` service directly. These namespace routes are fixed registry destinations; response referrals do not supply new endpoints.
+[Nominet's `.gov.uk` registry documentation](https://registrars.nominet.uk/registry/dot-gov-uk/) describes its separate registry and RDAP access. Domain Check queries its dedicated `https://rdap.nominet.uk/gov.uk/` service directly. Nominet also publishes `whois.nic.uk` in its [WHOIS documentation](https://registrars.nominet.uk/uk-namespace/registration-and-domain-management/query-tools/whois/); this verified registry endpoint supplies the `.uk` fallback when IANA's WHOIS field is empty. These routes are fixed registry destinations; response referrals do not supply new endpoints.
 
 ## RDAP Web Client
 

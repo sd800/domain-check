@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.22.9
+
+- Add registry WHOIS fallback for country-code domains and expand special-namespace normalization.
+- Classify .tw as WHOIS-only in routing and coverage.
+
 ## 26.10.22.8
 
 - Show disclosed registrar country codes in ordinary-domain RDAP results.

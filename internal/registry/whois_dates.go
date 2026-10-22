@@ -19,7 +19,19 @@ func formatWHOISTime(tld, value string) string {
 	if value == "" {
 		return ""
 	}
+	if strings.EqualFold(value, "not defined") {
+		return ""
+	}
+	if tld == "br" {
+		parts := strings.Fields(value)
+		if len(parts) == 2 && len(parts[0]) == 8 && strings.Trim(parts[0], "0123456789") == "" && strings.HasPrefix(parts[1], "#") && len(parts[1]) > 1 && strings.Trim(parts[1][1:], "0123456789") == "" {
+			value = parts[0]
+		}
+	}
 	profile := whoisProfiles[tld]
+	if tld == "kr" || tld == "xn--3e0b707e" {
+		value = strings.ReplaceAll(strings.TrimSuffix(value, "."), ". ", ".")
+	}
 	if profile.has(monthNameDates) {
 		if parsed, err := time.Parse("2-Jan-2006", value); err == nil {
 			return parsed.Format("2006-01-02")
@@ -87,6 +99,7 @@ func formatWHOISTime(tld, value string) string {
 		}
 	}
 	for _, layout := range []string{
+		time.ANSIC,
 		"20060102 15:04:05", "2006/01/02 15:04:05", "2 January 2006 15:04:05.999999999",
 		"Jan 2 2006 3:04PM",
 	} {
@@ -94,7 +107,7 @@ func formatWHOISTime(tld, value string) string {
 			return parsed.Format("2006-01-02 15:04:05")
 		}
 	}
-	for _, layout := range []string{"Mon Jan 2 2006", "20060102", "Monday 2 January 2006", "Monday 2 Jan 2006"} {
+	for _, layout := range []string{"Mon Jan 2 2006", "20060102", "Monday 2 January 2006", "Monday 2 Jan 2006", "January 2 2006"} {
 		if parsed, err := time.Parse(layout, value); err == nil {
 			return parsed.Format("2006-01-02")
 		}

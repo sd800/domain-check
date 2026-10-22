@@ -51,6 +51,11 @@ func (c *Client) whois(ctx context.Context, host, query string) (string, error) 
 	if err != nil {
 		return "", err
 	}
+	return decodeWHOIS(host, data)
+}
+
+func decodeWHOIS(host string, data []byte) (string, error) {
+	var err error
 	if !utf8.Valid(data) {
 		// CNNIC's legacy WHOIS service may still emit GB18030/GBK.
 		if strings.EqualFold(host, "whois.cnnic.cn") {
@@ -58,8 +63,8 @@ func (c *Client) whois(ctx context.Context, host, query string) (string, error) 
 			if err != nil {
 				return "", err
 			}
-		} else if strings.EqualFold(host, "whois.nic.hu") || strings.EqualFold(host, "whois.dns.lu") {
-			// These registry services document ISO-8859-1 legacy responses.
+		} else if strings.EqualFold(host, "whois.nic.hu") || strings.EqualFold(host, "whois.dns.lu") || strings.EqualFold(host, "whois.registro.br") || strings.EqualFold(host, "whois.fi") {
+			// These registry services use ISO-8859-1 legacy responses.
 			data, err = charmap.ISO8859_1.NewDecoder().Bytes(data)
 			if err != nil {
 				return "", err

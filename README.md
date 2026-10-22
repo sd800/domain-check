@@ -182,7 +182,7 @@ Result:              No registry record
 
 `Domain-specific registration data not provided` (`注册局未提供此域名的独立注册信息`) identifies a namespace-only reply or a recognized non-disclosure response, including the observed `.edu.tw`, `.gov.tw`, and `.mil.tw` cases. It makes no availability claim and does not substitute the parent namespace's manager for the queried domain's registrant.
 
-By default, an RDAP `404` is displayed as `No registry record`; for a TLD query, it is `No IANA TLD record` (`IANA 无此顶级域名记录` in Chinese). An absent TLD record makes no claim that the name can be registered. Disclosed TLD statuses such as `inactive` or `reserved` remain visible alongside the allocation details. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. `Domain usage restricted` preserves an explicit registry usage restriction separately from registration eligibility. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
+By default, an RDAP `404` is displayed as `No registry record`; for a TLD query, it is `No IANA TLD record` (`IANA 无此顶级域名记录` in Chinese). An absent TLD record makes no claim that the name can be registered. Disclosed TLD statuses such as `inactive` or `reserved` remain visible alongside the allocation details. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. `Domain usage restricted` preserves an explicit registry usage restriction. `Registration eligibility restricted` identifies a disclosed qualification requirement. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -219,15 +219,16 @@ The service listens only on your Mac's loopback addresses. It does not expose th
 ## Registry-only queries
 
 - TLD allocation queries go directly to `https://rdap.iana.org/domain/<tld>`, without fetching discovery datasets.
-- `.tw` domain queries use the registry WHOIS host from the complete IANA TLD dataset directly. The `.tw` TLD allocation query itself still uses IANA RDAP.
+- `.tw` is classified as WHOIS-only; domain queries use the registry WHOIS host from the complete IANA TLD dataset directly. The `.tw` TLD allocation query itself still uses IANA RDAP.
 - Delegated `.ac.uk` and `.gov.uk` names use their documented namespace registries directly: Jisc WHOIS and Nominet's dedicated RDAP service, respectively.
 - Other ordinary domain RDAP requests use endpoints listed by IANA for the domain's matching suffix, preferring HTTPS.
 - Response links and entity links are never fetched, including registrar `related` links.
 - HTTP redirects are accepted only for the same domain query within the selected registry endpoints, including an HTTP-to-HTTPS upgrade. Arbitrary paths, external hosts, and redirects with query parameters are blocked.
 - When RDAP is absent, WHOIS uses the registry host in IANA's complete `tlds.json` dataset, then queries that registry directly on TCP port 43. Registrar WHOIS fields and referrals in the registry response are ignored. The `rdap_base_urls` field in `tlds.json` does not override `dns.json`.
-- Apart from the explicit registry routes above, advertised RDAP remains the selected protocol; failures do not trigger a WHOIS fallback.
+- RDAP-enabled ccTLDs use registry WHOIS as a fallback after an RDAP connection, service, or response failure, when the complete IANA TLD dataset identifies an active country-code registry with a WHOIS host, or the fixed Nominet-published `.uk` service applies. Successful replies, including missing fields and no-record results, are kept as returned. Rate limits, blocked redirects, and cancellation do not trigger fallback.
+- Other TLDs retain RDAP as the selected protocol; failures do not trigger a WHOIS fallback.
 
-WHOIS parsing combines shared field extraction with registry-specific format rules, including CNNIC and Nominet-style records. Labeled fields, multiline sections, and explicit service responses are processed consistently; unrecognized replies produce a clear error. WHOIS requires outbound TCP port 43.
+WHOIS parsing combines shared field extraction with registry-specific format rules, including CNNIC and Nominet-style records. Labeled fields, multiline sections, and explicit service responses are processed consistently; unrecognized replies produce a clear error. WHOIS requires outbound TCP port 43. RDAP and WHOIS results use the same layout, without combining records from the two protocols.
 
 ## IANA cache
 

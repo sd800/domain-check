@@ -198,6 +198,8 @@ func FuzzUntrustedRegistryResponses(f *testing.F) {
 		allocationFixture,
 		eduCAUSERecord,
 		twRecord,
+		koreanFixture,
+		kyrgyzFixture,
 		"Domain Name: example.test\nRegistrant: \x1b]52;c;YXR0YWNr\a\n",
 		"No match for example.test",
 	} {
@@ -211,6 +213,8 @@ func FuzzUntrustedRegistryResponses(f *testing.F) {
 		_, _ = parseWHOIS("example.edu", body)
 		_, _ = parseWHOIS("example.com.tw", body)
 		_, _ = parseWHOIS("example.ac.uk", body)
+		_, _ = parseWHOIS("example.go.kr", body)
+		_, _ = parseWHOIS("example.edu.kg", body)
 		_, _ = parseRDAP("example.edu.sn", []byte(body))
 		_, _ = parseRDAP("example.test", []byte(body))
 		_, _ = parseRDAP("zz", []byte(body))

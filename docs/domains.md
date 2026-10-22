@@ -12,22 +12,24 @@ One leading dot is also accepted on ordinary domains: `domain .github.io` querie
 
 Source: the complete [IANA TLD Registry Data](https://data.iana.org/TLD/v1/tlds.json), generated **2026-10-21T21:54:03+00:00**, and [IANA RDAP DNS bootstrap data](https://data.iana.org/rdap/dns.json), published **2026-09-30T23:00:03Z**. The TLD registry's RDAP fields do not replace the DNS bootstrap as the RDAP routing source.
 
-| Active top-level suffixes | Count |
+| Active top-level suffixes, by lookup route | Count |
 | --- | ---: |
-| RDAP advertised in `dns.json` | 1203 |
-| No RDAP advertisement, WHOIS hostname published | 164 |
-| Neither RDAP nor a WHOIS hostname published | 70 |
+| RDAP primary | 1202 |
+| WHOIS-only, including `.tw` | 165 |
+| Neither protocol published | 70 |
 | Total active TLDs in this snapshot | 1437 |
 
-Together, these services cover **1,367 TLDs**, including **141 internationalized TLDs**.
+These services cover **1,367 TLDs**, including **141 internationalized TLDs**. IANA advertises RDAP for 1203 TLDs; Domain Check classifies `.tw` as WHOIS-only because its RDAP interface is unavailable, while retaining both complete IANA files unchanged.
 
-WHOIS-only coverage includes 119 ordinary ASCII TLDs and 45 internationalized TLDs. IDN classification refers to the top-level suffix itself; a Unicode label under `.com` does not make `.com` an IDN TLD.
+WHOIS-only coverage includes 120 ordinary ASCII TLDs and 45 internationalized TLDs. IDN classification refers to the top-level suffix itself.
 
-Run `domain update` to refresh routing against the latest IANA publications. The tables record advertised services; the verification section separately reports observed responses and parsed records.
+Of the **77 RDAP-primary ccTLDs**, **75** have a registry WHOIS fallback: 74 from IANA and the fixed Nominet-published `.uk` service. The remaining 2 (`.na`, `.pn`) have no published WHOIS service in this inventory. Fixed delegated-namespace services, including Jisc `.ac.uk`, retain their documented routes.
+
+Run `domain update` to refresh the complete IANA datasets. Service inventories and observed availability are recorded separately.
 
 ## RDAP suffixes
 
-The full current RDAP list and endpoint assignments are available in the [official DNS bootstrap](https://data.iana.org/rdap/dns.json). Domain Check selects the longest matching suffix and prefers HTTPS. It never follows registrar referrals or switches to WHOIS after an advertised RDAP service fails. `.tw` domain queries have an explicit WHOIS routing override; the advertisement counts above continue to describe IANA's published dataset, while the `.tw` allocation query itself still uses IANA RDAP.
+The full advertised RDAP list is available in the [official DNS bootstrap](https://data.iana.org/rdap/dns.json). Domain Check selects the longest matching suffix and prefers HTTPS. RDAP-primary ccTLDs may use their published registry WHOIS service after a connection, service, or response failure. Successful replies, including no-record responses and missing fields, complete the lookup. Rate limits, blocked redirects, and cancellation stop it. Other TLDs retain RDAP without WHOIS fallback; registrar referrals are never followed.
 
 ## Explicit `.tw` WHOIS routing
 
@@ -56,7 +58,7 @@ Other services continue through ordinary IANA discovery and shared parsing. Fixe
 
 ## WHOIS-only suffixes
 
-The following tables include every active WHOIS-only suffix in the snapshot, grouped by its published registry hostname. Shared parsing covers common syntax across suffixes, with dedicated rules for registry-specific differences.
+The following tables include every WHOIS-only suffix in the snapshot, including the explicit `.tw` classification. Shared parsing and observed registry-family rules supply the standard layout.
 
 ### Ordinary ASCII TLDs
 
@@ -175,6 +177,7 @@ The following tables include every active WHOIS-only suffix in the snapshot, gro
 | `whois.tld.ee` | `.ee` |
 | `whois.tld.sy` | `.sy` |
 | `whois.trabis.gov.tr` | `.tr` |
+| `whois.twnic.net.tw` | `.tw` |
 | `whois.weare.ie` | `.ie` |
 | `whois.website.ws` | `.ws` |
 | `whois1.nic.bi` | `.bi` |
@@ -217,13 +220,13 @@ Unicode names are followed by their ASCII A-label identities. Queries use the AS
 
 ## Verification scope
 
-The registry-format audit corresponding to this snapshot retained 653 developer response samples. Replies were obtained for 149 of the 164 WHOIS-only suffixes; 137 suffixes supplied at least one positive parsed record. The remaining cases include explicit negatives, policy or service responses, and unreachable endpoints. The audit records service responses, positive records, and connection outcomes separately.
+Verification inventories both WHOIS-only suffixes and the registry WHOIS services published for RDAP-primary ccTLDs. It includes ordinary registrations, registry-operated names with exceptional records, education/government and other special namespaces, IDN suffixes, and explicit negative candidates. Service responses, parsed records, access limits, and unreachable endpoints remain separate outcomes.
 
-Coverage checks include non-country namespaces such as `.edu` and `.arpa`, registry-operated names with minimal records, ordinary benign registered domains, and explicit negative candidates. Contact scope, date precision, IDN identities, DNSSEC, and service failures are checked separately. Real response bodies and registrant details remain outside the public repository; public fixtures are synthetic.
+Contact scope, date precision, reserved or restricted results, IDN identities, DNSSEC, and protocol-fallback boundaries receive synthetic regression coverage. Developer response bodies remain under ignored `test/whois` and `test/rdap`; runtime does not retain queries or responses.
 
 ## Suffixes without an advertised service
 
-The following 70 active TLDs had neither an RDAP entry nor a WHOIS hostname in the snapshot. Domain Check returns a clear service-discovery error and keeps the query within its registry-only routing policy.
+The following 70 active TLDs publish neither protocol in this snapshot. Domain Check reports a service-discovery error.
 
 `.al`, `.ao`, `.aq`, `.az`, `.ba`, `.bb`, `.bd`, `.bs`, `.bt`, `.bv`
 

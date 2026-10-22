@@ -29,6 +29,7 @@ const (
 	bulgarianStatus
 	multilineRegistrant
 	twnicContactFields
+	reservedDomainMetadata
 )
 
 func (p whoisProfile) has(flag whoisProfile) bool { return p&flag != 0 }
@@ -41,12 +42,17 @@ var whoisProfiles = map[string]whoisProfile{
 	"bg":              bulgarianStatus,
 	"by":              domainContactEmail,
 	"cl":              chileanTimezones | implicitDomainIdentity,
+	"cr":              dayFirstDates,
+	"cz":              dayFirstDates | registrantHandle,
 	"edu":             monthNameDates | multilineRegistrant,
 	"ee":              nameserverObjectDates,
+	"fi":              dayFirstDates,
 	"gg":              ordinalDates,
 	"hk":              dayFirstDates,
 	"il":              dayFirstDates | changeHistoryDates | domainContactEmail,
 	"im":              dayFirstDates,
+	"id":              reservedDomainMetadata,
+	"is":              registrantHandle,
 	"ir":              registrantHandle,
 	"je":              ordinalDates,
 	"jp":              jprsContactFields,
@@ -63,9 +69,11 @@ var whoisProfiles = map[string]whoisProfile{
 	"tn":              dayFirstDates | domainDNSSECAfterContact,
 	"tr":              periodDateSuffix,
 	"tw":              twnicContactFields,
+	"tz":              dayFirstDates,
 	"uk":              ordinalDates,
 	"sn":              domainDNSSECAfterContact,
 	"ug":              ugandanDomainUpdate,
+	"uz":              reservedDomainMetadata,
 	"ve":              dayFirstDates | registrantHandle,
 	"xn--4dbrk0ce":    dayFirstDates | changeHistoryDates | domainContactEmail,
 	"xn--90a3ac":      dayFirstDates,
@@ -76,6 +84,7 @@ var whoisProfiles = map[string]whoisProfile{
 	"xn--fiqz9s":      cnnicVariantNames,
 	"xn--j6w193g":     dayFirstDates | hkBundledNames,
 	"xn--kprw13d":     twnicVariantNames,
+	"xn--kpry57d":     twnicVariantNames,
 	"xn--mgba3a4f16a": registrantHandle,
 	"xn--pgbs0dh":     dayFirstDates | domainDNSSECAfterContact,
 }

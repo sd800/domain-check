@@ -75,7 +75,7 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 		return c.eduCN(ctx, domain)
 	}
 	if rdap, whois := namespaceService(domain); rdap != "" {
-		return c.rdap(ctx, domain, []string{rdap})
+		return c.rdapWithWHOIS(ctx, domain, []string{rdap})
 	} else if whois != "" {
 		response, err := c.whois(ctx, whois, domain)
 		if err != nil {
@@ -92,7 +92,7 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 			return Record{}, err
 		}
 		if endpoints := b.endpoints(domain); len(endpoints) > 0 {
-			return c.rdap(ctx, domain, endpoints)
+			return c.rdapWithWHOIS(ctx, domain, endpoints)
 		}
 	}
 	host, err := c.whoisServer(ctx, tld)

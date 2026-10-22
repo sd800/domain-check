@@ -39,6 +39,8 @@ func ResultText(lang Language, result registry.Result) string {
 		return Text(lang, "Domain-specific registration data not provided", "注册局未提供此域名的独立注册信息")
 	case registry.UsageRestricted:
 		return Text(lang, "Domain usage restricted", "域名使用受限")
+	case registry.EligibilityRestricted:
+		return Text(lang, "Registration eligibility restricted", "注册资格受限")
 	case registry.NotRegistered:
 		return Text(lang, "Not registered", "未注册")
 	case registry.Reserved:

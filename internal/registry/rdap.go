@@ -69,11 +69,11 @@ func (c *Client) rdap(ctx context.Context, domain string, endpoints []string) (R
 			return record, nil
 		}
 		lastErr = err
-		if e, ok := err.(*QueryError); ok && (e.Code == "rate-limited" || e.Code == "access-denied") {
+		if e, ok := err.(*QueryError); ok && (e.Code == "rate-limited" || e.Code == "access-denied" || e.Code == "redirect-blocked") {
 			break
 		}
 	}
-	// Having an RDAP entry means WHOIS is never used, including on RDAP failure.
+	// The caller decides whether this failure permits a ccTLD WHOIS fallback.
 	return Record{}, lastErr
 }
 

@@ -11,6 +11,7 @@ var commentedWHOISError = regexp.MustCompile(`(?i)^error:\s*(?:\d+:\s*)?(.*)$`)
 var numberedWHOISError = regexp.MustCompile(`^-?\d+:\s*%?\s*(.*)$`)
 var namedWHOISResult = regexp.MustCompile(`(?i)^(?:domain\s+)?(\S+)\s+(is free|is reserved|has been reserved by .+?)[.!]?$`)
 var namedWHOISMissing = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)^sorry, but domain:\s*"([^"]+)", not found in database$`),
 	regexp.MustCompile(`(?i)^no such domain\s+["']?([^\s"']+?)["']?[.!]?$`),
 	regexp.MustCompile(`(?i)^(?:the\s+)?domain\s+["']?([^\s"']+?)["']?\s+(?:was\s+)?not found[.!]?$`),
 	regexp.MustCompile(`(?i)^no (?:match(?: found)?|matching record|record found|data found) for\s+(?:domain\s*:?\s*)?["']?([^\s"']+?)["']?[.!]?$`),
@@ -29,7 +30,7 @@ func whoisFailure(line string) bool {
 		message = match[1]
 	}
 	lower := strings.ToLower(Clean(message))
-	if strings.HasPrefix(lower, "warning: query rate is now high,") || strings.HasPrefix(lower, "blacklisted: you have exceeded the query limit") || strings.HasPrefix(lower, "subdomains such as ") && strings.HasSuffix(lower, " are not supported") || strings.HasPrefix(lower, "invalid domain name: ") {
+	if strings.HasPrefix(lower, "warning: query rate is now high,") || strings.HasPrefix(lower, "blacklisted: you have exceeded the query limit") || strings.HasPrefix(lower, "subdomains such as ") && strings.HasSuffix(lower, " are not supported") || strings.HasPrefix(lower, "invalid domain name: ") || strings.HasPrefix(lower, "invalid .sr domain format:") || lower == "input format is invalid." {
 		return true
 	}
 	switch strings.TrimRight(lower, ".!") {
@@ -40,12 +41,16 @@ func whoisFailure(line string) bool {
 }
 
 func negativeWHOIS(line string) Result {
-	line = strings.ToLower(strings.TrimSpace(line))
+	line = strings.ToLower(Clean(line))
 	switch strings.TrimRight(line, ".!:") {
 	case "the domain name is not available", "this name is not available for registration":
 		return Unavailable
-	case "iana reserved":
+	case "iana reserved", "reserved by registry", "this domain name is reserved by the registry", "reserved: trademark":
 		return Reserved
+	case "blocked_word: cg":
+		return NotAllowed
+	case "el dominio no se encuentra registrado en nic argentina", "no match found":
+		return NoRecord
 	case "domain name matches a restricted word", "stop-list: domain can not be registered":
 		return NotAllowed
 	}
@@ -74,6 +79,9 @@ func negativeWHOIS(line string) Result {
 		return NoRecord
 	}
 	if line == "domain is not registered" || line == "domain not registered" || strings.TrimRight(line, ".!") == "the domain has not been registered" {
+		return NotRegistered
+	}
+	if line == "data not found. this domain is available for registration." {
 		return NotRegistered
 	}
 	if line == "reserved domain name" || line == "reserved domain name." || line == "this name is reserved by the registry." || line == "this name is reserved by the registry" {

@@ -94,13 +94,22 @@ func parseWHOIS(domain, response string) (Record, error) {
 		}
 	}
 	r := Record{Domain: domain}
+	if strings.TrimSpace(response) == "網域名稱不合規定" && !strings.HasSuffix(domain, ".mil.tw") {
+		return Record{}, queryError("whois-failed", "registry rejected the domain query format")
+	}
 	if strings.EqualFold(strings.TrimRight(strings.TrimSpace(response), ".!"), "reserved") {
 		return Record{Domain: domain, Result: Reserved}, nil
 	}
 	lines := tokenizeWHOIS(response)
-	tuneNamespaceWHOIS(domain, lines)
-	if namespaceUsageRestriction(domain, lines) {
+	lines = tuneNamespaceWHOIS(domain, lines)
+	if namespaceUsageRestriction(lines) {
 		return Record{Domain: domain, Result: UsageRestricted}, nil
+	}
+	if result := koreanWHOISResult(domain, lines); result != "" {
+		return Record{Domain: domain, Result: result}, nil
+	}
+	if result := nominetWHOISResult(domain, lines); result != "" {
+		return Record{Domain: domain, Result: result}, nil
 	}
 	tld := domain[strings.LastIndexByte(domain, '.')+1:]
 	profile := whoisProfiles[tld]
@@ -499,6 +508,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 				r.RegistrantEmail = appendWHOISEmails(r.RegistrantEmail, value)
 			}
 		case "nameserver":
+			if tld == "uz" && strings.EqualFold(strings.TrimSuffix(value, "."), "not.defined") {
+				continue
+			}
 			r.Nameservers = appendWHOISNameservers(r.Nameservers, value)
 			if !labeled {
 				pending = "nameserver"
@@ -542,7 +554,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 		}
 		// JPRS publishes delegation nameservers for its reserved category
 		// names. That delegation does not contradict their reservation.
-		if found && r.Result == Reserved && profile.has(jprsContactFields) && namespaceParent("probe."+domain, domain) {
+		if found && r.Result == Reserved && (profile.has(reservedDomainMetadata) || profile.has(jprsContactFields) && namespaceParent("probe."+domain, domain)) {
 			return Record{Domain: domain, Result: Reserved}, nil
 		}
 		if found && (r.Registration != "" || len(r.Nameservers) > 0) {
@@ -565,7 +577,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 		return Record{}, queryError("invalid-response", "unrecognized or mismatched WHOIS response")
 	}
 	if object, ok := objects[whoisObjectID("contact", holder)]; ok {
-		r.Registrant, organization = object.name, object.organization
+		if r.Registrant == "" {
+			r.Registrant, organization = object.name, object.organization
+		}
 		r.RegistrantEmail = object.emails
 	}
 	if organization != "" {
@@ -661,9 +675,9 @@ func appendWHOISEmails(emails []string, value string) []string {
 
 func normalizeWHOISDNSSEC(value string) string {
 	switch strings.ToLower(value) {
-	case "yes", "true", "signed", "active", "signed delegation", "signeddelegation":
+	case "yes", "true", "signed", "active", "signed delegation", "signeddelegation", "서명":
 		return "signedDelegation"
-	case "no", "false", "unsigned", "inactive", "not signed", "unsigned delegation":
+	case "no", "false", "unsigned", "inactive", "not signed", "unsigned delegation", "미서명":
 		return "unsigned"
 	}
 	return value

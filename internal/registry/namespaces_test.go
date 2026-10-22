@@ -154,9 +154,11 @@ func TestDelegatedUKAbsenceIsNotChildAvailability(t *testing.T) {
 	}
 }
 
-func TestNamespaceFailuresNeverAddDestinations(t *testing.T) {
+func TestNamespaceFailuresWithoutEligibleWHOISAndBlockedRedirects(t *testing.T) {
 	for _, domain := range []string{"example.ac.uk", "example.gov.uk"} {
 		c := NewClient(t.TempDir())
+		// No country-code classification means no protocol fallback.
+		seedTLDs(t, c, map[string]string{"uk": ""})
 		httpCalls, whoisCalls := 0, 0
 		c.DialWHOIS = func(context.Context, string, string) (net.Conn, error) {
 			whoisCalls++

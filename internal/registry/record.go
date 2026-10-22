@@ -12,14 +12,15 @@ import (
 type Result string
 
 const (
-	NoRecord        Result = "no-record"
-	NotProvided     Result = "not-provided"
-	NotRegistered   Result = "not-registered"
-	Reserved        Result = "reserved"
-	NotAllowed      Result = "not-allowed"
-	Restricted      Result = "registration-restricted"
-	UsageRestricted Result = "usage-restricted"
-	Unavailable     Result = "not-available"
+	NoRecord              Result = "no-record"
+	NotProvided           Result = "not-provided"
+	NotRegistered         Result = "not-registered"
+	Reserved              Result = "reserved"
+	NotAllowed            Result = "not-allowed"
+	Restricted            Result = "registration-restricted"
+	UsageRestricted       Result = "usage-restricted"
+	EligibilityRestricted Result = "eligibility-restricted"
+	Unavailable           Result = "not-available"
 )
 
 type Record struct {
@@ -171,7 +172,7 @@ func appendUnique(items []string, value string) []string {
 func formatTime(s string) string {
 	s = useful(s)
 	for _, layout := range []string{
-		time.RFC3339Nano, "2006-01-02T15:04:05-0700", "2006-01-02 15:04:05-0700",
+		time.RFC3339Nano, "2006-01-02T15:04:05-0700", "2006-01-02 15:04:05-0700", "2006-01-02 15:04:05-07",
 		"2006-01-02 15:04:05 -0700", "2006-01-02 15:04:05Z07:00",
 		"2006-01-02 15:04:05 MST", "02-Jan-2006 15:04:05 MST",
 	} {

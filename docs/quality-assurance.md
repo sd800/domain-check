@@ -5,7 +5,7 @@ This document defines the checks required to change, build, and release Domain C
 ## Supported build and verification environments
 
 - Go 1.27.3 or newer, with dependency versions and checksums from `go.mod` and `go.sum`.
-- macOS for the CLI and native installation; releases include Apple Silicon and Intel executables.
+- macOS 13 (Ventura) or later for the CLI and native installation; releases include Apple Silicon and Intel executables. The installer must reject older systems before replacing an existing executable.
 - macOS and Linux GitHub runners for portable Go regression tests. Linux installer tests simulate macOS system responses and use isolated paths; macOS tests exercise the actual system archive utilities.
 - Python 3 for the offline installer security suite.
 - Network access for the official vulnerability database and optional live checks. Core regression tests use synthetic responses and injected transports.

@@ -21,6 +21,8 @@ Domain Check from Registries is built around a simple principle: **a domain look
 
 ## Install
 
+Requires macOS 13 (Ventura) or later.
+
 Copy this entire block into macOS Terminal. It installs the latest release for Apple Silicon or Intel, verifies its SHA-256 checksum, and makes `domain` available immediately. No Go installation or manual download is required.
 
 ```sh

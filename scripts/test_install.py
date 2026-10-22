@@ -32,6 +32,7 @@ class InstallerSecurityTests(unittest.TestCase):
         self.version = "26.10.21.26"
         self.archive = f"domain_{self.version}_darwin_arm64.tar.gz"
         self.python_tool("uname", 'print("Darwin" if sys.argv[1] == "-s" else "arm64")')
+        self.python_tool("sw_vers", 'print("13.0")')
         self.python_tool("plutil", 'print(json.loads(Path(sys.argv[-1]).read_text())["tag_name"])')
         self.python_tool("curl", '''
 assert sys.argv[1:6] == ["-q", "--proto", "=https", "--proto-redir", "=https"]
@@ -112,6 +113,16 @@ destination.write_bytes(source.read_bytes())
         self.make_archive("legacy-flat")
         self.run_installer()
         self.assertEqual((self.target / "domain").read_bytes(), b"synthetic executable")
+
+    def test_unsupported_macos_never_replaces_the_executable(self):
+        destination = self.target / "domain"
+        destination.write_bytes(b"previous executable")
+        for version in ["12.7.6", "10.15.7", "unknown"]:
+            with self.subTest(macos=version):
+                self.python_tool("sw_vers", f"print({version!r})")
+                self.run_installer(success=False)
+                self.assertEqual(destination.read_bytes(), b"previous executable")
+                self.assertFalse(self.profile.exists())
 
     def test_untrusted_archives_preserve_previous_installation(self):
         for attack in ["traversal", "duplicate", "symlink", "hardlink", "nested-doc"]:

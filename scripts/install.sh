@@ -24,6 +24,15 @@ if [ "$(uname -s)" != Darwin ]; then
   printf '%s\n' 'This installer requires macOS.' >&2
   exit 1
 fi
+macos_version=$(sw_vers -productVersion)
+macos_major=${macos_version%%.*}
+case "$macos_major" in
+  ''|*[!0-9]*) printf '%s\n' 'Cannot determine the macOS version.' >&2; exit 1 ;;
+esac
+if [ "$macos_major" -lt 13 ]; then
+  printf '%s\n' 'Domain Check requires macOS 13 (Ventura) or later.' >&2
+  exit 1
+fi
 if [ "$#" -gt 1 ]; then
   printf '%s\n' 'Usage: sh scripts/install.sh [path/to/domain]' >&2
   exit 1

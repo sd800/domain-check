@@ -75,7 +75,7 @@ Security limits and trust boundaries are maintained in [security.md](security.md
 
 ## Build and release
 
-Use Go 1.27.3 or newer. `go.mod` sets the minimum toolchain, and `go.sum` records dependency checksums. GitHub workflows use that version and run tests and vulnerability scanning before publishing. The CLI uses Go's standard network and JSON packages with bounded readers; specialized dependencies cover IDNA/public suffixes, selected legacy encodings, terminal sizing, and Unicode grapheme layout.
+Use Go 1.27.3 or newer. Release executables require macOS 13 (Ventura) or later. `go.mod` sets the minimum toolchain, and `go.sum` records dependency checksums. GitHub workflows use that version and run tests and vulnerability scanning before publishing. The CLI uses Go's standard network and JSON packages with bounded readers; specialized dependencies cover IDNA/public suffixes, selected legacy encodings, terminal sizing, and Unicode grapheme layout.
 
 `make build` creates `build/bin/domain`. `make dist` creates CGO-free macOS Apple Silicon and Intel archives using `-trimpath` and stripped symbols, plus SHA-256 checksums. Each archive contains the executable, README, changelog, MIT License, version file, and this documentation directory. The standalone installer verifies the matching archive before replacing the executable. Only that explicitly invoked installer configures a standard zsh PATH entry; the CLI and `make install` install no shell behavior.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.21.28
+
+- Document macOS 13 (Ventura) as the minimum supported system for executables built with the updated Go toolchain.
+- Check macOS compatibility before downloading or replacing the executable, and cover unsupported and invalid system versions with isolated installer tests.
+
 ## 26.10.21.27
 
 - Require Go 1.27.3 for local and release builds, replacing the older CI toolchain flagged by vulnerability scanning.

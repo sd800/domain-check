@@ -228,3 +228,17 @@ Pushing a `vYY.M.D.NUM` tag runs the release workflow, checks its agreement with
 ## License
 
 [MIT License](LICENSE)
+
+## Privacy policy
+
+Domain Check from Registries is designed to keep your domain lookups private.
+
+**Lookups are processed on your Mac.** Domain Check has no servers, accounts, or analytics. It prepares each query, formats the registry's response, and displays the result in your Terminal. When you paste a URL, Domain Check reduces it to its registrable domain on your Mac before sending a query.
+
+**Minimal data is stored.** Domain Check stores only your language preference and two complete IANA service-discovery datasets. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. Your shell may keep a history of the commands you run, according to its own settings.
+
+**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. IANA's service-discovery datasets are downloaded in full, so IANA receives no information about the domains or suffixes you look up. Domain Check uses HTTPS whenever a registry offers it.
+
+**Third-party services.** Registries, IANA, GitHub, and DNS providers are independent services, and their own privacy policies govern how they handle your information. Domain Check does not control their practices. Installing or updating Domain Check downloads files from GitHub. As with any internet connection, network operators along the path may be able to observe some traffic, including WHOIS queries, which use a standard protocol without encryption.
+
+**`.edu.cn` lookups.** CERNET (China Education and Research Network), the registry for `.edu.cn`, generally makes its WHOIS service available only within the CERNET network. To provide useful results for these domains, Domain Check first queries the registry and, if its service is unavailable, retrieves the domain's public nameserver records through your configured DNS resolver, which then receives the domain name. Registration under `.edu.cn` is reserved for eligible educational and research institutions in mainland China and requires CERNET approval, which substantially reduces the risk of front-running and speculative holding.

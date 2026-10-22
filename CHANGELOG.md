@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.24
+
+- Add the privacy policy as the final README section, covering local processing, stored data, registry queries, independent services, and the .edu.cn DNS fallback.
+
 ## 26.10.21.23
 
 - Remove automatic legacy WHOIS-cache cleanup and migration diagnostics; keep runtime behavior focused on the two complete IANA datasets.

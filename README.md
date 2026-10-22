@@ -200,7 +200,7 @@ http://domain-check.localhost:20771/https%3A//www.google.com
 
 The interface follows your device's light or dark appearance and browser language initially. The controls at the top switch between system, light, and dark themes, and between English and Simplified Chinese. These browser preferences are saved independently of the CLI language. All assets are served locally, and text uses system fonts without remote font requests. Long results scroll naturally with the page, and existing results stay visible while the next query runs.
 
-The service listens only on your Mac's loopback addresses. It does not expose the interface to your local network or store lookup history. Reinstalling with the installer or `make install` refreshes an enabled interface while preserving its settings. To remove the tool, first disable the interface in `domain setup`.
+The service listens only on your Mac's loopback addresses. It does not expose the interface to your local network or store lookup history. Updates through the installer or `make install` refresh a loaded interface through its existing LaunchAgent, preserving its settings and startup registration. Repeating an enabled setup option keeps that registration intact. To remove the tool, first disable the interface in `domain setup`.
 
 ## Registry-only queries
 

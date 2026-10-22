@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.22.3
+
+- Highlight setup menu choices in cyan on terminals, keeping redirected output plain and respecting NO_COLOR and basic-terminal settings.
+- Reuse existing web-service registrations during updates and repeated setup, preserving startup files and unloaded service preferences.
+
 ## 26.10.22.2
 
 - Use Chinese year, month, and day formatting in Chinese CLI and browser results while retaining source precision, time, and UTC labels.

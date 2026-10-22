@@ -48,7 +48,7 @@ Label width is measured in terminal display cells. The content column follows th
 
 ## Local browser interface
 
-`domain setup`, `domain -setup`, and `domain --setup` open the same two-step menu. The first step controls the web interface; the second controls automatic startup at macOS login. The current user's LaunchAgent runs the installed executable with a fixed internal server argument. Setup uses `/bin/launchctl` directly, with separate arguments and XML-escaped plist values. It does not invoke a shell, require administrator privileges, or modify the hosts file.
+`domain setup`, `domain -setup`, and `domain --setup` open the same two-step menu. Choices appear in terminal cyan; other menu text keeps the normal terminal color. Redirected output remains plain, and `NO_COLOR` or `TERM=dumb` disables highlighting. The first step controls the web interface; the second controls automatic startup at macOS login. The current user's LaunchAgent runs the installed executable with a fixed internal server argument. Setup uses `/bin/launchctl` directly, with separate arguments and XML-escaped plist values. It does not invoke a shell, require administrator privileges, or modify the hosts file.
 
 The server binds both `127.0.0.1:20771` and `[::1]:20771`. Browsers resolve the reserved `.localhost` hostname to loopback, making the interface available at `http://domain-check.localhost:20771`. A port conflict leaves the previous settings intact and reports a setup error.
 
@@ -60,7 +60,7 @@ A direct route such as `/example.com` or `/https%3A//www.google.com` decodes int
 
 The API requires a per-process random token, a permitted Host, loopback client address, and same-origin browser request metadata. It accepts at most two simultaneous lookups and thirty starts per minute, with a 45-second query deadline. The shared registry client retains its destination validation and registry-only routing. HTTP access and error logging are disabled; the LaunchAgent directs process output to `/dev/null`.
 
-Turning off automatic startup keeps the service loaded for the current login session. Turning it on installs the plist in `~/Library/LaunchAgents`; turning the web service off unloads the job and removes both possible plists. The installer and `make install` refresh an enabled service after updating the executable, preserving the selected settings.
+Turning off automatic startup keeps the service loaded for the current login session. Turning it on installs the plist in `~/Library/LaunchAgents`; turning the web service off unloads the job and removes both possible plists. Repeating an enabled setting reuses the existing registration without rewriting the plist or saved settings. The installer and `make install` use `launchctl kickstart` when a loaded service needs the updated executable; they do not unload, bootstrap, enable, or rewrite its registration. An already-current service stays running, and an unloaded service stays unloaded until explicit setup. Moving the executable or changing its launch configuration is applied through `domain setup`. Ordinary CLI lookups, introduction, help, and version never manage background registrations.
 
 ## Persistent state
 

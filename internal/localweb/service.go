@@ -194,9 +194,26 @@ func (m *Manager) stop(ctx context.Context) error {
 	return m.Command(ctx, "bootout", m.job())
 }
 
+func (m *Manager) agentMatches(settings Settings) (bool, error) {
+	data, _, err := safeio.ReadFile(m.agentPath(settings.AtLogin), 32768)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(data, m.plist()), nil
+}
+
 func (m *Manager) start(ctx context.Context, settings Settings) error {
-	if err := atomicFile(m.agentPath(settings.AtLogin), m.plist()); err != nil {
+	matches, err := m.agentMatches(settings)
+	if err != nil {
 		return err
+	}
+	if !matches {
+		if err := atomicFile(m.agentPath(settings.AtLogin), m.plist()); err != nil {
+			return err
+		}
 	}
 	if err := m.Command(ctx, "enable", m.job()); err != nil {
 		return err
@@ -204,12 +221,16 @@ func (m *Manager) start(ctx context.Context, settings Settings) error {
 	if err := m.Command(ctx, "bootstrap", m.target(), m.agentPath(settings.AtLogin)); err != nil {
 		return err
 	}
+	return m.waitReady(ctx)
+}
+
+func (m *Manager) waitReady(ctx context.Context) error {
 	deadline := time.NewTimer(5 * time.Second)
 	defer deadline.Stop()
 	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
 	for {
-		if _, running := m.Probe(ctx); running {
+		if version, running := m.Probe(ctx); running && version == m.Version {
 			return nil
 		}
 		select {
@@ -234,12 +255,35 @@ func (m *Manager) Apply(ctx context.Context, next Settings) error {
 	if !next.Enabled {
 		next.AtLogin = false
 	}
+	if next == previous && next.Enabled {
+		matches, err := m.agentMatches(next)
+		if err != nil {
+			return err
+		}
+		if matches {
+			if _, running := m.Probe(ctx); running {
+				return nil
+			}
+			if m.Command(ctx, "print", m.job()) == nil {
+				if err := m.Command(ctx, "kickstart", "-k", m.job()); err != nil {
+					return err
+				}
+				return m.waitReady(ctx)
+			}
+			if err := m.Available(); err != nil {
+				return err
+			}
+			return m.start(ctx, next)
+		}
+	}
 	if !next.Enabled {
 		if err = m.stop(ctx); err != nil {
 			return err
 		}
-		if err = m.save(next); err != nil {
-			return err
+		if next != previous {
+			if err = m.save(next); err != nil {
+				return err
+			}
 		}
 		for _, login := range []bool{false, true} {
 			if err = os.Remove(m.agentPath(login)); err != nil && !os.IsNotExist(err) {
@@ -311,7 +355,7 @@ func (m *Manager) SetLogin(ctx context.Context, on bool) error {
 	return m.Apply(ctx, settings)
 }
 
-// Refresh restarts an enabled interface after an executable update; disabled installs do no work.
+// Refresh reuses an existing job after an executable update and never registers a login item.
 func (m *Manager) Refresh(ctx context.Context) error {
 	settings, err := m.Load()
 	if err != nil {
@@ -320,7 +364,25 @@ func (m *Manager) Refresh(ctx context.Context) error {
 	if !settings.Enabled {
 		return nil
 	}
-	return m.Apply(ctx, settings)
+	if version, running := m.Probe(ctx); running && version == m.Version {
+		return nil
+	}
+	// An unloaded job may have been disabled in macOS settings. Only explicit setup
+	// may register it again; installing or running the CLI must leave it alone.
+	if m.Command(ctx, "print", m.job()) != nil {
+		return nil
+	}
+	matches, err := m.agentMatches(settings)
+	if err != nil {
+		return err
+	}
+	if !matches {
+		return fmt.Errorf("web service configuration has changed; run domain setup to apply it")
+	}
+	if err := m.Command(ctx, "kickstart", "-k", m.job()); err != nil {
+		return err
+	}
+	return m.waitReady(ctx)
 }
 
 func probeService(ctx context.Context) (string, bool) {

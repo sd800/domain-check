@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/sd800/domain-check/internal/localweb"
 	"github.com/sd800/domain-check/internal/output"
 	"github.com/sd800/domain-check/internal/registry"
+	"golang.org/x/term"
 )
 
 type webSettings interface {
@@ -46,14 +48,14 @@ func setup(ctx context.Context, input io.Reader, out, errOut io.Writer, lang out
 			fmt.Fprintln(out, output.Text(lang, "\nWeb interface", "\n网页版查询"))
 			fmt.Fprintln(out, localweb.URL)
 			fmt.Fprintln(out, output.Text(lang, "Current status: ", "当前状态：")+state)
-			fmt.Fprintln(out, output.Text(lang, "1 Enable\n2 Disable\n3 Next\n0 Exit", "1 开启\n2 关闭\n3 下一步\n0 退出菜单"))
+			setupChoices(out, output.Text(lang, "1 Enable\n2 Disable\n3 Next\n0 Exit", "1 开启\n2 关闭\n3 下一步\n0 退出菜单"))
 		} else {
 			fmt.Fprintln(out, output.Text(lang, "\nStart automatically when you log in to macOS", "\n登录 macOS 后自动启动"))
 			fmt.Fprintln(out, output.Text(lang, "Current status: ", "当前状态：")+state)
 			if !status.Enabled {
 				fmt.Fprintln(out, output.Text(lang, "Enabling this also turns on the web interface.", "开启此选项也会开启网页版查询。"))
 			}
-			fmt.Fprintln(out, output.Text(lang, "1 Enable\n2 Disable\n3 Finish", "1 开启\n2 关闭\n3 完成"))
+			setupChoices(out, output.Text(lang, "1 Enable\n2 Disable\n3 Finish", "1 开启\n2 关闭\n3 完成"))
 		}
 		fmt.Fprint(out, "> ")
 		scanned := make(chan bool, 1)
@@ -102,6 +104,13 @@ func setup(ctx context.Context, input io.Reader, out, errOut io.Writer, lang out
 			openBrowser()
 		}
 	}
+}
+
+func setupChoices(out io.Writer, text string) {
+	if file, ok := out.(*os.File); ok && term.IsTerminal(int(file.Fd())) && os.Getenv("TERM") != "dumb" && os.Getenv("NO_COLOR") == "" {
+		text = "\x1b[36m" + text + "\x1b[0m"
+	}
+	fmt.Fprintln(out, text)
 }
 
 func systemBrowser() {

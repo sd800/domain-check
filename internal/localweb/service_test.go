@@ -15,20 +15,25 @@ func fakeManager(t *testing.T) (*Manager, *bool, *[]string) {
 	t.Helper()
 	root := t.TempDir()
 	running := false
+	loaded := false
 	commands := []string{}
-	m := &Manager{ConfigDir: filepath.Join(root, "configuration"), Home: root, Executable: filepath.Join(root, "folder & name", "domain"), CacheDir: filepath.Join(root, "cache"), Platform: "darwin"}
+	m := &Manager{ConfigDir: filepath.Join(root, "configuration"), Home: root, Executable: filepath.Join(root, "folder & name", "domain"), CacheDir: filepath.Join(root, "cache"), Version: "test", Platform: "darwin"}
 	m.Probe = func(context.Context) (string, bool) { return "test", running }
 	m.Available = func() error { return nil }
 	m.Command = func(_ context.Context, args ...string) error {
 		commands = append(commands, strings.Join(args, " "))
 		switch args[0] {
 		case "print":
-			if !running {
+			if !loaded {
 				return errors.New("not loaded")
 			}
 		case "bootout":
 			running = false
+			loaded = false
 		case "bootstrap":
+			running = true
+			loaded = true
+		case "kickstart":
 			running = true
 		}
 		return nil
@@ -164,5 +169,127 @@ func TestPortConflictPreservesSettingsAndRestoresPreviousJob(t *testing.T) {
 	}
 	if _, err := os.Stat(m.agentPath(true)); !os.IsNotExist(err) {
 		t.Fatal("failed transition created a login registration")
+	}
+}
+
+func TestRepeatedEnabledSetupDoesNotReregisterOrRewrite(t *testing.T) {
+	for _, atLogin := range []bool{false, true} {
+		m, _, commands := fakeManager(t)
+		ctx := context.Background()
+		if err := m.Apply(ctx, Settings{Enabled: true, AtLogin: atLogin}); err != nil {
+			t.Fatal(err)
+		}
+		agent, _ := os.Stat(m.agentPath(atLogin))
+		settings, _ := os.Stat(m.settingsPath())
+		*commands = nil
+		for range 2 {
+			if err := m.SetEnabled(ctx, true); err != nil {
+				t.Fatal(err)
+			}
+			if err := m.SetLogin(ctx, atLogin); err != nil {
+				t.Fatal(err)
+			}
+			if err := m.Refresh(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if len(*commands) != 0 {
+			t.Fatal("unchanged setup invoked launchctl", *commands)
+		}
+		assertFileUnchanged(t, m.agentPath(atLogin), agent)
+		assertFileUnchanged(t, m.settingsPath(), settings)
+	}
+}
+
+func TestRefreshRestartsExistingJobWithoutRegistering(t *testing.T) {
+	m, running, commands := fakeManager(t)
+	ctx := context.Background()
+	if err := m.SetLogin(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	agent, _ := os.Stat(m.agentPath(true))
+	settings, _ := os.Stat(m.settingsPath())
+	version := "previous"
+	m.Probe = func(context.Context) (string, bool) { return version, *running }
+	command := m.Command
+	m.Command = func(ctx context.Context, args ...string) error {
+		if args[0] == "kickstart" {
+			version = m.Version
+		}
+		return command(ctx, args...)
+	}
+	*commands = nil
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(*commands) != 2 || (*commands)[0] != "print "+m.job() || (*commands)[1] != "kickstart -k "+m.job() {
+		t.Fatal("update changed the registration", *commands)
+	}
+	assertFileUnchanged(t, m.agentPath(true), agent)
+	assertFileUnchanged(t, m.settingsPath(), settings)
+}
+
+func TestRefreshDoesNotReaddUnloadedService(t *testing.T) {
+	m, _, commands := fakeManager(t)
+	ctx := context.Background()
+	if err := m.SetLogin(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Command(ctx, "bootout", m.job()); err != nil {
+		t.Fatal(err)
+	}
+	agent, _ := os.Stat(m.agentPath(true))
+	*commands = nil
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(*commands) != 1 || (*commands)[0] != "print "+m.job() {
+		t.Fatal("update readded an unloaded service", *commands)
+	}
+	assertFileUnchanged(t, m.agentPath(true), agent)
+}
+
+func TestExplicitSetupResumesLoadedJobWithoutRegistering(t *testing.T) {
+	m, running, commands := fakeManager(t)
+	ctx := context.Background()
+	if err := m.SetLogin(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	*running = false
+	agent, _ := os.Stat(m.agentPath(true))
+	*commands = nil
+	if err := m.SetEnabled(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	if !*running || len(*commands) != 2 || (*commands)[1] != "kickstart -k "+m.job() {
+		t.Fatal("setup readded a loaded job", *commands)
+	}
+	assertFileUnchanged(t, m.agentPath(true), agent)
+}
+
+func TestRefreshDoesNotRewriteChangedConfiguration(t *testing.T) {
+	m, running, commands := fakeManager(t)
+	ctx := context.Background()
+	if err := m.SetLogin(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	agent, _ := os.Stat(m.agentPath(true))
+	m.Executable = filepath.Join(m.Home, "new", "domain")
+	m.Probe = func(context.Context) (string, bool) { return "previous", *running }
+	*commands = nil
+	if err := m.Refresh(ctx); err == nil {
+		t.Fatal("changed executable path did not require explicit setup")
+	}
+	if len(*commands) != 1 || (*commands)[0] != "print "+m.job() {
+		t.Fatal("update modified a changed registration", *commands)
+	}
+	assertFileUnchanged(t, m.agentPath(true), agent)
+}
+
+func assertFileUnchanged(t *testing.T, path string, before os.FileInfo) {
+	t.Helper()
+	after, err := os.Stat(path)
+	if err != nil || before == nil || !os.SameFile(before, after) || before.ModTime() != after.ModTime() {
+		t.Fatal("file was rewritten", path, err)
 	}
 }

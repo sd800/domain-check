@@ -45,7 +45,7 @@ make dist
 | Availability | Keep no record, not registered, reserved, restricted, unavailable, and operational failure distinct. |
 | Local web API | Accept only loopback clients, allowlisted Hosts, same-origin metadata, JSON and the session token; enforce body, rate, concurrency and time limits; preserve the registry-only engine. |
 | Web rendering | Render remote fields as text, omit missing values, preserve dates and IDN identities, retain the old record while pending, and keep queries out of storage and logs. |
-| Setup / service | Verify all setup selector forms and both menus, saved status, current-session operation, login startup, disabling, port conflicts, update refresh, and failed-transition preservation. |
+| Setup / service | Verify all setup selector forms and both menus, saved status, current-session operation, login startup, disabling, port conflicts, update refresh without registration changes, repeated-enable no-ops, preservation of unloaded jobs, and failed-transition preservation. |
 | Installation | Validate release tags, checksum manifests, expected archive members, links, duplicate paths, source arguments, replacement failures, and repeatable standard PATH setup. |
 
 Public tests use synthetic records to protect registrant privacy. Test transports verify the actual requested destinations and reject unauthorized requests alongside the parser assertions.
@@ -56,7 +56,7 @@ When changing the browser interface, run the server from a native build and insp
 
 Exercise direct paths containing a domain, a partially encoded full URL, and a fully encoded URL. Confirm URL normalization through the shared registry engine, safe rendering of HTML-shaped text, explicit negative results, and useful errors. A new query must retain the current result while pending; theme switches must preserve result nodes. The console must show no script or CSP errors. Browser storage must contain only appearance and language choices.
 
-On macOS, test the actual two-step setup menu with web enable/disable and login startup enable/disable. Inspect the user LaunchAgent registration, verify both loopback listeners, and confirm the service survives closing the terminal. Check that disabling removes registrations, that no administrator prompt or hosts-file change occurs, and that executable installation refreshes a previously enabled service. Restore the desired user settings after the checks.
+On macOS, test the actual two-step setup menu with web enable/disable and login startup enable/disable. Inspect the user LaunchAgent registration, verify both loopback listeners, and confirm the service survives closing the terminal. Check that disabling removes registrations, that no administrator prompt or hosts-file change occurs, and that executable installation refreshes a loaded service without rewriting its LaunchAgent or settings. Repeating an enabled option must preserve file identity and modification times; normal CLI queries must leave the service PID and registration unchanged. Restore the desired user settings after the checks.
 
 ## Fuzz testing
 

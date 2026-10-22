@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.32
+
+- Refine the project overview.
+
 ## 26.10.21.31
 
 - Update the project overview.

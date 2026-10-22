@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
 // loadMetadata caches whole IANA documents, never a query-dependent selection.
@@ -60,9 +59,6 @@ func (c *Client) downloadMetadata(ctx context.Context, endpoint string) ([]byte,
 // UpdateIANA validates both full documents before replacing either cached file.
 // Replacement is atomic per file; an incomplete update must never report success.
 func (c *Client) UpdateIANA(ctx context.Context) error {
-	if err := c.removeLegacyWHOISCache(); err != nil {
-		return err
-	}
 	dns, err := c.downloadMetadata(ctx, c.BootstrapURL)
 	if err == nil {
 		_, err = decodeBootstrap(dns)
@@ -84,21 +80,6 @@ func (c *Client) UpdateIANA(ctx context.Context) error {
 		if err := c.writeCache(file.name, file.data); err != nil {
 			return queryError("iana-cache-failed", file.name+": "+err.Error())
 		}
-	}
-	return nil
-}
-
-// Remove the obsolete per-suffix cache, including its query-dependent filenames.
-// RemoveAll removes a symlink itself without traversing its target.
-func (c *Client) removeLegacyWHOISCache() error {
-	if c.CacheDir == "" {
-		return nil
-	}
-	if info, err := os.Stat(c.CacheDir); err == nil && !info.IsDir() {
-		return nil // An invalid cache root cannot contain a legacy subdirectory.
-	}
-	if err := os.RemoveAll(filepath.Join(c.CacheDir, "whois")); err != nil {
-		return queryError("cache-cleanup-failed", err.Error())
 	}
 	return nil
 }

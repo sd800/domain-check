@@ -199,8 +199,6 @@ Run `domain update` to download and validate both current datasets immediately, 
 
 If an automatic refresh fails, a previously validated cache is used with a warning; a later lookup retries the refresh. Invalid caches are never used. No background process, scheduled job, or lookup-result cache is created.
 
-Older versions cached WHOIS hosts in separate `whois/<suffix>.json` files. The next lookup or `domain update` removes that legacy directory without consulting its contents. Failure to remove it is reported as an error. No replacement per-suffix files or timestamps are written.
-
 The tool does not save queried domains, pasted URLs, registration responses, or a lookup history. Results are written only to terminal output. Persistent application data is limited to the complete IANA datasets and language preferences; cache contents do not record which WHOIS suffixes were queried.
 
 ## Development and releases
@@ -213,7 +211,7 @@ make dist        # Apple Silicon and Intel archives with checksums
 
 Run `go test ./internal/registry -run '^$' -bench BenchmarkParse -benchmem` to measure offline parser time and allocations. These benchmarks exclude network latency.
 
-Offline tests verify registry-only routing, redirect/referral blocking, RDAP error handling, bulk WHOIS routing, legacy-cache cleanup, monthly cache behavior, field extraction, language selectors, and Unicode output alignment.
+Offline tests verify registry-only routing, redirect/referral blocking, RDAP error handling, bulk WHOIS routing, monthly cache behavior, field extraction, language selectors, and Unicode output alignment.
 
 `VERSION` is the single source of truth for the embedded version. Versions follow `YY.M.D.NUM`, where `NUM` starts at `1` and increments for each release on the same date. Months, days, and sequence numbers are not zero-padded. Release commits use exactly `Release YY.M.D.NUM`, without a commit body. Changes are recorded in the English [changelog](CHANGELOG.md).
 

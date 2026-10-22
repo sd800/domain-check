@@ -65,9 +65,6 @@ func (c *Client) Lookup(ctx context.Context, domain string) (Record, error) {
 		return Record{}, queryError("invalid-domain", err.Error())
 	}
 	domain = normalized
-	if err := c.removeLegacyWHOISCache(); err != nil {
-		return Record{}, err
-	}
 	if strings.HasSuffix(domain, ".edu.cn") {
 		return c.eduCN(ctx, domain)
 	}

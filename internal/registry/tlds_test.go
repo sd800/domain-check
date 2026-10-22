@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -26,13 +25,6 @@ func TestBulkWHOISCacheDoesNotRevealQueriedSuffixes(t *testing.T) {
 		return reply(r, 200, string(data)), nil
 	})
 	seedBootstrap(t, c, `[[["com"],["https://registry.test/"]]]`)
-	legacy := c.cachePath("whois")
-	if err := os.MkdirAll(legacy, 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(legacy, "cn.json"), []byte(`{"host":"untrusted.test","checked_at":"2026-10-21T00:00:00Z"}`), 0600); err != nil {
-		t.Fatal(err)
-	}
 	calls := 0
 	c.DialWHOIS = func(ctx context.Context, network, address string) (net.Conn, error) {
 		calls++
@@ -59,9 +51,6 @@ func TestBulkWHOISCacheDoesNotRevealQueriedSuffixes(t *testing.T) {
 	}
 	if fetches != 1 || calls != 3 {
 		t.Fatalf("fetches=%d, WHOIS queries=%d", fetches, calls)
-	}
-	if _, err := os.Lstat(legacy); !os.IsNotExist(err) {
-		t.Fatalf("legacy suffix cache remains: %v", err)
 	}
 	assertServiceMetadataOnly(t, c, []string{"dns.json", "tlds.json"}, "example.cn", "example.edu", "Example Owner", "registrar.test", "checked_at")
 }
@@ -152,27 +141,6 @@ func TestTLDRegistryMissingAndInactiveServices(t *testing.T) {
 		if !errors.As(err, &query) || query.Code != want || record.Result != "" {
 			t.Errorf("%s: %+v, %v", tld, record, err)
 		}
-	}
-}
-
-func TestLegacyCacheCleanupDoesNotFollowSymlinks(t *testing.T) {
-	c := NewClient(t.TempDir())
-	other := t.TempDir()
-	keep := filepath.Join(other, "keep.json")
-	if err := os.WriteFile(keep, []byte("unrelated"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(other, c.cachePath("whois")); err != nil {
-		t.Fatal(err)
-	}
-	if err := c.removeLegacyWHOISCache(); err != nil {
-		t.Fatal(err)
-	}
-	if data, err := os.ReadFile(keep); err != nil || string(data) != "unrelated" {
-		t.Fatalf("symlink target changed: %q, %v", data, err)
-	}
-	if _, err := os.Lstat(c.cachePath("whois")); !os.IsNotExist(err) {
-		t.Fatalf("legacy link was not removed: %v", err)
 	}
 }
 

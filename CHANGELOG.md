@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.21.23
+
+- Remove automatic legacy WHOIS-cache cleanup and migration diagnostics; keep runtime behavior focused on the two complete IANA datasets.
+
 ## 26.10.21.22
 
 - Replace per-suffix WHOIS discovery caches with IANA's complete TLD registry JSON, keeping cached contents independent of queried suffixes.

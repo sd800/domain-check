@@ -168,22 +168,21 @@ func errorText(lang output.Language, err error) string {
 		return output.Text(lang, "Query failed", "查询失败") + ": " + registry.Clean(err.Error())
 	}
 	messages := map[string][2]string{
-		"edu-cn-failed":        {"Domain query failed", "域名查询失败"},
-		"dns-failed":           {"DNS nameserver query failed", "DNS 域名服务器查询失败"},
-		"bootstrap-failed":     {"Cannot load IANA RDAP bootstrap data", "无法读取 IANA RDAP 引导数据"},
-		"iana-update-failed":   {"Cannot update IANA routing data", "无法更新 IANA 路由数据"},
-		"iana-cache-failed":    {"Cannot save IANA routing data", "无法保存 IANA 路由数据缓存"},
-		"tld-data-failed":      {"Cannot load IANA TLD registry data", "无法读取 IANA 顶级域名注册表"},
-		"cache-cleanup-failed": {"Cannot remove the legacy WHOIS cache", "无法移除旧版 WHOIS 缓存"},
-		"unsupported-suffix":   {"Unknown or unsupported domain suffix", "未知或不支持的域名后缀"},
-		"no-registry-service":  {"No public registry RDAP or WHOIS service", "注册局没有公开的 RDAP 或 WHOIS 服务"},
-		"rdap-failed":          {"Registry RDAP query failed", "注册局 RDAP 查询失败"},
-		"whois-failed":         {"Registry WHOIS query failed", "注册局 WHOIS 查询失败"},
-		"invalid-response":     {"Invalid registry response", "注册局响应无效"},
-		"redirect-blocked":     {"Redirect blocked: queries stay within IANA-listed registry endpoints", "已阻止重定向：仅查询 IANA 列出的注册局端点"},
-		"rate-limited":         {"Registry rate limit reached; try again later", "已触发注册局查询频率限制，请稍后重试"},
-		"access-denied":        {"Registry denied access", "注册局拒绝访问"},
-		"invalid-domain":       {"Invalid domain", "域名无效"},
+		"edu-cn-failed":       {"Domain query failed", "域名查询失败"},
+		"dns-failed":          {"DNS nameserver query failed", "DNS 域名服务器查询失败"},
+		"bootstrap-failed":    {"Cannot load IANA RDAP bootstrap data", "无法读取 IANA RDAP 引导数据"},
+		"iana-update-failed":  {"Cannot update IANA routing data", "无法更新 IANA 路由数据"},
+		"iana-cache-failed":   {"Cannot save IANA routing data", "无法保存 IANA 路由数据缓存"},
+		"tld-data-failed":     {"Cannot load IANA TLD registry data", "无法读取 IANA 顶级域名注册表"},
+		"unsupported-suffix":  {"Unknown or unsupported domain suffix", "未知或不支持的域名后缀"},
+		"no-registry-service": {"No public registry RDAP or WHOIS service", "注册局没有公开的 RDAP 或 WHOIS 服务"},
+		"rdap-failed":         {"Registry RDAP query failed", "注册局 RDAP 查询失败"},
+		"whois-failed":        {"Registry WHOIS query failed", "注册局 WHOIS 查询失败"},
+		"invalid-response":    {"Invalid registry response", "注册局响应无效"},
+		"redirect-blocked":    {"Redirect blocked: queries stay within IANA-listed registry endpoints", "已阻止重定向：仅查询 IANA 列出的注册局端点"},
+		"rate-limited":        {"Registry rate limit reached; try again later", "已触发注册局查询频率限制，请稍后重试"},
+		"access-denied":       {"Registry denied access", "注册局拒绝访问"},
+		"invalid-domain":      {"Invalid domain", "域名无效"},
 	}
 	message, ok := messages[query.Code]
 	if !ok {

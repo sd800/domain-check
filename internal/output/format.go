@@ -69,7 +69,7 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 		padding := column - uniseg.StringWidth(label) - 1
 		prefix := label + ":" + strings.Repeat(" ", padding)
 		lines := []string{value}
-		if index == 12 { // Postal address lines share one label and content column.
+		if index == 6 || index == 12 { // Registrant and postal lines share one content column.
 			lines = strings.Split(value, "\n")
 		}
 		first := true
@@ -119,7 +119,7 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 			registrarGroup = append(registrarGroup, entry{4, status})
 		}
 	}
-	contactGroup := []entry{{6, record.Registrant}}
+	contactGroup := []entry{{6, record.RegistrantText()}}
 	if record.TLD {
 		contactGroup = append(contactGroup, entry{12, strings.Join(record.RegistrantAddress, "\n")}, entry{13, record.RegistrationURL})
 	} else {

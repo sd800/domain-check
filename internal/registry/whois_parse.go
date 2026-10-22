@@ -109,11 +109,15 @@ func parseWHOIS(domain, response string) (Record, error) {
 	contactNameSeen := false
 	var manager whoisObject
 	explicitRegistrant := false
+	registrantBlock := false
 	blank, scopeIndent := false, 0
 	for i, token := range lines {
 		raw := token.raw
 		line := strings.TrimSpace(raw)
 		if line == "" {
+			if r.Registrant != "" {
+				registrantBlock = false
+			}
 			blank = true
 			continue
 		}
@@ -186,6 +190,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 			continue // A few registries put a table rule before the first NS.
 		}
 		if token.object {
+			registrantBlock = false
 			if key == "domain registrant" {
 				holder = value
 			}
@@ -193,6 +198,22 @@ func parseWHOIS(domain, response string) (Record, error) {
 		}
 		indent := len(raw) - len(strings.TrimLeft(raw, " \t"))
 		field := whoisKeys[key]
+		if registrantBlock {
+			if scope != "registrant" || ignoredDomain || indent <= scopeIndent || labeled && (field != "" || whoisSection(key) != "" || whoisContactLabels[key]) {
+				registrantBlock = false
+			} else if r.Registrant != "" {
+				// EDUCAUSE's indented block contains institution, department and
+				// postal lines. Preserve their order without entering other contacts.
+				if text := whoisValue(raw); text != "" && len(r.RegistrantDetails) <= 256 {
+					r.RegistrantDetails = append(r.RegistrantDetails, text)
+				}
+				continue
+			} else if !labeled && value == "" {
+				// A redacted institution must not promote its address into a name.
+				registrantBlock, plainName, pending = false, false, ""
+				continue
+			}
+		}
 		if profile.has(lithuanianContacts) && field == "nameserver" {
 			scope = "domain" // The contact block ends before domain NS and DS fields.
 		}
@@ -270,6 +291,7 @@ func parseWHOIS(domain, response string) (Record, error) {
 			continue // A flat referral field, even empty, is not a metadata section.
 		}
 		if section != "" && (value == "" || section == "other-contact" || key == "domain registrant") {
+			registrantBlock = profile.has(multilineRegistrant) && key == "registrant" && !whoisHasInlineValue(raw) && r.Registrant == ""
 			scope, plainName = section, (section == "registrant" || section == "registrar" || section == "manager") && !whoisHasInlineValue(raw)
 			if section == "registrant" {
 				explicitRegistrant = true

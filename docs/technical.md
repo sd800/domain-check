@@ -34,6 +34,8 @@ The first output row contains the ASCII domain. When a safe round-trip Unicode r
 | Nameservers | Disclosed delegation names, with WHOIS glue addresses separated from hostnames. |
 | DNSSEC | Explicit domain signing information or sufficient DS/DNSKEY material; registrar capabilities are not domain signing status. |
 
+For EDUCAUSE `.edu` WHOIS responses, the Registrant row retains the indented institution, department, and postal lines under one label. Continuation collection stops at the end of that block, a contact heading, or a recognized field; administrative and technical contacts remain separate. Redacted institutions do not promote address lines into a name. The block shares the parser's field limits and output sanitization.
+
 RDAP parsing consumes domain events and embedded jCard entities. WHOIS parsing tokenizes labeled and multiline records once, identifies object and contact scopes, and applies shared field aliases plus observed registry-family syntax rules. Registry-operated names may have exceptional minimal records, so format verification also uses ordinary benign domains and explicit negative replies.
 
 Dates retain source precision: English uses `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps; Chinese uses `YYYY 年 M 月 D 日` with the supplied time appended. The CLI and web interface share the same date presentation function. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text retains the registry's original wording.

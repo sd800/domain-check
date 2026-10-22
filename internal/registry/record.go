@@ -28,6 +28,7 @@ type Record struct {
 	Statuses          []string
 	Registrar         string
 	Registrant        string
+	RegistrantDetails []string `json:",omitempty"`
 	RegistrantEmail   []string
 	Nameservers       []string
 	DNSSEC            string
@@ -40,6 +41,22 @@ type Record struct {
 	AdminRole         string   `json:",omitempty"`
 	AdminPhones       []string `json:",omitempty"`
 	AdminEmails       []string `json:",omitempty"`
+}
+
+// RegistrantText preserves disclosed continuation lines while sanitizing each value.
+func (r Record) RegistrantText() string {
+	name := Clean(r.Registrant)
+	if name == "" || len(r.RegistrantDetails) == 0 {
+		return name
+	}
+	lines := make([]string, 1, len(r.RegistrantDetails)+1)
+	lines[0] = name
+	for _, line := range r.RegistrantDetails {
+		if clean := Clean(line); clean != "" {
+			lines = append(lines, clean)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // QueryError describes a failed query, never an availability determination.

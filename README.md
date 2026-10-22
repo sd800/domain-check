@@ -154,7 +154,7 @@ The standardized layout with Simplified Chinese labels:
 DNSSEC:       unsigned
 ```
 
-Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language.
+Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language. For `.edu` WHOIS records, the Registrant row also includes the disclosed department and postal lines, with each continuation aligned beneath the institution name.
 
 WHOIS parsing supports registry-specific labels, contact sections, linked contact objects included in the same response, and multiline nameserver and DNSSEC records. Format checks include non-country namespaces such as `.edu` and `.arpa`, and internationalized top-level domains across scripts. Explicit policy notices remain distinct from registered records and service failures. Domain dates remain separate from contact-object dates, and administrative, technical, and registrar email addresses are not substituted for a registrant email. Access restrictions, timeouts, and unrecognized responses are reported as service errors, keeping them distinct from registration results.
 

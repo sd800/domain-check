@@ -39,7 +39,7 @@ make dist
 | Cache / preferences | Store only full IANA documents, language, and optional web settings; enforce calendar-month refresh, validated stale fallback, bounded reads, private writes, and explicit partial-save errors. |
 | TLD allocation | Query only IANA RDAP, bypass discovery caches, preserve command priority and dotted inputs, select administrative contacts by RDAP roles, retain address lines and separate jCard roles, and distinguish absent, inactive, reserved, and failed responses. |
 | RDAP parsing | Validate domain and Unicode identities, events, embedded roles and jCards, signing data, and response-size/depth/field limits. |
-| WHOIS parsing | Verify positive and negative identities, exact labels, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
+| WHOIS parsing | Verify positive and negative identities, exact labels, EDUCAUSE institution/department/address continuation boundaries and redactions, multiline sections, embedded objects, dates, legacy encodings, IDN families, and explicit service failures. |
 | Contact attribution | Prefer a disclosed registrant organization; do not substitute administrative, technical, billing, or registrar contact values. |
 | Dates | Preserve date precision, normalize recognized formats, use Chinese year/month/day presentation only for Chinese output, convert only explicit zones to UTC, and exclude contact/database timestamps from domain events. |
 | Output | Omit undisclosed fields; align English and Chinese by display cells; preserve grapheme clusters and safe local IDN display; neutralize terminal controls in fields and errors. |

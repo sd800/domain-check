@@ -220,7 +220,7 @@ func (s *Server) query(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 502, map[string]any{"error": map[string]string{"code": code, "detail": detail}})
 		return
 	}
-	values := map[string]any{"domain": registry.Clean(record.Domain), "idn": registry.UnicodeDomain(record.Domain), "registration": registry.Clean(record.Registration), "expiration": registry.Clean(record.Expiration), "changed": registry.Clean(record.Changed), "registrar": registry.Clean(record.Registrar), "registrant": registry.Clean(record.Registrant), "dnssec": registry.Clean(record.DNSSEC), "result": record.Result}
+	values := map[string]any{"domain": registry.Clean(record.Domain), "idn": registry.UnicodeDomain(record.Domain), "registration": registry.Clean(record.Registration), "expiration": registry.Clean(record.Expiration), "changed": registry.Clean(record.Changed), "registrar": registry.Clean(record.Registrar), "registrant": record.RegistrantText(), "dnssec": registry.Clean(record.DNSSEC), "result": record.Result}
 	values["tld"], values["registration_url"] = record.TLD, registry.Clean(record.RegistrationURL)
 	values["admin"], values["organization"], values["role"] = registry.Clean(record.Admin), registry.Clean(record.AdminOrganization), registry.Clean(record.AdminRole)
 	var address []string

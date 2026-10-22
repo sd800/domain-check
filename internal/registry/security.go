@@ -136,7 +136,7 @@ func dialRegistry(ctx context.Context, network, address string) (net.Conn, error
 }
 
 func validateRecordBudget(r Record) error {
-	if len(r.Statuses) > 256 || len(r.Nameservers) > 256 || len(r.RegistrantEmail) > 256 || len(r.RegistrantAddress) > 256 || len(r.AdminPhones) > 256 || len(r.AdminEmails) > 256 {
+	if len(r.Statuses) > 256 || len(r.Nameservers) > 256 || len(r.RegistrantEmail) > 256 || len(r.RegistrantDetails) > 256 || len(r.RegistrantAddress) > 256 || len(r.AdminPhones) > 256 || len(r.AdminEmails) > 256 {
 		return queryError("invalid-response", "registry record exceeds field limits")
 	}
 	return nil

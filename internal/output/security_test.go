@@ -12,6 +12,7 @@ import (
 func TestEveryRemoteFieldBlocksTerminalInjection(t *testing.T) {
 	payload := "prefix\x1b]52;c;YXR0YWNr\x07\x1b[2J\x1b]8;;https://evil.test\x1b\\\r\b\x9b\u202e\u2066suffix"
 	r := registry.Record{Domain: "example.com", Registration: payload, Expiration: payload, Changed: payload, Statuses: []string{payload}, Registrar: payload, Registrant: payload, RegistrantEmail: []string{payload}, Nameservers: []string{payload}, DNSSEC: payload}
+	r.RegistrantDetails = []string{payload, payload + "\n" + payload}
 	tld := r
 	tld.Domain, tld.TLD = "zz", true
 	tld.RegistrantAddress, tld.RegistrationURL = []string{payload, payload}, payload

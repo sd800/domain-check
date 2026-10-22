@@ -236,3 +236,20 @@ func TestWebLocalizedDatesPreserveEnglishAndSourcePrecision(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 }
+
+func TestWebEDURegistrantRetainsSafeLines(t *testing.T) {
+	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		return registry.Record{Domain: domain, Registrant: "Example University", RegistrantDetails: []string{"Network Operations", "1 College Road\x1b[2J\u202e", "USA"}}, nil, nil
+	})
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.edu"}`))
+	var data struct {
+		Record struct{ Registrant string }
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &data); err != nil || w.Code != 200 {
+		t.Fatal(err, w.Code)
+	}
+	if data.Record.Registrant != "Example University\nNetwork Operations\n1 College Road [2J\nUSA" {
+		t.Fatal(data.Record.Registrant)
+	}
+}

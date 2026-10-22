@@ -59,12 +59,55 @@ URL of the ICANN WHOIS Data Problem Reporting System: https://complaints.test/
 `
 
 func TestEDUCAUSECompleteRegistryRecord(t *testing.T) {
-	want := Record{Domain: "example.edu", Registrant: "Example University", Registration: "1985-05-23", Changed: "2026-06-25", Expiration: "2027-07-31", Nameservers: []string{"ns1.example.test", "ns2.example.test"}}
+	want := Record{Domain: "example.edu", Registrant: "Example University", RegistrantDetails: []string{"The Board of Example University", "1 College Road", "Example City, EX 12345", "USA"}, Registration: "1985-05-23", Changed: "2026-06-25", Expiration: "2027-07-31", Nameservers: []string{"ns1.example.test", "ns2.example.test"}}
 	for _, response := range []string{eduCAUSERecord, strings.ReplaceAll(eduCAUSERecord, "\n\n", "\n \t\n\n\n")} {
 		r, err := parseWHOIS("example.edu", response)
 		if err != nil || !reflect.DeepEqual(r, want) {
 			t.Fatalf("%+v, %v; want %+v", r, err, want)
 		}
+	}
+}
+
+func TestEDUCAUSERegistrantBlockBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		details    []string
+	}{
+		{"contact heading without blank", "Registrant:\n\tExample University\n\tNetwork Operations\n\tAdministrative Contact:\n\tWrong Administrator\n\tadmin@example.edu\n", []string{"Network Operations"}},
+		{"domain field without blank", "Registrant:\n Example University\n Network Operations\n Domain record activated: 23-May-1985\n", []string{"Network Operations"}},
+		{"indented labelled address prose", "Registrant:\n Example University\n Building: 4\n Room: 729\n City, EX 12345\n", []string{"Building: 4", "Room: 729", "City, EX 12345"}},
+		{"blank ends block", "Registrant:\n Example University\n 1 College Road\n\n Unrelated prose\n", []string{"1 College Road"}},
+		{"unindented line ends block", "Registrant:\n Example University\n 1 College Road\nUnrelated prose\n More unrelated prose\n", []string{"1 College Road"}},
+		{"redacted line omitted", "Registrant:\n Example University\n REDACTED FOR PRIVACY\n USA\n", []string{"USA"}},
+		{"redacted owner", "Registrant:\n Redacted\n 1 College Road\n USA\n", nil},
+		{"missing owner", "Registrant:\nAdministrative Contact:\n Wrong Administrator\n USA\n", nil},
+		{"other labelled contact", "Registrant:\n Example University\n Address:\n 1 College Road\nAdministrative Contact:\n Wrong Administrator\n", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r, err := parseWHOIS("example.edu", "Domain Name: EXAMPLE.EDU\n"+tc.body)
+			if err != nil || !reflect.DeepEqual(r.RegistrantDetails, tc.details) || len(r.RegistrantEmail) != 0 || strings.Contains(strings.Join(r.RegistrantDetails, "\n"), "Wrong") {
+				t.Fatal(r, err)
+			}
+			if (tc.name == "redacted owner" || tc.name == "missing owner") && r.Registrant != "" {
+				t.Fatal("address or another contact became the institution", r)
+			}
+		})
+	}
+	other := strings.ReplaceAll(eduCAUSERecord, "EXAMPLE.EDU", "EXAMPLE.TEST")
+	if r, err := parseWHOIS("example.test", other); err != nil || len(r.RegistrantDetails) != 0 {
+		t.Fatal("EDUCAUSE continuation rule affected another suffix", r, err)
+	}
+}
+
+func TestEDUCAUSERegistrantDetailsAreBoundedAndSanitized(t *testing.T) {
+	body := "Domain Name: example.edu\nRegistrant:\n Example University\n " + strings.Repeat("Department\n ", 257)
+	if _, err := parseWHOIS("example.edu", body); err == nil {
+		t.Fatal("unbounded registrant block accepted")
+	}
+	body = "Domain Name: example.edu\nRegistrant:\n Example University\n Department\x1b]52;c;attack\x07\u202e\n USA\n"
+	r, err := parseWHOIS("example.edu", body)
+	if err != nil || len(r.RegistrantDetails) != 2 || strings.ContainsAny(strings.Join(r.RegistrantDetails, ""), "\x1b\x07\u202e") {
+		t.Fatal(r, err)
 	}
 }
 

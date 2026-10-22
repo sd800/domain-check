@@ -67,6 +67,7 @@
             field.className = 'field'; dt.textContent = text[key]; dd.textContent = value;
             if (key === 'idn') dd.className = 'idn';
             if (key === 'address') dd.className = 'address';
+            if (key === 'registrant') dd.className = 'registrant';
             field.append(dt, dd); dl.append(field);
           }
         }

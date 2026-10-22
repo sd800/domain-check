@@ -196,6 +196,7 @@ func FuzzUntrustedRegistryResponses(f *testing.F) {
 		"Domain Name: example.test\nRegistrant: Synthetic Owner\n",
 		`{"objectClassName":"domain","ldhName":"example.test"}`,
 		allocationFixture,
+		eduCAUSERecord,
 		"Domain Name: example.test\nRegistrant: \x1b]52;c;YXR0YWNr\a\n",
 		"No match for example.test",
 	} {
@@ -206,6 +207,7 @@ func FuzzUntrustedRegistryResponses(f *testing.F) {
 			return
 		}
 		_, _ = parseWHOIS("example.test", body)
+		_, _ = parseWHOIS("example.edu", body)
 		_, _ = parseRDAP("example.test", []byte(body))
 		_, _ = parseRDAP("zz", []byte(body))
 	})

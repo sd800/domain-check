@@ -110,6 +110,37 @@ func TestTLDNoRecordDoesNotClaimAvailability(t *testing.T) {
 	}
 }
 
+func TestEDURegistrantLinesShareOneAlignedLabel(t *testing.T) {
+	r := registry.Record{Domain: "example.edu", Registration: "1985-07-15", Registrant: "Example University", RegistrantDetails: []string{"Example Information Technologies", "Network Operations Center", "136 College Road", "Example City, EX 12345", "USA"}, Nameservers: []string{"ns1.example.test"}}
+	for _, lang := range []Language{English, Chinese} {
+		var b bytes.Buffer
+		if err := Format(&b, r, lang, 80); err != nil {
+			t.Fatal(err)
+		}
+		column, label := 21, "Registrant:"
+		if lang == Chinese {
+			column, label = 14, "注册人:"
+		}
+		if strings.Count(b.String(), label) != 1 || strings.Contains(b.String(), "Address:") || strings.Contains(b.String(), "地址:") {
+			t.Fatal(b.String())
+		}
+		for _, line := range r.RegistrantDetails {
+			if !strings.Contains(b.String(), "\n"+strings.Repeat(" ", column)+line+"\n") {
+				t.Fatalf("misaligned registrant line: %q\n%s", line, b.String())
+			}
+		}
+		b.Reset()
+		if err := Format(&b, r, lang, 43); err != nil {
+			t.Fatal(err)
+		}
+		for _, line := range strings.Split(b.String(), "\n") {
+			if uniseg.StringWidth(line) > 43 || strings.HasPrefix(line, " ") && !strings.HasPrefix(line, strings.Repeat(" ", column)) {
+				t.Fatalf("invalid wrapped line: %q", line)
+			}
+		}
+	}
+}
+
 func TestRestrictedRegistrationResult(t *testing.T) {
 	for lang, want := range map[Language]string{
 		English: "Registration restricted (online registration unavailable)",

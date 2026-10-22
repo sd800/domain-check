@@ -27,6 +27,7 @@ const (
 	luxembourgStatus
 	ugandanDomainUpdate
 	bulgarianStatus
+	multilineRegistrant
 )
 
 func (p whoisProfile) has(flag whoisProfile) bool { return p&flag != 0 }
@@ -39,7 +40,7 @@ var whoisProfiles = map[string]whoisProfile{
 	"bg":              bulgarianStatus,
 	"by":              domainContactEmail,
 	"cl":              chileanTimezones | implicitDomainIdentity,
-	"edu":             monthNameDates,
+	"edu":             monthNameDates | multilineRegistrant,
 	"ee":              nameserverObjectDates,
 	"gg":              ordinalDates,
 	"hk":              dayFirstDates,

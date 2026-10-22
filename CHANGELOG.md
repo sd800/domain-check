@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.6
+
+- Preserve the full disclosed EDUCAUSE registrant block in aligned CLI and browser results.
+
 ## 26.10.22.5
 
 - Refine TLD result grouping in the CLI and browser.

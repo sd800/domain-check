@@ -8,17 +8,42 @@ import (
 var reservedResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?\s+(?:is )?reserved[.!]?$|reserved (?:domain|name)[.!]?$)`)
 var forbiddenResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?(?:\s+\S+)?\s+(?:is )?(?:not allowed|not permitted|prohibited)(?: for registration)?[.!]?$|registration (?:is )?(?:not allowed|not permitted|prohibited)[.!]?$)`)
 var commentedWHOISError = regexp.MustCompile(`(?i)^error:\s*(?:\d+:\s*)?(.*)$`)
+var numberedWHOISError = regexp.MustCompile(`^-?\d+:\s*%?\s*(.*)$`)
 var namedWHOISResult = regexp.MustCompile(`(?i)^(?:domain\s+)?(\S+)\s+(is free|is reserved|has been reserved by .+?)[.!]?$`)
 var namedWHOISMissing = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)^(?:the\s+)?domain\s+["']?([^\s"']+?)["']?\s+(?:was\s+)?not found[.!]?$`),
-	regexp.MustCompile(`(?i)^no (?:match(?: found)?|record found) for\s+(?:domain\s*:?\s*)?["']?([^\s"']+?)["']?[.!]?$`),
+	regexp.MustCompile(`(?i)^no (?:match(?: found)?|matching record|record found|data found) for\s+(?:domain\s*:?\s*)?["']?([^\s"']+?)["']?[.!]?$`),
 	regexp.MustCompile(`(?i)^([^\s"']+):\s*no entries found[.!]?$`),
 	regexp.MustCompile(`(?i)^([^\s"']+)\s+-\s+no match[.!]?$`),
 }
 var namedWHOISAvailable = regexp.MustCompile(`(?i)^domain\s+([^\s"']+)\s+is available for (?:purchase|registration)[.!]?$`)
 
+// Service and query-syntax failures are operational errors, never availability.
+func whoisFailure(line string) bool {
+	message := strings.TrimLeft(strings.TrimSpace(line), "%>* ")
+	if match := commentedWHOISError.FindStringSubmatch(message); match != nil {
+		message = match[1]
+	}
+	if match := numberedWHOISError.FindStringSubmatch(message); match != nil {
+		message = match[1]
+	}
+	switch strings.ToLower(strings.TrimRight(Clean(message), ".!")) {
+	case "malformed request", "invalid domain name", "invalid pattern", "object is blocked", "wrong top level domain name in query", "tld not supported by this registry interface", "erreur syntax [ domain ]", "whois.nic.bo solo acepta consultas con dominios .bo":
+		return true
+	}
+	return false
+}
+
 func negativeWHOIS(line string) Result {
 	line = strings.ToLower(strings.TrimSpace(line))
+	switch strings.TrimRight(line, ".!:") {
+	case "the domain name is not available", "this name is not available for registration":
+		return Unavailable
+	case "iana reserved":
+		return Reserved
+	case "domain name matches a restricted word", "stop-list: domain can not be registered":
+		return NotAllowed
+	}
 	if line == "this domain is currently not available for registration. please select other domain." {
 		return Unavailable
 	}
@@ -53,9 +78,6 @@ func negativeWHOIS(line string) Result {
 }
 
 func negativeWHOISFor(domain, line string) Result {
-	if result := negativeWHOIS(line); result != "" {
-		return result
-	}
 	if match := namedWHOISResult.FindStringSubmatch(strings.TrimSpace(line)); match != nil {
 		if name, err := NormalizeDomain(match[1]); err == nil && name == domain {
 			if strings.EqualFold(match[2], "is free") {
@@ -77,7 +99,7 @@ func negativeWHOISFor(domain, line string) Result {
 			return NotRegistered
 		}
 	}
-	return ""
+	return negativeWHOIS(line)
 }
 
 // Interpret availability labels only as a domain status, never as contact data

@@ -1,5 +1,13 @@
 # Changelog
 
+## 26.10.21.25
+
+- Audit every current IANA WHOIS-only TLD, including non-country namespaces and IDN scripts, and add the missing registry-family syntax rules.
+- Extract Lithuanian registrant contacts, Luxembourg domain status, Turkmen organization names, Ugandan update dates, and Ukrainian IDN identities and fields.
+- Normalize dates for additional IDN registry families while preserving source precision, contact boundaries, nameserver records, and DNSSEC data.
+- Recognize explicit registry reservation and policy notices, distinguish query-syntax and service failures from availability, and validate domain names in negative replies.
+- Add synthetic regression coverage for the observed formats, contact-email isolation, notice precedence, invalid queries, and contradictory identities.
+
 ## 26.10.21.24
 
 - Add the privacy policy as the final README section, covering local processing, stored data, registry queries, independent services, and the .edu.cn DNS fallback.

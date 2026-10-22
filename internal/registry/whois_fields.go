@@ -34,14 +34,14 @@ func tokenizeWHOIS(response string) []whoisLine {
 // substring matches: an administrative email must not become a registrant email.
 var whoisKeys = func() map[string]string {
 	groups := map[string][]string{
-		"domain":       {"domain", "domain name", "domainname", "dominio", "ascii"},
+		"domain":       {"domain", "domain name", "domainname", "dominio", "ascii", "domain name (punycode)", "domain name(punycode)", "domain name (utf8)", "idna domain"},
 		"registration": {"created", "created on", "created date", "creation date", "create date", "registration time", "registration date", "registered", "registered on", "registered date", "registered on date", "assigned", "domain record activated", "domain created", "domain create date", "domain registration date", "domain name commencement date", "first registration date", "record created on", "record created", "activation", "fecha de registro"},
 		"expiration":   {"expires", "expires on", "expire", "expire date", "expiry", "expiry date", "expiration", "expiration date", "expiration time", "expiration on", "registry expiry date", "registrar registration expiration date", "paid till", "valid until", "validity", "domain expires", "domain expiration date", "record expires on", "record will expire on", "renewal date", "fecha de vencimiento"},
 		"changed":      {"updated", "updated on", "updated date", "update date", "last update", "last updated", "last updated on", "last updated date", "last update time", "last modified", "last modified date", "last changed", "last changed time", "changed", "modified", "modified date", "modification date", "domain record last updated", "domain last updated date"},
-		"status":       {"status", "state", "domain status", "domain state", "registration status", "query status"},
+		"status":       {"status", "state", "domain status", "domain state", "registration status", "query status", "registry status"},
 		"registrar":    {"registrar", "registrar name", "sponsoring registrar", "current registrar", "current registar", "registration service provider"},
 		"registrant":   {"registrant", "registrant name", "registrant contact name", "holder", "owner", "owner name"},
-		"organization": {"registrant organization", "registrant organisation", "registrant contact organization", "registrant contact organisation"},
+		"organization": {"registrant organization", "registrant organisation", "registrant contact organization", "registrant contact organisation", "owner orgname", "registrant name (organization)"},
 		"email":        {"registrant email", "registrant e mail", "registrant contact email", "registrant contact e mail", "holder email", "owner email"},
 		"nameserver":   {"name server", "name servers", "nameserver", "nameservers", "nserver", "nservers", "hostname", "host name", "dns", "dns servers", "domain servers", "domain nameservers", "domain name servers", "domain servers in listed order", "name servers information", "name server information", "name server (db)", "primary server", "secondary server"},
 		"dnssec":       {"dnssec", "dnssec signed", "signed", "domain signed"},
@@ -178,7 +178,7 @@ func whoisSection(key string) string {
 		return "manager"
 	case "registrar":
 		return "registrar"
-	case "administrative contact", "administrative contacts", "administrativ contact", "administrative", "admin contact", "admin c", "technical contact", "technical contacts", "technical", "tech contact", "tech", "tech c", "zone c", "billing contact", "billing", "contacto administrativo", "contacto tecnico", "contacto financiero", "registrar technical contacts", "registrar contact information", "reseller":
+	case "administrative contact information", "admin contact information", "technical contact information", "tech contact information", "billing contact information", "administrative contact", "administrative contacts", "administrativ contact", "administrative", "admin contact", "admin c", "technical contact", "technical contacts", "technical", "tech contact", "tech", "tech c", "zone c", "billing contact", "billing", "contacto administrativo", "contacto tecnico", "contacto financiero", "registrar technical contacts", "registrar contact information", "reseller":
 		return "other-contact"
 	case "name server", "name servers", "nameservers", "nservers", "dns servers", "domain servers", "domain nameservers", "domain name servers", "domain servers in listed order", "name servers information", "name server information":
 		return "nameserver"

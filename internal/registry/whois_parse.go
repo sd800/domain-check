@@ -109,10 +109,18 @@ func parseWHOIS(domain, response string) (Record, error) {
 			blank = true
 			continue
 		}
+		if (!found || strings.HasPrefix(line, ">>>")) && whoisFailure(line) {
+			return Record{}, queryError("whois-failed", line)
+		}
 		if strings.HasPrefix(line, ">>>") && !mismatched {
-			switch strings.ToLower(strings.TrimSpace(strings.TrimPrefix(line, ">>>"))) {
+			message := strings.TrimSpace(strings.TrimPrefix(line, ">>>"))
+			switch strings.ToLower(message) {
 			case "the domain contains special characters not allowed.", "this domain violates registry policy.":
 				r.Result = NotAllowed
+				continue
+			}
+			if result := negativeWHOIS(message); result != "" {
+				r.Result = result
 				continue
 			}
 		}
@@ -148,6 +156,20 @@ func parseWHOIS(domain, response string) (Record, error) {
 			continue
 		}
 		key, value, labeled := token.key, token.value, token.labeled
+		if profile.has(lithuanianContacts) {
+			switch key {
+			case "contact organization":
+				key, scope = "registrant organization", "registrant"
+			case "contact email":
+				key, scope = "registrant email", "registrant"
+			}
+		}
+		if profile.has(luxembourgStatus) && key == "domaintype" {
+			key = "domain status"
+		}
+		if profile.has(ugandanDomainUpdate) && key == "information last updated" {
+			key, scope = "domain last updated date", "domain"
+		}
 		if token.alias {
 			ignoredDomain, found, scope = false, true, "domain"
 			continue
@@ -163,6 +185,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 		}
 		indent := len(raw) - len(strings.TrimLeft(raw, " \t"))
 		field := whoisKeys[key]
+		if profile.has(lithuanianContacts) && field == "nameserver" {
+			scope = "domain" // The contact block ends before domain NS and DS fields.
+		}
 		if labeled && blank && (field == "registration" || field == "expiration" || field == "changed" || field == "dnssec") && (scope == "nameserver" && !profile.has(nameserverObjectDates) || scope == "registrar" && indent <= scopeIndent) {
 			scope = "domain"
 		}
@@ -363,6 +388,10 @@ func parseWHOIS(domain, response string) (Record, error) {
 			}
 		case "status":
 			if scope != "domain" && scope != "" && key != "domain status" {
+				continue
+			}
+			if profile.has(bulgarianStatus) && strings.EqualFold(value, "invalid") {
+				r.Result = NotAllowed
 				continue
 			}
 			if result := negativeWHOISStatus(value); result != "" {

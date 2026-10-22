@@ -1,5 +1,13 @@
 # Changelog
 
+## 26.10.21.26
+
+- Harden injection boundaries with exact WHOIS query validation, system-path DNS execution, defensive diagnostic sanitization, and matching RDAP ASCII and Unicode identities.
+- Validate service hostnames, suffixes, and URL paths; reject non-public destinations and pin connections to validated DNS results without environment proxies.
+- Bound local cache and preference reads, reject symlinks and special files, and limit recursive response parsing and excessive record fields.
+- Require HTTPS-only installer downloads, validate checksum manifests and archive members, and replace executables atomically without following destination symlinks.
+- Add security regression tests, parser and input fuzzing, isolated installer attack tests, an English security policy, pinned workflow actions, and official Go vulnerability scanning for checks and releases.
+
 ## 26.10.21.25
 
 - Audit every current IANA WHOIS-only TLD, including non-country namespaces and IDN scripts, and add the missing registry-family syntax rules.

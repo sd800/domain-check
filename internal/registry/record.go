@@ -47,6 +47,9 @@ func queryError(code, detail string) error {
 }
 
 func NormalizeDomain(input string) (string, error) {
+	if len(input) > 4096 || strings.ContainsFunc(input, unicode.IsControl) {
+		return "", fmt.Errorf("invalid domain length or control character")
+	}
 	input = strings.TrimSpace(input)
 	ascii, err := domainASCII(input)
 	if err != nil {
@@ -119,6 +122,11 @@ func useful(s string) string {
 }
 
 func appendUnique(items []string, value string) []string {
+	// Keep one overflow item so the parser rejects excessive fields instead of
+	// silently truncating them. Subsequent attacker values cannot cause quadratic work.
+	if len(items) > 256 {
+		return items
+	}
 	value = useful(value)
 	if value == "" {
 		return items

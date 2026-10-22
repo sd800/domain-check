@@ -85,6 +85,14 @@ func whoisObjects(lines []whoisLine) map[string]whoisObject {
 }
 
 func parseWHOIS(domain, response string) (Record, error) {
+	if len(response) > maxResponse || strings.Count(response, "\n") > 4096 {
+		return Record{}, queryError("invalid-response", "WHOIS response exceeds parsing limits")
+	}
+	for line := range strings.SplitSeq(response, "\n") {
+		if len(line) > 64<<10 {
+			return Record{}, queryError("invalid-response", "WHOIS line exceeds parsing limits")
+		}
+	}
 	r := Record{Domain: domain}
 	if strings.EqualFold(strings.TrimRight(strings.TrimSpace(response), ".!"), "reserved") {
 		return Record{Domain: domain, Result: Reserved}, nil
@@ -543,6 +551,9 @@ func parseWHOIS(domain, response string) (Record, error) {
 	}
 	if object, ok := objects[whoisObjectID("keyset", keyset)]; ok && object.signed {
 		r.DNSSEC = "signedDelegation"
+	}
+	if err := validateRecordBudget(r); err != nil {
+		return Record{}, err
 	}
 	return r, nil
 }

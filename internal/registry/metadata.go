@@ -4,17 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
+
+	"github.com/sd800/domain-check/internal/safeio"
 )
 
 // loadMetadata caches whole IANA documents, never a query-dependent selection.
 // A failed download or validation may reuse validated stale data without renewing it.
 func loadMetadata[T any](c *Client, ctx context.Context, name, endpoint, failure, stale string, decode func([]byte) (T, error)) (T, error) {
 	path := c.cachePath(name)
-	cached, readErr := os.ReadFile(path)
+	cached, info, readErr := safeio.ReadFile(path, maxResponse)
 	value, parseErr := decode(cached)
 	validCache := readErr == nil && parseErr == nil
-	if info, err := os.Stat(path); validCache && err == nil && fresh(info.ModTime(), c.Now()) {
+	if validCache && fresh(info.ModTime(), c.Now()) {
 		return value, nil
 	}
 	data, err := c.downloadMetadata(ctx, endpoint)

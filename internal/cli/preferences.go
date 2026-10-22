@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/sd800/domain-check/internal/output"
+	"github.com/sd800/domain-check/internal/safeio"
 )
 
 const automaticLanguage output.Language = "auto"
@@ -42,7 +43,7 @@ func loadLanguagePreference() (output.Language, error) {
 	if err != nil {
 		return "", err
 	}
-	data, err := os.ReadFile(path)
+	data, _, err := safeio.ReadFile(path, 4096)
 	if os.IsNotExist(err) {
 		return "", nil
 	}

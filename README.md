@@ -26,9 +26,13 @@ Copy this entire block into macOS Terminal. It installs the latest release for A
 ```sh
 /bin/sh <<'SH' && export PATH="$HOME/.local/bin:$PATH" && domain --version
 set -eu
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
+export PATH
+umask 077
 installer=$(mktemp)
 trap 'rm -f "$installer"' EXIT
-curl -fsSL --retry 3 -o "$installer" \
+curl -q --proto '=https' --proto-redir '=https' --connect-timeout 15 \
+  --max-time 180 --max-filesize 1048576 -fsSL --retry 3 -o "$installer" \
   https://raw.githubusercontent.com/sd800/domain-check/main/scripts/install.sh
 sh "$installer"
 SH
@@ -224,6 +228,10 @@ Pushing a `vYY.M.D.NUM` tag runs the release workflow, checks its agreement with
 - [RFC 7480: RDAP over HTTP](https://www.rfc-editor.org/rfc/rfc7480)
 - [RFC 9083: RDAP JSON responses](https://www.rfc-editor.org/rfc/rfc9083)
 - [RDAP Web Client](https://github.com/rdap-org/client.rdap.org), a reference for direct registry discovery, HTTPS endpoint preference, and the distinction between registry responses and registrar referrals. This CLI is an independent Go implementation.
+
+## Security
+
+Domain Check validates registry destinations, bounds untrusted responses, and neutralizes terminal control characters. See the [security policy](SECURITY.md) for its safeguards, verification commands, reporting guidance, and transport limitations.
 
 ## License
 

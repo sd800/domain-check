@@ -42,7 +42,7 @@ func rdapURL(base, domain string) string {
 // A redirect must still name the same domain query at an IANA-listed registry
 // endpoint. Links, entity URLs, and arbitrary same-host paths are never trusted.
 func allowedRedirect(target *url.URL, endpoints []string, domain string) bool {
-	if target.User != nil || target.RawQuery != "" || target.Fragment != "" {
+	if target.User != nil || target.RawQuery != "" || target.ForceQuery || target.Fragment != "" || target.RawFragment != "" {
 		return false
 	}
 	for _, endpoint := range endpoints {
@@ -132,11 +132,14 @@ func (c *Client) rdapEndpoint(ctx context.Context, domain, endpoint string, endp
 
 func parseRDAP(domain string, data []byte) (Record, error) {
 	var d rdapDomain
-	if err := json.Unmarshal(data, &d); err != nil {
+	if err := unmarshalResponse(data, &d); err != nil {
 		return Record{}, queryError("invalid-response", "invalid RDAP JSON: "+err.Error())
 	}
 	if d.ErrorCode != 0 || d.ObjectClass != "domain" {
 		return Record{}, queryError("invalid-response", "response is not an RDAP domain object")
+	}
+	if len(d.Events) > 256 || len(d.Status) > 256 || len(d.Nameservers) > 256 || !boundedEntities(d.Entities, new(int)) {
+		return Record{}, queryError("invalid-response", "RDAP record exceeds parsing limits")
 	}
 	name := d.LDHName
 	if name == "" {
@@ -145,6 +148,12 @@ func parseRDAP(domain string, data []byte) (Record, error) {
 	normalized, err := NormalizeDomain(name)
 	if err != nil || normalized != domain {
 		return Record{}, queryError("invalid-response", "response domain does not match the query")
+	}
+	if d.UnicodeName != "" {
+		unicodeName, err := NormalizeDomain(d.UnicodeName)
+		if err != nil || unicodeName != domain {
+			return Record{}, queryError("invalid-response", "response Unicode domain does not match the query")
+		}
 	}
 	r := Record{Domain: domain}
 	for _, event := range d.Events {
@@ -175,7 +184,32 @@ func parseRDAP(domain string, data []byte) (Record, error) {
 			r.DNSSEC = "signed"
 		}
 	}
+	if err := validateRecordBudget(r); err != nil {
+		return Record{}, err
+	}
 	return r, nil
+}
+
+func boundedEntities(entities []rdapEntity, count *int) bool {
+	*count += len(entities)
+	if *count > 512 {
+		return false
+	}
+	for _, entity := range entities {
+		if len(entity.Roles) > 16 || len(entity.VCardArray) > 2 {
+			return false
+		}
+		if len(entity.VCardArray) == 2 {
+			var properties []json.RawMessage
+			if json.Unmarshal(entity.VCardArray[1], &properties) != nil || len(properties) > 256 {
+				return false
+			}
+		}
+		if !boundedEntities(entity.Entities, count) {
+			return false
+		}
+	}
+	return true
 }
 
 func collectEntities(entities []rdapEntity, r *Record) {

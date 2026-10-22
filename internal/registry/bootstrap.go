@@ -2,7 +2,6 @@ package registry
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -18,15 +17,23 @@ type bootstrap struct {
 
 func decodeBootstrap(data []byte) (bootstrap, error) {
 	var b bootstrap
-	if err := json.Unmarshal(data, &b); err != nil {
+	if err := unmarshalResponse(data, &b); err != nil {
 		return b, err
 	}
 	if len(b.Services) == 0 {
 		return b, fmt.Errorf("empty IANA bootstrap data")
 	}
+	seen := make(map[string]bool)
 	for _, service := range b.Services {
 		if len(service) != 2 || len(service[0]) == 0 || len(service[1]) == 0 {
 			return b, fmt.Errorf("invalid IANA service entry")
+		}
+		for _, suffix := range service[0] {
+			name, err := NormalizeDomain("iana." + suffix)
+			if err != nil || name != "iana."+suffix || seen[suffix] {
+				return b, fmt.Errorf("invalid or duplicate IANA suffix")
+			}
+			seen[suffix] = true
 		}
 		for _, endpoint := range service[1] {
 			if !validEndpoint(endpoint) {
@@ -39,7 +46,7 @@ func decodeBootstrap(data []byte) (bootstrap, error) {
 
 func validEndpoint(endpoint string) bool {
 	u, err := url.Parse(endpoint)
-	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Hostname() != "" && u.User == nil && u.RawQuery == "" && u.Fragment == ""
+	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && validServiceHost(u.Hostname()) && u.Host == u.Hostname() && u.User == nil && u.RawQuery == "" && !u.ForceQuery && !strings.Contains(endpoint, "#") && safeServicePath(u)
 }
 
 // Match whole suffix labels, selecting the longest matching bootstrap entry.

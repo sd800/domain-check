@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -28,18 +27,20 @@ type Client struct {
 }
 
 func NewClient(cacheDir string) *Client {
-	dialer := &net.Dialer{Timeout: 12 * time.Second}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil // Registry queries use direct, validated connections.
+	transport.DialContext = dialRegistry
+	transport.MaxResponseHeaderBytes = 64 << 10
 	return &Client{
 		HTTP: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout:   15 * time.Second,
+			Transport: transport,
 			// Redirects are explicitly checked against the IANA endpoints by rdap().
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 		CacheDir: cacheDir, BootstrapURL: "https://data.iana.org/rdap/dns.json",
-		TLDsURL: "https://data.iana.org/TLD/v1/tlds.json", Now: time.Now, DialWHOIS: dialer.DialContext,
-		RunDig: func(ctx context.Context, args ...string) ([]byte, error) {
-			return exec.CommandContext(ctx, "dig", args...).Output()
-		},
+		TLDsURL: "https://data.iana.org/TLD/v1/tlds.json", Now: time.Now, DialWHOIS: dialRegistry,
+		RunDig: runSystemDig,
 	}
 }
 

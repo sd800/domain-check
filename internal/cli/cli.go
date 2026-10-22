@@ -188,7 +188,7 @@ func errorText(lang output.Language, err error) string {
 	if !ok {
 		return registry.Clean(query.Error())
 	}
-	return output.Text(lang, message[0], message[1]) + ": " + query.Detail
+	return output.Text(lang, message[0], message[1]) + ": " + registry.Clean(query.Detail)
 }
 
 func introduction(lang output.Language, version string) string {

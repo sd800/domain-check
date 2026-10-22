@@ -22,7 +22,7 @@ func decodeTLDs(data []byte) (tldRegistry, error) {
 			WHOIS  json.RawMessage `json:"whois_server"`
 		} `json:"domains"`
 	}
-	if err := json.Unmarshal(data, &document); err != nil {
+	if err := unmarshalResponse(data, &document); err != nil {
 		return nil, err
 	}
 	if document.Meta.Version != 1 || len(document.Domains) == 0 {

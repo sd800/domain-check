@@ -11,6 +11,9 @@ import (
 // NormalizeInput accepts a domain or URL. Registry response names still use
 // strict NormalizeDomain validation and can never be reinterpreted as URLs.
 func NormalizeInput(input string) (string, error) {
+	if len(input) > 1<<20 {
+		return "", fmt.Errorf("input exceeds 1 MiB")
+	}
 	input = strings.TrimSpace(input)
 	if strings.ContainsAny(input, "\r\n\t") {
 		return "", fmt.Errorf("expected one domain or URL")

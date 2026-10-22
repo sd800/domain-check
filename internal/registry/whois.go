@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -13,11 +12,7 @@ import (
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
-var whoisHostPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$`)
-
-func validWHOISHost(host string) bool {
-	return strings.Contains(host, ".") && !strings.Contains(host, "..") && whoisHostPattern.MatchString(host)
-}
+func validWHOISHost(host string) bool { return validServiceHost(host) }
 
 func registryWHOISQuery(host, domain string) string {
 	switch strings.ToLower(host) {
@@ -32,7 +27,7 @@ func registryWHOISQuery(host, domain string) string {
 }
 
 func (c *Client) whois(ctx context.Context, host, query string) (string, error) {
-	if !validWHOISHost(host) || strings.ContainsAny(query, "\r\n") {
+	if !validWHOISHost(host) || !validWHOISQuery(host, query) {
 		return "", fmt.Errorf("invalid WHOIS destination or query")
 	}
 	conn, err := c.DialWHOIS(ctx, "tcp", net.JoinHostPort(host, "43"))

@@ -25,7 +25,7 @@ make dist
 
 `make check` runs `go vet`, race-enabled Go tests, and formatting checks. `make security` verifies module checksums, runs the pinned official Go vulnerability scanner, and exercises the installer in isolated directories with synthetic release data.
 
-`make build` creates `build/bin/domain`; `make dist` builds both macOS architectures and SHA-256 manifests in `build/dist/`. Generated outputs remain outside the source directories and are excluded from Git.
+`make build` creates `build/bin/domain-check` with a `domain` command link; `make dist` builds both macOS architectures and SHA-256 manifests in `build/dist/`. Generated outputs remain outside the source directories and are excluded from Git.
 
 ## Regression matrix
 
@@ -49,7 +49,7 @@ make dist
 | Local web API | Accept only loopback clients, allowlisted Hosts, same-origin metadata, JSON and the session token; enforce body, rate, concurrency and time limits; preserve the registry-only engine. |
 | Web rendering | Render remote fields as text, omit missing values, preserve dates and IDN identities, retain the old record while pending, and keep queries out of storage and logs. |
 | Setup / service | Verify all setup selector forms and both menus, saved status, current-session operation, login startup, disabling, port conflicts, update refresh without registration changes, repeated-enable no-ops, preservation of unloaded jobs, and failed-transition preservation. |
-| Installation | Validate release tags, checksum manifests, expected archive members, links, duplicate paths, source arguments, replacement failures, and repeatable standard PATH setup. |
+| Installation | Validate release tags, checksum manifests, expected archive members, links, duplicate paths, source arguments, replacement failures, and repeatable standard PATH setup. Simulate permission failures and verify that installation preserves prior files without requesting elevation; service permission errors remain in the current user's launchd domain. |
 
 Public tests use synthetic records to protect registrant privacy. Test transports verify the actual requested destinations and reject unauthorized requests alongside the parser assertions.
 
@@ -102,7 +102,7 @@ cd build/dist
 shasum -a 256 -c "checksums_$(cat ../../VERSION).txt"
 ```
 
-Archives must contain one regular `domain` executable, the root release documents, and only the expected public documentation paths. Failed verification must not replace an installed executable.
+Archives must contain one regular `domain-check` executable, the root release documents, and only the expected public documentation paths. Verify that installation creates the `domain` command as a relative link to `domain-check`, replaces either destination's symlink without following it, and rejects ambiguous archives containing both executable names. LaunchAgents must reference the resolved `domain-check` executable. Failed verification must not replace an installed executable.
 
 ## Release gate
 

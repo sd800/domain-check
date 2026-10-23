@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.23.2
+
+- Standardize internal application naming and macOS integration.
+
 ## 26.10.23.1
 
 - Refine registrant information layout in Terminal and local browser results.

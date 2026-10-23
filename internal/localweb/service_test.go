@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -17,7 +18,7 @@ func fakeManager(t *testing.T) (*Manager, *bool, *[]string) {
 	running := false
 	loaded := false
 	commands := []string{}
-	m := &Manager{ConfigDir: filepath.Join(root, "configuration"), Home: root, Executable: filepath.Join(root, "folder & name", "domain"), CacheDir: filepath.Join(root, "cache"), Version: "test", Platform: "darwin"}
+	m := &Manager{ConfigDir: filepath.Join(root, "configuration"), Home: root, Executable: filepath.Join(root, "folder & name", "domain-check"), CacheDir: filepath.Join(root, "cache"), Version: "test", Platform: "darwin"}
 	m.Probe = func(context.Context) (string, bool) { return "test", running }
 	m.Available = func() error { return nil }
 	m.Command = func(_ context.Context, args ...string) error {
@@ -112,14 +113,14 @@ func TestWebServiceUsesLocalhostIdentity(t *testing.T) {
 	m, _, commands := fakeManager(t)
 	const label = "localhost.domain-check.web"
 	wantPath := filepath.Join(m.Home, "Library", "LaunchAgents", label+".plist")
-	if serviceLabel != label || m.agentPath(true) != wantPath || m.job() != m.target()+"/"+label {
+	if serviceLabel != label || m.agentPath(true) != wantPath || m.target() != fmt.Sprintf("gui/%d", os.Getuid()) || m.job() != m.target()+"/"+label {
 		t.Fatal("unexpected local service identity", serviceLabel, m.agentPath(true), m.job())
 	}
 	if err := m.SetLogin(context.Background(), true); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(wantPath)
-	if err != nil || !strings.Contains(string(data), "<key>Label</key><string>"+label+"</string>") {
+	if err != nil || !strings.Contains(string(data), "<key>Label</key><string>"+label+"</string>") || !strings.Contains(string(data), "<key>ProgramArguments</key><array><string>"+escapeXML(m.Executable)+"</string>") {
 		t.Fatal("plist identity differs from its filename", err)
 	}
 	found := false
@@ -130,6 +131,29 @@ func TestWebServiceUsesLocalhostIdentity(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("launchd did not receive the expected plist path", *commands)
+	}
+}
+
+func TestPermissionFailureDoesNotEscalateOrChangeUserDomain(t *testing.T) {
+	m, _, commands := fakeManager(t)
+	m.Command = func(_ context.Context, args ...string) error {
+		*commands = append(*commands, strings.Join(args, " "))
+		if args[0] == "print" {
+			return errors.New("not loaded")
+		}
+		return os.ErrPermission
+	}
+	if err := m.SetEnabled(context.Background(), true); !errors.Is(err, os.ErrPermission) {
+		t.Fatal("permission failure did not return to the caller", err)
+	}
+	for _, command := range *commands {
+		if command != "print "+m.job() && command != "enable "+m.job() {
+			t.Fatal("permission failure attempted another privilege domain", command)
+		}
+	}
+	settings, err := m.Load()
+	if err != nil || settings.Enabled || settings.AtLogin {
+		t.Fatal("failed permission changed the saved choices", settings, err)
 	}
 }
 
@@ -299,7 +323,7 @@ func TestRefreshDoesNotRewriteChangedConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	agent, _ := os.Stat(m.agentPath(true))
-	m.Executable = filepath.Join(m.Home, "new", "domain")
+	m.Executable = filepath.Join(m.Home, "new", "domain-check")
 	m.Probe = func(context.Context) (string, bool) { return "previous", *running }
 	*commands = nil
 	if err := m.Refresh(ctx); err == nil {

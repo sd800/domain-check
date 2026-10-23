@@ -9,7 +9,7 @@ umask 077
 work=
 pending=
 cleanup() {
-  [ -z "$pending" ] || rm -f "$pending"
+  [ -z "$pending" ] || rm -rf "$pending"
   [ -z "$work" ] || rm -rf "$work"
 }
 trap cleanup EXIT
@@ -33,12 +33,20 @@ if [ "$macos_major" -lt 13 ]; then
   printf '%s\n' 'Domain Check requires macOS 13 (Ventura) or later.' >&2
   exit 1
 fi
-if [ "$#" -gt 1 ]; then
+binary_only=false
+bindir="$HOME/.local/bin"
+if [ "$#" -eq 3 ] && [ "$1" = --binary-only ]; then
+  binary_only=true
+  binary=$2
+  bindir=$3
+elif [ "$#" -gt 1 ]; then
   printf '%s\n' 'Usage: sh scripts/install.sh [path/to/domain]' >&2
   exit 1
 fi
 
-if [ "$#" -eq 0 ]; then
+if [ "$binary_only" = true ]; then
+  :
+elif [ "$#" -eq 0 ]; then
   # Match the release architecture to the Mac running this installer.
   case "$(uname -m)" in
     arm64) arch=arm64 ;;
@@ -56,7 +64,11 @@ if [ "$#" -eq 0 ]; then
     exit 1
   fi
   version=${tag#v}
-  archive="domain_${version}_darwin_${arch}.tar.gz"
+  archive="domain-check_${version}_darwin_${arch}.tar.gz"
+  # The latest published release may still precede the executable rename.
+  if ! /usr/bin/plutil -extract assets json -o - "$work/release.json" 2>/dev/null | grep -Fq "\"$archive\""; then
+    archive="domain_${version}_darwin_${arch}.tar.gz"
+  fi
   base="https://github.com/sd800/domain-check/releases/download/$tag"
   download "$work/$archive" "$base/$archive"
   download "$work/checksums.txt" "$base/checksums_${version}.txt"
@@ -72,34 +84,43 @@ if [ "$#" -eq 0 ]; then
   tar -tf "$work/$archive" > "$work/members.txt"
   awk '
     BEGIN {
-      split("domain README.md CHANGELOG.md LICENSE VERSION SECURITY.md docs/ docs/technical.md docs/domains.md docs/security.md docs/quality-assurance.md docs/references.md", names, " ")
+      split("domain-check domain README.md CHANGELOG.md LICENSE VERSION SECURITY.md docs/ docs/technical.md docs/domains.md docs/security.md docs/quality-assurance.md docs/references.md", names, " ")
       for (i in names) allowed[names[i]]=1
     }
     !allowed[$0] || seen[$0]++ { bad=1 }
-    END { exit bad || !seen["domain"] || !seen["README.md"] || !seen["CHANGELOG.md"] || !seen["LICENSE"] || !seen["VERSION"] }
+    END { exit bad || seen["domain-check"] + seen["domain"] != 1 || !seen["README.md"] || !seen["CHANGELOG.md"] || !seen["LICENSE"] || !seen["VERSION"] }
   ' "$work/members.txt"
-  tar -tvf "$work/$archive" domain > "$work/domain-entry.txt"
-  awk 'NR != 1 || substr($0,1,1) != "-" { bad=1 } END { exit bad || NR != 1 }' "$work/domain-entry.txt"
-  (ulimit -f 131072; tar -xOf "$work/$archive" domain > "$work/domain")
-  [ -s "$work/domain" ]
-  binary="$work/domain"
+  entry=domain-check
+  if ! grep -Fxq "$entry" "$work/members.txt"; then entry=domain; fi
+  tar -tvf "$work/$archive" "$entry" > "$work/domain-check-entry.txt"
+  awk 'NR != 1 || substr($0,1,1) != "-" { bad=1 } END { exit bad || NR != 1 }' "$work/domain-check-entry.txt"
+  (ulimit -f 131072; tar -xOf "$work/$archive" "$entry" > "$work/domain-check")
+  [ -s "$work/domain-check" ]
+  binary="$work/domain-check"
 else
   # Source builds share installation and PATH setup without downloading a release.
   binary=$1
-  case "$binary" in /*) ;; *) binary="./$binary" ;; esac
 fi
+case "$binary" in /*) ;; *) binary="./$binary" ;; esac
+case "$bindir" in /*) ;; *) bindir="./$bindir" ;; esac
 
 # Install for this user; administrator privileges are not needed.
-mkdir -p "$HOME/.local/bin"
-if [ -d "$HOME/.local/bin/domain" ] && [ ! -L "$HOME/.local/bin/domain" ]; then
-  printf '%s\n' 'The installation target is a directory.' >&2
-  exit 1
-fi
-pending=$(mktemp "$HOME/.local/bin/.domain-install.XXXXXXXX")
-install -m 755 "$binary" "$pending"
-# Rename replaces a pre-existing symlink itself instead of writing through it.
-mv -fh "$pending" "$HOME/.local/bin/domain"
+mkdir -p "$bindir"
+for name in domain-check domain; do
+  if [ -d "$bindir/$name" ] && [ ! -L "$bindir/$name" ]; then
+    printf '%s\n' 'The installation target is a directory.' >&2
+    exit 1
+  fi
+done
+pending=$(mktemp -d "$bindir/.domain-check-install.XXXXXXXX")
+install -m 755 "$binary" "$pending/domain-check"
+ln -s domain-check "$pending/domain"
+# Replace symlinks themselves; never write through either destination.
+mv -fh "$pending/domain-check" "$bindir/domain-check"
+mv -fh "$pending/domain" "$bindir/domain"
+rmdir "$pending"
 pending=
+if [ "$binary_only" = true ]; then exit 0; fi
 
 # Refresh an already-enabled local interface after replacing its executable.
 # Older releases predate this option and return the normal argument-error status.

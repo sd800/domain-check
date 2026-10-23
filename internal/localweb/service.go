@@ -63,6 +63,10 @@ func NewManager(version string) (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
+	executable, err = filepath.EvalSymlinks(executable)
+	if err != nil {
+		return nil, err
+	}
 	config, err = filepath.Abs(config)
 	if err != nil {
 		return nil, err
@@ -138,7 +142,7 @@ func atomicFile(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(filepath.Dir(path), ".domain-web-*")
+	f, err := os.CreateTemp(filepath.Dir(path), ".domain-check-web-*")
 	if err != nil {
 		return err
 	}

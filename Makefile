@@ -4,7 +4,9 @@ GO ?= go
 .PHONY: build test check security install uninstall dist clean
 
 build:
-	$(GO) build -trimpath -o build/bin/domain ./cmd/domain
+	$(GO) build -trimpath -o build/bin/domain-check ./cmd/domain
+	@if [ "$$(uname -s)" = Darwin ]; then /usr/bin/codesign --force --sign - --identifier localhost.domain-check build/bin/domain-check; fi
+	ln -sfn domain-check build/bin/domain
 
 test:
 	$(GO) test -race ./...
@@ -20,12 +22,11 @@ security:
 	python3 scripts/test_install.py
 
 install: build
-	install -d "$(DESTDIR)$(PREFIX)/bin"
-	install -m 755 build/bin/domain "$(DESTDIR)$(PREFIX)/bin/domain"
+	sh scripts/install.sh --binary-only build/bin/domain-check "$(DESTDIR)$(PREFIX)/bin"
 	@if [ -z "$(DESTDIR)" ]; then "$(PREFIX)/bin/domain" --web-refresh; fi
 
 uninstall:
-	rm -f "$(DESTDIR)$(PREFIX)/bin/domain"
+	rm -f "$(DESTDIR)$(PREFIX)/bin/domain" "$(DESTDIR)$(PREFIX)/bin/domain-check"
 
 dist:
 	sh scripts/dist.sh

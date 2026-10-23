@@ -24,26 +24,31 @@ const (
 )
 
 type Record struct {
-	Domain            string
-	Registration      string
-	Expiration        string
-	Changed           string
-	Statuses          []string
-	Registrar         string
-	Registrant        string
-	RegistrantDetails []string `json:",omitempty"`
-	RegistrantEmail   []string
-	Nameservers       []string
-	DNSSEC            string
-	Result            Result
-	TLD               bool     `json:",omitempty"`
-	RegistrantAddress []string `json:",omitempty"`
-	RegistrationURL   string   `json:",omitempty"`
-	Admin             string   `json:",omitempty"`
-	AdminOrganization string   `json:",omitempty"`
-	AdminRole         string   `json:",omitempty"`
-	AdminPhones       []string `json:",omitempty"`
-	AdminEmails       []string `json:",omitempty"`
+	Domain               string
+	Registration         string
+	Expiration           string
+	Changed              string
+	Statuses             []string
+	Registrar            string
+	Registrant           string
+	RegistrantDetails    []string `json:",omitempty"`
+	RegistrantEmail      []string
+	Nameservers          []string
+	DNSSEC               string
+	Result               Result
+	TLD                  bool               `json:",omitempty"`
+	RegistrantAddress    []string           `json:",omitempty"`
+	RegistrantCity       string             `json:",omitempty"`
+	RegistrantState      string             `json:",omitempty"`
+	RegistrantPostalCode string             `json:",omitempty"`
+	RegistrantCountry    string             `json:",omitempty"`
+	RegistrantContact    *RegistrantContact `json:",omitempty"`
+	RegistrationURL      string             `json:",omitempty"`
+	Admin                string             `json:",omitempty"`
+	AdminOrganization    string             `json:",omitempty"`
+	AdminRole            string             `json:",omitempty"`
+	AdminPhones          []string           `json:",omitempty"`
+	AdminEmails          []string           `json:",omitempty"`
 }
 
 // RegistrantText preserves disclosed continuation lines while sanitizing each value.

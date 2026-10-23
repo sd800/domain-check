@@ -17,8 +17,8 @@ const (
 )
 
 var labels = map[Language][]string{
-	English: {"Domain Name", "Registration Time", "Expiration Time", "Last Changed Time", "Domain Status", "Registrar", "Registrant", "Registrant Email", "Name Server", "DNSSEC", "Result", "IDN", "Address", "Registration URL", "Admin", "Organization", "Role", "Phone", "Email"},
-	Chinese: {"域名", "注册时间", "过期时间", "更新时间", "状态", "注册商", "注册人", "联系邮箱", "域名服务器", "DNSSEC", "查询结果", "国际化域名", "地址", "注册网址", "管理联系人", "组织", "角色", "电话", "邮箱"},
+	English: {"Domain Name", "Registration Time", "Expiration Time", "Last Changed Time", "Domain Status", "Registrar", "Registrant", "Registrant Email", "Name Server", "DNSSEC", "Result", "IDN", "Address", "Registration URL", "Admin", "Organization", "Role", "Phone", "Email", "City", "State", "Postal Code", "Country", "Organization", "Street", "State/Province", "Country", "Phone", "Email"},
+	Chinese: {"域名", "注册时间", "过期时间", "更新时间", "状态", "注册商", "注册人", "联系邮箱", "域名服务器", "DNSSEC", "查询结果", "国际化域名", "地址", "注册网址", "管理联系人", "组织", "角色", "电话", "邮箱", "城市", "州/地区", "邮编", "国家", "所属组织", "地址", "省/州", "国家/地区", "电话", "邮箱"},
 }
 
 type entry struct {
@@ -75,7 +75,7 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 		padding := column - uniseg.StringWidth(label) - 1
 		prefix := label + ":" + strings.Repeat(" ", padding)
 		lines := []string{value}
-		if index == 6 || index == 12 { // Registrant and postal lines share one content column.
+		if index == 6 || index == 12 || index == 24 { // Registrant and postal lines share one content column.
 			lines = strings.Split(value, "\n")
 		}
 		first := true
@@ -125,13 +125,17 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 			registrarGroup = append(registrarGroup, entry{4, status})
 		}
 	}
-	contactGroup := []entry{{6, record.RegistrantText()}}
+	contactGroup := []entry{{6, record.RegistrantText()}, {12, strings.Join(record.RegistrantAddress, "\n")}}
 	if record.TLD {
-		contactGroup = append(contactGroup, entry{12, strings.Join(record.RegistrantAddress, "\n")}, entry{13, record.RegistrationURL})
+		contactGroup = append(contactGroup, entry{13, record.RegistrationURL})
 	} else {
 		groups = append(groups, registrarGroup)
+		contactGroup = append(contactGroup, entry{19, record.RegistrantCity}, entry{20, record.RegistrantState}, entry{21, record.RegistrantPostalCode}, entry{22, record.RegistrantCountry})
 		for _, email := range record.RegistrantEmail {
 			contactGroup = append(contactGroup, entry{7, email})
+		}
+		if record.RegistrantContact != nil {
+			contactGroup = registrantEntries(record.RegistrantContact)
 		}
 	}
 	groups = append(groups, contactGroup)

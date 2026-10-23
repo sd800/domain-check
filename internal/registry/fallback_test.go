@@ -77,8 +77,8 @@ func TestCountryCodeRDAPFailureUsesOnlyPublishedRegistryWHOIS(t *testing.T) {
 	}
 }
 
-func TestFallbackRequiresActiveExplicitCountryCodeClassification(t *testing.T) {
-	for _, tc := range []struct{ tld, kind, status, host string }{{"zz", "generic", "active", "whois.registry.test"}, {"zz", "", "active", "whois.registry.test"}, {"xn--p1ai", "generic", "active", "whois.registry.test"}, {"zz", "country-code", "retired", "whois.registry.test"}, {"zz", "country-code", "active", ""}} {
+func TestFallbackRequiresActivePublishedRegistryService(t *testing.T) {
+	for _, tc := range []struct{ tld, kind, status, host string }{{"zz", "generic", "retired", "whois.registry.test"}, {"zz", "country-code", "retired", "whois.registry.test"}, {"zz", "generic", "active", ""}, {"zz", "country-code", "active", ""}} {
 		c := fixtureClient(t, func(req *http.Request) (*http.Response, error) { return reply(req, 503, ""), nil })
 		seedBootstrap(t, c, fmt.Sprintf(`[[[%q],["https://rdap.registry.test/"]]]`, tc.tld))
 		seedFallbackTLD(t, c, tc.tld, tc.kind, tc.status, tc.host)
@@ -87,13 +87,15 @@ func TestFallbackRequiresActiveExplicitCountryCodeClassification(t *testing.T) {
 			t.Fatal(tc, err)
 		}
 	}
-	c := fixtureClient(t, func(req *http.Request) (*http.Response, error) { return reply(req, 503, ""), nil })
-	seedBootstrap(t, c, `[[["xn--p1ai"],["https://rdap.registry.test/"]]]`)
-	seedFallbackTLD(t, c, "xn--p1ai", "country-code", "active", "whois.registry.test")
-	domain := "example.xn--p1ai"
-	calls := fallbackWHOIS(t, c, domain, "whois.registry.test", "Domain Name: "+domain+"\n")
-	if _, err := c.Lookup(context.Background(), domain); err != nil || *calls != 1 {
-		t.Fatal(err, *calls)
+	for _, service := range []struct{ tld, kind string }{{"com", "generic"}, {"test", "generic"}, {"zz", ""}, {"xn--p1ai", "country-code"}, {"xn--p1ai", "generic"}} {
+		c := fixtureClient(t, func(req *http.Request) (*http.Response, error) { return reply(req, 503, ""), nil })
+		seedBootstrap(t, c, fmt.Sprintf(`[[[%q],["https://rdap.registry.test/"]]]`, service.tld))
+		seedFallbackTLD(t, c, service.tld, service.kind, "active", "whois.registry.test")
+		domain := "example." + service.tld
+		calls := fallbackWHOIS(t, c, domain, "whois.registry.test", "Domain Name: "+domain+"\n")
+		if _, err := c.Lookup(context.Background(), domain); err != nil || *calls != 1 {
+			t.Fatal(err, *calls)
+		}
 	}
 }
 

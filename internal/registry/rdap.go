@@ -73,7 +73,7 @@ func (c *Client) rdap(ctx context.Context, domain string, endpoints []string) (R
 			break
 		}
 	}
-	// The caller decides whether this failure permits a ccTLD WHOIS fallback.
+	// The caller decides whether this failure permits a registry WHOIS fallback.
 	return Record{}, lastErr
 }
 
@@ -263,6 +263,11 @@ func collectEntities(entities []rdapEntity, r *Record) {
 			} else if role == "registrant" {
 				if r.Registrant == "" {
 					r.Registrant = name
+					if strings.HasSuffix(r.Domain, ".gov") {
+						collectGovAddress(entity.VCardArray, r, name != "")
+					} else {
+						collectRegistrantContact(entity.VCardArray, r, name != "")
+					}
 				}
 				for _, email := range emails {
 					r.RegistrantEmail = appendUnique(r.RegistrantEmail, email)

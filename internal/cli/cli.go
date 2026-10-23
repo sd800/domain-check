@@ -289,7 +289,7 @@ Other device languages use English. update, setup, help, and version also accept
 zero, one, or two leading hyphens. -h and -v are shorthand for help and version.
 
 Queries go directly to registry RDAP, or registry WHOIS on TCP port 43 when
-IANA lists no RDAP service. Country-code domains can use registry WHOIS
+IANA lists no RDAP service. RDAP-enabled domains can use registry WHOIS
 after RDAP failure. .tw is WHOIS-only.
 Delegated .ac.uk and .gov.uk names use their namespace registries directly.
 Registrar referrals are never followed.
@@ -322,7 +322,7 @@ Zoned timestamps are converted to UTC and carry a UTC suffix.
 -h 和 -v 分别是帮助和版本命令的简写。
 
 直接查询注册局 RDAP；IANA 没有列出 RDAP 时，通过 TCP 43 查询注册局 WHOIS。
-国家和地区域名在 RDAP 查询失败后可回退至注册局 WHOIS。
+支持 RDAP 的域名在查询失败后可回退至注册局 WHOIS。
 .tw 归为仅 WHOIS，始终不跟随注册商。
 .ac.uk 和 .gov.uk 下的域名直接查询各自的命名空间注册局。
 IANA 数据的自动更新只在查询时检查，每个日历月周期更新一次。

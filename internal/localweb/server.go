@@ -230,6 +230,28 @@ func (s *Server) query(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	values["address"] = strings.Join(address, "\n")
+	values["city"], values["state"] = registry.Clean(record.RegistrantCity), registry.Clean(record.RegistrantState)
+	values["postal_code"], values["country"] = registry.Clean(record.RegistrantPostalCode), registry.Clean(record.RegistrantCountry)
+	if c := record.RegistrantContact; c != nil && !record.TLD {
+		values["contact_details"] = true
+		registrant, organization := c.DisplayNames()
+		values["registrant"], values["registrant_organization"] = registry.Clean(registrant), registry.Clean(organization)
+		values["city"], values["state_province"] = registry.Clean(c.City), registry.Clean(c.StateProvince)
+		values["postal_code"], values["registrant_country"] = registry.Clean(c.PostalCode), registry.Clean(c.Country)
+		for key, items := range map[string][]string{"street": c.Street, "address": c.Address, "contact_phones": c.Phones, "contact_emails": c.Emails} {
+			clean := make([]string, 0, len(items))
+			for _, item := range items {
+				if text := registry.Clean(item); text != "" {
+					clean = append(clean, text)
+				}
+			}
+			if key == "street" || key == "address" {
+				values[key] = strings.Join(clean, "\n")
+			} else {
+				values[key] = clean
+			}
+		}
+	}
 	dates := make(map[string]string, 3)
 	for _, key := range []string{"registration", "expiration", "changed"} {
 		dates[key] = output.DateText(output.Chinese, values[key].(string))

@@ -9,6 +9,7 @@ type whoisObject struct {
 	kind, handle, name, organization string
 	emails, nameservers              []string
 	signed                           bool
+	contact                          *RegistrantContact
 }
 
 // Resolve only objects already included in the registry response. No handle,
@@ -70,6 +71,9 @@ func whoisObjects(lines []whoisLine) map[string]whoisObject {
 			}
 			// A registrar label alone is a domain field, not a contact object.
 			if object.kind != "registrar" || object.name != "" || object.organization != "" {
+				if object.kind == "contact" {
+					object.contact = readWHOISRegistrantContact("", lines[start:end], "", true)
+				}
 				if objects == nil {
 					objects = make(map[string]whoisObject)
 				}
@@ -617,6 +621,13 @@ func parseWHOIS(domain, response string) (Record, error) {
 	}
 	if object, ok := objects[whoisObjectID("keyset", keyset)]; ok && object.signed {
 		r.DNSSEC = "signedDelegation"
+	}
+	if !preserveRegistrantLayout(domain) {
+		if object, ok := objects[whoisObjectID("contact", holder)]; ok && object.contact != nil && (r.Registrant == "" || strings.EqualFold(r.Registrant, object.contact.Name) || strings.EqualFold(r.Registrant, object.contact.Organization)) {
+			r.RegistrantContact = object.contact
+		} else {
+			r.RegistrantContact = readWHOISRegistrantContact(domain, lines, r.Registrant, false)
+		}
 	}
 	if err := validateRecordBudget(r); err != nil {
 		return Record{}, err

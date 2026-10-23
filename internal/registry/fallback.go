@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// RDAP remains the primary source. A ccTLD failure may use only the active
+// RDAP remains the primary source. A failure may use only the active
 // registry's published WHOIS service; successful replies are never merged.
 func (c *Client) rdapWithWHOIS(ctx context.Context, domain string, endpoints []string) (Record, error) {
 	r, rdapErr := c.rdap(ctx, domain, endpoints)
@@ -23,7 +23,7 @@ func (c *Client) rdapWithWHOIS(ctx context.Context, domain string, endpoints []s
 	tld := domain[strings.LastIndexByte(domain, '.')+1:]
 	service, ok := services[tld]
 	host := service.whoisHost(tld)
-	if !ok || !service.CountryCode || host == "" {
+	if !ok || host == "" {
 		return Record{}, rdapErr
 	}
 	if ctx.Err() != nil {

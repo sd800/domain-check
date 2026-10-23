@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.10.22.12
+
+- Expand disclosed registrant contact details while preserving established registry-specific layouts.
+- Extend registry WHOIS fallback to country-code and generic RDAP-enabled domains.
+
 ## 26.10.22.11
 
 - Clarify registry attribution in lookup results and documentation.

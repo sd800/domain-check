@@ -191,7 +191,7 @@ Administrative Contact:
 Name Servers:
   DNS: ns1.example.mx
 DNSSEC DS Records:
-  DS Record: 12345 8 2 ABCDEF0123456789`, Record{Registration: "2000-10-21", Expiration: "2030-10-21", Changed: "2026-10-20", Registrant: "Example Owner", Registrar: "Example Registrar", Nameservers: []string{"ns1.example.mx"}, DNSSEC: "signedDelegation"}},
+  DS Record: 12345 8 2 ABCDEF0123456789`, Record{Registration: "2000-10-21", Expiration: "2030-10-21", Changed: "2026-10-20", Registrant: "Example Owner", Registrar: "Example Registrar", Nameservers: []string{"ns1.example.mx"}, DNSSEC: "signedDelegation", RegistrantContact: &RegistrantContact{Name: "Example Owner", StateProvince: "Example State"}}},
 		{"tn", `Domain name.........: example.tn
 Details:
 Creation date.......: 21-10-2000 01:02:03 GMT+1

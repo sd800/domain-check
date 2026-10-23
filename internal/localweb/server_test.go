@@ -127,7 +127,7 @@ func TestDeepLinksAssetsAndSecurityHeaders(t *testing.T) {
 func TestWebTLDFieldsAreSanitizedAndNamesNormalized(t *testing.T) {
 	const payload = "text\x1b]8;;https://evil.test\x07\u202e"
 	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
-		return registry.Record{Domain: domain, TLD: !strings.Contains(domain, "."), Admin: payload, AdminOrganization: payload, AdminRole: payload, AdminPhones: []string{payload}, AdminEmails: []string{payload}, RegistrationURL: "http://registry.example.test/", RegistrantAddress: []string{"One Street", payload, "Country"}}, nil, nil
+		return registry.Record{Domain: domain, TLD: !strings.Contains(domain, "."), Admin: payload, AdminOrganization: payload, AdminRole: payload, AdminPhones: []string{payload}, AdminEmails: []string{payload}, RegistrationURL: "http://registry.example.test/", RegistrantAddress: []string{"One Street", payload, "Country"}, RegistrantCity: payload, RegistrantState: payload, RegistrantPostalCode: payload, RegistrantCountry: payload}, nil, nil
 	})
 	for input, want := range map[string]string{"cn": "cn", ".com": "com", ".github.io": "github.io", ".setup": "setup"} {
 		w := httptest.NewRecorder()
@@ -135,6 +135,8 @@ func TestWebTLDFieldsAreSanitizedAndNamesNormalized(t *testing.T) {
 		var result struct {
 			Record struct {
 				Domain, Admin, Organization, Role, Address string
+				City, State, Country                       string
+				Postal                                     string `json:"postal_code"`
 				URL                                        string `json:"registration_url"`
 				Phones, Emails                             []string
 				AdminEmails                                []string `json:"admin_emails"`
@@ -145,6 +147,9 @@ func TestWebTLDFieldsAreSanitizedAndNamesNormalized(t *testing.T) {
 			t.Fatal(err, w.Code, w.Body.String())
 		}
 		r := result.Record
+		if r.City != registry.Clean(payload) || r.State != registry.Clean(payload) || r.Postal != registry.Clean(payload) || r.Country != registry.Clean(payload) {
+			t.Fatal("unsafe or missing address components", w.Body.String())
+		}
 		if r.Domain != want || r.TLD != !strings.Contains(want, ".") || r.Admin == "" || r.Organization == "" || r.Role == "" || len(r.Phones) != 1 || len(r.AdminEmails) != 1 || len(r.Emails) != 0 || r.URL != "http://registry.example.test/" || !strings.HasPrefix(r.Address, "One Street\n") || !strings.HasSuffix(r.Address, "\nCountry") || strings.ContainsAny(w.Body.String(), "\x1b\u202e") {
 			t.Fatal(w.Body.String())
 		}
@@ -251,5 +256,58 @@ func TestWebEDURegistrantRetainsSafeLines(t *testing.T) {
 	}
 	if data.Record.Registrant != "Example University\nNetwork Operations\n1 College Road [2J\nUSA" {
 		t.Fatal(data.Record.Registrant)
+	}
+}
+
+func TestDetailedRegistrantProjectionKeepsNameOrganizationAndSafeText(t *testing.T) {
+	const payload = "text\x1b]8;;https://evil.test\x07\u202e"
+	s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		return registry.Record{Domain: domain, Registrant: "legacy organization", RegistrantContact: &registry.RegistrantContact{Name: payload, Organization: "Example Organization", Address: []string{"One Street", "City: Keep this line"}, Street: []string{payload}, City: payload, StateProvince: payload, PostalCode: payload, Country: payload, Phones: []string{payload}, Emails: []string{payload}}}, nil, nil
+	})
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.us"}`))
+	var response struct{ Record map[string]any }
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil || w.Code != 200 {
+		t.Fatal(err, w.Code)
+	}
+	r := response.Record
+	if r["contact_details"] != true || r["registrant"] != registry.Clean(payload) || r["registrant_organization"] != "Example Organization" || r["address"] != "One Street\nCity: Keep this line" {
+		t.Fatal(r)
+	}
+	for _, key := range []string{"street", "city", "state_province", "postal_code", "registrant_country"} {
+		if r[key] != registry.Clean(payload) {
+			t.Fatal(key, r[key])
+		}
+	}
+	for _, key := range []string{"contact_phones", "contact_emails"} {
+		values, ok := r[key].([]any)
+		if !ok || len(values) != 1 || values[0] != registry.Clean(payload) {
+			t.Fatal(key, r[key])
+		}
+	}
+}
+
+func TestDetailedRegistrantNameAndOrganizationPresence(t *testing.T) {
+	for _, tc := range []struct {
+		name, organization, wantRegistrant, wantOrganization string
+	}{
+		{"", "Example Organization", "Example Organization", ""},
+		{"REDACTED FOR PRIVACY", "Example Organization", "Example Organization", ""},
+		{"Alex Example", "", "Alex Example", ""},
+		{"Alex Example", "Example Organization", "Alex Example", "Example Organization"},
+		{"Example Organization", "Example Organization", "Example Organization", "Example Organization"},
+	} {
+		s, _ := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+			return registry.Record{Domain: domain, RegistrantContact: &registry.RegistrantContact{Name: tc.name, Organization: tc.organization, City: "Example City"}}, nil, nil
+		})
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "POST", "/api/lookup", `{"input":"example.us"}`))
+		var response struct{ Record map[string]any }
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil || w.Code != 200 {
+			t.Fatal(err, w.Code)
+		}
+		if response.Record["registrant"] != tc.wantRegistrant || response.Record["registrant_organization"] != tc.wantOrganization {
+			t.Fatal(tc, response.Record)
+		}
 	}
 }

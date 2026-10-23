@@ -23,13 +23,15 @@ These services cover **1,367 TLDs**, including **141 internationalized TLDs**. I
 
 WHOIS-only coverage includes 120 ordinary ASCII TLDs and 45 internationalized TLDs. IDN classification refers to the top-level suffix itself.
 
+Of the **1202 RDAP-primary TLDs**, **707** have a published registry WHOIS fallback. This includes generic and country-code suffixes.
+
 Of the **77 RDAP-primary ccTLDs**, **75** have a registry WHOIS fallback: 74 from IANA and the fixed Nominet-published `.uk` service. The remaining 2 (`.na`, `.pn`) have no published WHOIS service in this inventory. Fixed delegated-namespace services, including Jisc `.ac.uk`, retain their documented routes.
 
 Run `domain update` to refresh the complete IANA datasets. Service inventories and observed availability are recorded separately.
 
 ## RDAP suffixes
 
-The full advertised RDAP list is available in the [official DNS bootstrap](https://data.iana.org/rdap/dns.json). Domain Check selects the longest matching suffix and prefers HTTPS. RDAP-primary ccTLDs may use their published registry WHOIS service after a connection, service, or response failure. Successful replies, including no-record responses and missing fields, complete the lookup. Rate limits, blocked redirects, and cancellation stop it. Other TLDs retain RDAP without WHOIS fallback; registrar referrals are never followed.
+The full advertised RDAP list is available in the [official DNS bootstrap](https://data.iana.org/rdap/dns.json). Domain Check selects the longest matching suffix and prefers HTTPS. RDAP-primary domains under either generic or country-code suffixes may use their published registry WHOIS service after a connection, service, or response failure. Successful replies, including no-record responses and missing fields, complete the lookup. Rate limits, blocked redirects, and cancellation stop it. Missing WHOIS services preserve the RDAP error; registrar referrals are never followed.
 
 ## Explicit `.tw` WHOIS routing
 
@@ -220,7 +222,7 @@ Unicode names are followed by their ASCII A-label identities. Queries use the AS
 
 ## Verification scope
 
-Verification inventories both WHOIS-only suffixes and the registry WHOIS services published for RDAP-primary ccTLDs. It includes ordinary registrations, registry-operated names with exceptional records, education/government and other special namespaces, IDN suffixes, and explicit negative candidates. Service responses, parsed records, access limits, and unreachable endpoints remain separate outcomes.
+Verification covers WHOIS-only suffixes and RDAP-primary ccTLD registry formats, with synthetic tests for fallback across country-code and generic TLDs. It includes ordinary registrations, registry-operated names with exceptional records, education/government and other special namespaces, IDN suffixes, and explicit negative candidates. Service responses, parsed records, access limits, and unreachable endpoints remain separate outcomes.
 
 Contact scope, date precision, reserved or restricted results, IDN identities, DNSSEC, and protocol-fallback boundaries receive synthetic regression coverage. Developer response bodies remain under ignored `test/whois` and `test/rdap`; runtime does not retain queries or responses.
 

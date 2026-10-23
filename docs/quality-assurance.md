@@ -61,6 +61,12 @@ Exercise direct paths containing a domain, a TLD, a dotted TLD or ordinary domai
 
 On macOS, test the actual two-step setup menu with web enable/disable and login startup enable/disable. Inspect the user LaunchAgent registration, verify both loopback listeners, and confirm the service survives closing the terminal. Check that disabling removes registrations, that no administrator prompt or hosts-file change occurs, and that executable installation refreshes a loaded service without rewriting its LaunchAgent or settings. Repeating an enabled option must preserve file identity and modification times; normal CLI queries must leave the service PID and registration unchanged. Restore the desired user settings after the checks.
 
+## Public website verification
+
+Run `python3 scripts/check_website.py` after changing `web/` or the README installation block. It checks local assets, relative paths, anchor targets, classic offline scripts, and exact agreement between the website's copyable command and the README. The Pages workflow runs this check before publication and uploads only `web/`.
+
+Inspect the public site at desktop and phone widths, in both languages and system/light/dark appearance. Verify heading proportions, readable text, no horizontal page overflow, keyboard focus, section links, preference persistence on reload, and both copy buttons. Confirm that illustrative output is identified as such and no lookup form or analytics is introduced. Open `web/index.html` directly where the browser permits local-file navigation; local assets and clipboard fallback must work without a development server. Browser environments that prohibit `file://` navigation can verify HTTP behavior and the relative-asset contract separately.
+
 ## Fuzz testing
 
 Run the affected target after changes to normalization, parsing, or terminal sanitization:

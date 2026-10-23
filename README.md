@@ -9,6 +9,8 @@ domain https://www.example.com/path
 
 Type a domain name or paste a full URL copied from your browser. The command picks out the domain and prints its key registration details in one aligned view. An optional [local web interface](#local-web-interface) brings the same lookups to your browser. Domain Check supports [1,367 top-level domains](docs/domains.md).
 
+Visit the [product website](https://sd800.github.io/domain-check/).
+
 ## Product statement
 
 Domain Check from Registries is built around a simple principle: **a domain lookup should go straight to the source and come back easy to read.** It works right on your Mac, in Terminal or your browser, from query out to answer back.

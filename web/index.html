@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-language="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Domain registration details, straight from the registry. A free, open-source macOS tool for Terminal and your browser. No registrar referrals. No lookup history.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8faff">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Domain Check from Registries — Straight to the source.">
+  <meta property="og:description" content="One command. One clean answer. Domain registration lookups directly from registries, on your Mac.">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="referrer" content="no-referrer">
+  <title>Domain Check from Registries — Straight to the source.</title>
+  <script>
+    (() => {
+      let theme = 'auto', language = /^zh\b/i.test(navigator.language) ? 'zh' : 'en';
+      try {
+        const savedTheme = localStorage.getItem('domain-check.website.theme');
+        const savedLanguage = localStorage.getItem('domain-check.website.language');
+        if (['auto', 'light', 'dark'].includes(savedTheme)) theme = savedTheme;
+        if (['en', 'zh'].includes(savedLanguage)) language = savedLanguage;
+      } catch (_) {}
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.language = language;
+      document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+    })();
+  </script>
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main"><span class="en">Skip to content</span><span class="zh">跳至正文</span></a>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="Domain Check from Registries">
+        <img src="assets/logo.svg" alt="" width="38" height="38">
+        <span>Domain Check<small>from Registries</small></span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a class="nav-about" href="#why"><span class="en">The idea</span><span class="zh">产品理念</span></a>
+        <a class="nav-docs" href="https://github.com/sd800/domain-check#documentation"><span class="en">Documentation</span><span class="zh">文档</span></a>
+        <a class="nav-install" href="#install"><span class="en">Get Domain Check</span><span class="zh">获取 Domain Check</span><span aria-hidden="true">↗</span></a>
+        <div class="preferences">
+          <button id="language-toggle" type="button" aria-label="Switch to Simplified Chinese"><span class="en">中文</span><span class="zh">EN</span></button>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance: System" title="Appearance: System">
+            <svg class="theme-auto" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4"/></svg>
+            <svg class="theme-light" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+            <svg class="theme-dark" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.2 14.2A8.5 8.5 0 0 1 9.8 3.8 8.5 8.5 0 1 0 20.2 14.2Z"/></svg>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span><span class="en">A clearer view of domain registration.</span><span class="zh">更清晰的域名注册信息。</span></p>
+          <h1 id="hero-title"><span class="en">Straight to<br>the <em>source.</em></span><span class="zh">域名信息，<br><em>直达源头。</em></span></h1>
+          <p class="hero-description"><span class="en">Go directly to the registry.<br>Come back with a clean, readable answer.</span><span class="zh">直接查询注册局，<br>带回清晰、易读的答案。</span></p>
+          <p class="hero-support"><span class="en">Domain lookups on your Mac.<br>In Terminal, or in your browser.</span><span class="zh">在你的 Mac 上查询域名。<br>终端与浏览器，两种方式，同样简洁。</span></p>
+          <div class="hero-actions">
+            <a class="button primary" href="#install"><span class="en">Install for macOS</span><span class="zh">安装 macOS 版</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m-5-5 5 5 5-5M5 21h14"/></svg></a>
+            <a class="text-link" href="https://github.com/sd800/domain-check"><span class="en">Explore on GitHub</span><span class="zh">在 GitHub 上了解更多</span><span aria-hidden="true">↗</span></a>
+          </div>
+          <p class="compatibility"><span class="en">macOS 13+ <b>·</b> Apple Silicon &amp; Intel <b>·</b> Free &amp; open source</span><span class="zh">macOS 13+ <b>·</b> Apple 芯片与 Intel <b>·</b> 免费开源</span></p>
+        </div>
+        <div class="hero-visual">
+          <div class="orbit-art" aria-hidden="true"><div></div><div></div><div></div><span></span></div>
+          <figure class="terminal">
+            <figcaption class="terminal-bar"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Terminal</span><span class="terminal-shell">zsh</span></figcaption>
+            <div class="terminal-content">
+              <p class="command-line"><span aria-hidden="true">~ % </span><strong>domain</strong> example.com<span class="cursor" aria-hidden="true"></span></p>
+              <div class="terminal-result en" aria-label="Illustrative domain registration result">
+                <p><span>Domain Name:</span><b>example.com</b></p>
+                <div class="terminal-group"><p><span>Registration Time:</span>2003-03-10 11:19:18</p><p><span>Expiration Time:</span>2027-05-15 11:25:25</p><p><span>Last Changed Time:</span>2025-05-15 10:25:25</p></div>
+                <div class="terminal-group"><p><span>Registrar:</span>Example Registrar</p><p><span>Domain Status:</span><i>ok</i></p></div>
+                <div class="terminal-group"><p><span>Registrant:</span>Example Organization</p></div>
+                <div class="terminal-group"><p><span>Name Server:</span>ns1.example.com</p><p><span>Name Server:</span>ns2.example.com</p><p><span>DNSSEC:</span>unsigned</p></div>
+              </div>
+              <div class="terminal-result zh" aria-label="域名注册信息排版示例">
+                <p><span>域名:</span><b>example.com</b></p>
+                <div class="terminal-group"><p><span>注册时间:</span>2003 年 3 月 10 日 11:19:18</p><p><span>过期时间:</span>2027 年 5 月 15 日 11:25:25</p><p><span>更新时间:</span>2025 年 5 月 15 日 10:25:25</p></div>
+                <div class="terminal-group"><p><span>注册商:</span>Example Registrar</p><p><span>状态:</span><i>ok</i></p></div>
+                <div class="terminal-group"><p><span>注册人:</span>Example Organization</p></div>
+                <div class="terminal-group"><p><span>域名服务器:</span>ns1.example.com</p><p><span>域名服务器:</span>ns2.example.com</p><p><span>DNSSEC:</span>unsigned</p></div>
+              </div>
+              <p class="terminal-prompt" aria-hidden="true">~ % <span></span></p>
+            </div>
+          </figure>
+          <p class="demo-caption"><span class="en">One command. One aligned view. <span>Illustrative output.</span></span><span class="zh">一个命令，一目了然。<span>以上为排版示例。</span></span></p>
+        </div>
+      </section>
+
+      <section class="facts" aria-label="At a glance">
+        <a href="https://github.com/sd800/domain-check/blob/main/docs/domains.md"><strong>1,367<span>↗</span></strong><span class="en">top-level domains supported</span><span class="zh">个受支持的顶级域名</span></a>
+        <div><strong>RDAP <span>+ </span>WHOIS</strong><span class="en">registry services, directly</span><span class="zh">直连注册局查询服务</span></div>
+        <div><strong>EN <span>/ </span>中文</strong><span class="en">at home in either language</span><span class="zh">中英文，自如切换</span></div>
+      </section>
+
+      <section class="principle section" id="why" aria-labelledby="principle-title">
+        <div class="section-intro">
+          <p class="eyebrow section-marker"><span>01</span><span class="en">The idea</span><span class="zh">产品理念</span></p>
+          <h2 id="principle-title"><span class="en">Your interest.<br>Your business.</span><span class="zh">你的关注，<br>由你掌握。</span></h2>
+        </div>
+        <div class="principle-detail">
+          <p class="section-description"><span class="en">A domain search should lead to information.<br>It shouldn’t become a signal to a commercial search site.</span><span class="zh">查询域名，是为了获取信息。<br>不必先向商业域名搜索网站透露你的兴趣。</span></p>
+          <div class="route-diagram" aria-label="Your Mac queries the registry directly">
+            <div><svg viewBox="0 0 44 44" fill="none" aria-hidden="true"><rect x="7" y="8" width="30" height="22" rx="3"/><path d="M3 36h38M17 30v6m10-6v6"/></svg><span class="en">Your Mac</span><span class="zh">你的 Mac</span></div>
+            <div class="route-line"><span class="en">Direct query</span><span class="zh">直接查询</span><i aria-hidden="true"></i></div>
+            <div><svg viewBox="0 0 44 44" fill="none" aria-hidden="true"><circle cx="22" cy="22" r="16"/><ellipse cx="22" cy="22" rx="7" ry="16"/><path d="M6 22h32M9 13h26M9 31h26"/></svg><span class="en">The registry</span><span class="zh">注册局</span></div>
+          </div>
+          <div class="principle-points">
+            <p><span class="en"><strong>Registry first. Registry only.</strong> Queries go to registry services. Registrar referrals are never followed.</span><span class="zh"><strong>查询到注册局为止。</strong>直接使用注册局服务，不跟随任何注册商转介。</span></p>
+            <p><span class="en"><strong>Processed on your Mac.</strong> No accounts, no analytics, and no lookup history kept by Domain Check.</span><span class="zh"><strong>在本机处理。</strong>无需账号，没有分析追踪，Domain Check 不保留查询记录。</span></p>
+          </div>
+          <a class="text-link" href="https://github.com/sd800/domain-check#privacy-policy"><span class="en">Read our privacy policy</span><span class="zh">阅读隐私政策</span><span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section class="browser-section section" aria-labelledby="browser-title">
+        <figure class="browser-preview">
+          <figcaption class="browser-bar"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="browser-address">domain-check.localhost:20771</span><span class="browser-bar-end" aria-hidden="true">↗</span></figcaption>
+          <div class="browser-content">
+            <div class="browser-brand"><img src="assets/logo.svg" width="35" height="35" alt=""><span>Domain Check<small>from Registries</small></span></div>
+            <div class="preview-search"><span>example.com</span><span class="preview-search-button en">Look up <b aria-hidden="true">→</b></span><span class="preview-search-button zh">查询 <b aria-hidden="true">→</b></span></div>
+            <div class="browser-fields">
+              <div><span class="en">Domain Name</span><span class="zh">域名</span><b>example.com</b></div>
+              <div class="preview-divider"><span class="en">Registration Time</span><span class="zh">注册时间</span><b class="en">2003-03-10 11:19:18</b><b class="zh">2003 年 3 月 10 日 11:19:18</b></div>
+              <div><span class="en">Expiration Time</span><span class="zh">过期时间</span><b class="en">2027-05-15 11:25:25</b><b class="zh">2027 年 5 月 15 日 11:25:25</b></div>
+              <div class="preview-divider"><span class="en">Registrar</span><span class="zh">注册商</span><b>Example Registrar</b></div>
+              <div><span class="en">Domain Status</span><span class="zh">状态</span><b>ok</b></div>
+              <div class="preview-divider"><span class="en">Name Server</span><span class="zh">域名服务器</span><b>ns1.example.com</b></div>
+              <div><span>DNSSEC</span><b>unsigned</b></div>
+            </div>
+          </div>
+        </figure>
+        <div class="browser-copy">
+          <p class="eyebrow section-marker"><span>02</span><span class="en">Your choice of window</span><span class="zh">你喜欢的窗口</span></p>
+          <h2 id="browser-title"><span class="en">The same clarity.<br>A different window.</span><span class="zh">换个窗口，<br>同样清晰。</span></h2>
+          <p class="section-description"><span class="en">Prefer a browser? Turn on the optional local interface. The same registry queries, with a little more room to read.</span><span class="zh">更喜欢浏览器？开启可选的本机网页版，用同样的注册局查询，多一点阅读空间。</span></p>
+          <div class="setup-command"><code><span aria-hidden="true">% </span>domain setup</code><button class="copy-button" type="button" data-copy="setup-command" aria-label="Copy domain setup"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></svg></button></div>
+          <p class="small-note"><span class="en">Runs on your Mac. Adapts to your appearance.<br>No administrator access required.</span><span class="zh">在你的 Mac 上运行，自适应系统外观。<br>无需管理员权限。</span></p>
+          <a class="text-link" href="https://github.com/sd800/domain-check#local-web-interface"><span class="en">Explore the local interface</span><span class="zh">了解本机网页版</span><span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section class="details-strip" aria-label="More ways to query">
+        <div><span class="detail-number">01</span><h3><span class="en">Paste the whole URL.</span><span class="zh">直接粘贴完整网址。</span></h3><p><span class="en">The domain is picked out locally.<br> The URL itself is never fetched.</span><span class="zh">在本机提取域名，<br>不会访问你粘贴的网址。</span></p><code>domain 'https://www.example.com/path'</code></div>
+        <div><span class="detail-number">02</span><h3><span class="en">Look up the suffix, too.</span><span class="zh">也可以查询顶级域名。</span></h3><p><span class="en">Query a TLD’s allocation details<br> directly from IANA RDAP.</span><span class="zh">直接向 IANA RDAP，<br>查询顶级域名的分配信息。</span></p><code>domain .com</code></div>
+        <div><span class="detail-number">03</span><h3><span class="en">Speak your language.</span><span class="zh">用你习惯的语言。</span></h3><p><span class="en">English or Simplified Chinese.<br> Internationalized domains welcome.</span><span class="zh">支持中英文显示，<br>也支持国际化域名。</span></p><code>domain zh example.com</code></div>
+      </section>
+
+      <section class="install-section" id="install" aria-labelledby="install-title">
+        <div class="install-copy">
+          <p class="eyebrow section-marker"><span>03</span><span class="en">Start at the source</span><span class="zh">从源头开始</span></p>
+          <h2 id="install-title"><span class="en">Your next lookup.<br>One command away.</span><span class="zh">下一次查询，<br>从一个命令开始。</span></h2>
+          <p><span class="en">Copy the command into macOS Terminal.<br>The installer takes care of the rest.</span><span class="zh">将命令复制到 macOS 终端，<br>剩下的交给安装程序。</span></p>
+          <button id="install-copy" class="button primary" type="button" data-copy="install-command"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></svg><span class="en">Copy install command</span><span class="zh">复制安装命令</span></button>
+          <p class="install-note"><span class="en">macOS 13+ · Apple Silicon &amp; Intel<br>No Go installation. No administrator access.</span><span class="zh">macOS 13+ · Apple 芯片与 Intel<br>无需安装 Go，无需管理员权限。</span></p>
+          <a class="text-link" href="https://github.com/sd800/domain-check/releases"><span class="en">Or download a release</span><span class="zh">也可以下载发布包</span><span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="install-code">
+          <div class="install-code-header"><span>macOS Terminal</span><span class="en">Paste the entire block</span><span class="zh">粘贴完整命令块</span></div>
+          <pre><code id="install-command">/bin/sh &lt;&lt;&#x27;SH&#x27; &amp;&amp; export PATH=&quot;$HOME/.local/bin:$PATH&quot; &amp;&amp; domain --version
+set -eu
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
+export PATH
+umask 077
+installer=$(mktemp)
+trap &#x27;rm -f &quot;$installer&quot;&#x27; EXIT
+curl -q --proto &#x27;=https&#x27; --proto-redir &#x27;=https&#x27; --connect-timeout 15 \
+  --max-time 180 --max-filesize 1048576 -fsSL --retry 3 -o &quot;$installer&quot; \
+  https://raw.githubusercontent.com/sd800/domain-check/main/scripts/install.sh
+sh &quot;$installer&quot;
+SH</code></pre>
+          <p><span class="en">Installs the latest release and verifies its checksum.</span><span class="zh">安装最新版本，并核验发布包校验和。</span></p>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <div class="footer-brand"><img src="assets/logo.svg" width="26" height="26" alt=""><span>Domain Check from Registries</span></div>
+        <div class="footer-links"><a href="https://github.com/sd800/domain-check"><span class="en">Source</span><span class="zh">源代码</span></a><a href="https://github.com/sd800/domain-check/blob/main/LICENSE">MIT License</a><a href="https://github.com/sd800/domain-check#privacy-policy"><span class="en">Privacy</span><span class="zh">隐私</span></a></div>
+        <small>© 2026 Songming.org</small>
+      </footer>
+    </main>
+  </div>
+  <div id="copy-status" class="copy-status" role="status" aria-live="polite"></div>
+</body>
+</html>

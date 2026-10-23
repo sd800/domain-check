@@ -142,8 +142,17 @@ Cache age is checked only when a lookup needs the document. One calendar month a
 | [`internal/output`](../internal/output) | Aligned bilingual records and grapheme-aware wrapping. |
 | [`internal/safeio`](../internal/safeio) | Bounded reads of regular local data files. |
 | [`scripts`](../scripts) | Installation, packaging, and installer security checks. |
+| [`web`](../web) | Buildless public product website and local static assets. |
 
 Security controls and protocol details are maintained in [security.md](security.md). Coverage and service availability are described in [domains.md](domains.md).
+
+## Public product website
+
+The public website lives in `web/`, separately from the application's embedded local interface. Open `web/index.html` directly in a browser, or serve `web/` with any static HTTP server. All styles, scripts, and the shared logo use relative paths, so the same files work from a local folder or a GitHub Pages project path. No build, package installation, remote font, or JavaScript module loader is required.
+
+English and Simplified Chinese content is included in the document. A small startup script applies the saved language and system/light/dark appearance before styles render; preference changes reuse the existing page. Only these two display choices are saved. The page contains illustrative registration output and installation guidance; domain queries remain in the installed application. The copy button uses the same complete installation block as the README, with a local clipboard fallback.
+
+The `Website` GitHub Actions workflow validates the site and publishes only `web/` to GitHub Pages when website files, its checker, the README, or the workflow change on `main`. To enable the repository once, select **Settings → Pages → Build and deployment → Source → GitHub Actions**. Subsequent deployments use the workflow automatically; **Run workflow** can also publish the current source. The workflow is independent of macOS executable builds.
 
 ## Build and release
 

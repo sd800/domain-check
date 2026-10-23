@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.23.3
+
+- Introduce a bilingual product website with local browsing support and GitHub Pages publishing.
+
 ## 26.10.23.2
 
 - Standardize internal application naming and macOS integration.

@@ -23,6 +23,7 @@ jobs:
           go-version-file: go.mod
       - run: make check
       - run: make security
+      - run: python3 scripts/check_website.py
       - name: Verify embedded calendar version
         run: |
           go run ./cmd/domain --version | grep -Fx "Domain Check from Registries $(cat VERSION)"

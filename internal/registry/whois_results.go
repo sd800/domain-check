@@ -7,7 +7,7 @@ import (
 
 var reservedResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?\s+(?:is )?reserved[.!]?$|reserved (?:domain|name)[.!]?$)`)
 var forbiddenResponse = regexp.MustCompile(`(?i)^(?:this )?(?:domain(?: name)?(?:\s+\S+)?\s+(?:is )?(?:not allowed|not permitted|prohibited)(?: for registration)?[.!]?$|registration (?:is )?(?:not allowed|not permitted|prohibited)[.!]?$)`)
-var commentedWHOISError = regexp.MustCompile(`(?i)^error:\s*(?:\d+:\s*)?(.*)$`)
+var commentedWHOISError = regexp.MustCompile(`(?i)^error(?:\s*:\s*|\s+)(?:\d+[:\s]+)?(.*)$`)
 var numberedWHOISError = regexp.MustCompile(`^-?\d+:\s*%?\s*(.*)$`)
 var namedWHOISResult = regexp.MustCompile(`(?i)^(?:domain\s+)?(\S+)\s+(is free|is reserved|has been reserved by .+?)[.!]?$`)
 var namedWHOISMissing = []*regexp.Regexp{
@@ -30,11 +30,14 @@ func whoisFailure(line string) bool {
 		message = match[1]
 	}
 	lower := strings.ToLower(Clean(message))
+	if strings.HasPrefix(lower, "notice: ") && strings.Contains(lower, "the whois service has been retired ") {
+		return true
+	}
 	if strings.HasPrefix(lower, "warning: query rate is now high,") || strings.HasPrefix(lower, "blacklisted: you have exceeded the query limit") || strings.HasPrefix(lower, "subdomains such as ") && strings.HasSuffix(lower, " are not supported") || strings.HasPrefix(lower, "invalid domain name: ") || strings.HasPrefix(lower, "invalid .sr domain format:") || lower == "input format is invalid." {
 		return true
 	}
 	switch strings.TrimRight(lower, ".!") {
-	case "malformed request", "invalid input", "invalid request", "invalid query", "invalid query format", "invalid domain name", "invalid .lt domain name", "invalid pattern", "object is blocked", "wrong top level domain name in query", "wrong second level domain name in query", "wrong syntax", "cadena_invalida/invalid_string", "too many requests", "maximum query rate reached", "the whois service is temporarily unavailable", "token: invalid_query_error", "tld not supported by this registry interface", "erreur syntax [ domain ]", "whois.nic.bo solo acepta consultas con dominios .bo":
+	case "malformed request", "invalid input", "invalid request", "invalid query", "invalid query format", "invalid query syntax", "invalid domain name", "invalid .lt domain name", "invalid pattern", "object is blocked", "wrong top level domain name in query", "wrong second level domain name in query", "wrong syntax", "cadena_invalida/invalid_string", "too many requests", "maximum query rate reached", "ratelimit exceeded", "queried interval is too short", "your access is too fast,please try again later", "the whois service is temporarily unavailable", "token: invalid_query_error", "tld not supported by this registry interface", "tld is not supported", "erreur syntax [ domain ]", "whois.nic.bo solo acepta consultas con dominios .bo":
 		return true
 	}
 	return false
@@ -75,7 +78,7 @@ func negativeWHOIS(line string) Result {
 		}
 	}
 	switch strings.TrimRight(line, ".!") {
-	case "not found", "no found", "no entries found", "no match", "nothing found", "nothing found for this query", "object does not exist", "no_se_encontro_el_objeto/object_not_found", "this query returned 0 objects":
+	case "not found", "no found", "no entries found", "no match", "nothing found", "nothing found for this query", "object does not exist", "the queried object does not exist", "no information was found matching that query", "no_se_encontro_el_objeto/object_not_found", "this query returned 0 objects":
 		return NoRecord
 	}
 	if line == "domain is not registered" || line == "domain not registered" || strings.TrimRight(line, ".!") == "the domain has not been registered" {

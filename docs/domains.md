@@ -222,9 +222,13 @@ Unicode names are followed by their ASCII A-label identities. Queries use the AS
 
 ## Verification scope
 
-Verification covers WHOIS-only suffixes and RDAP-primary ccTLD registry formats, with synthetic tests for fallback across country-code and generic TLDs. It includes ordinary registrations, registry-operated names with exceptional records, education/government and other special namespaces, IDN suffixes, and explicit negative candidates. Service responses, parsed records, access limits, and unreachable endpoints remain separate outcomes.
+Verification covers WHOIS-only suffixes and RDAP-primary country-code and generic registry formats. It includes ordinary registrations, registry-operated names with exceptional records, education/government and other special namespaces, IDN suffixes, and explicit negative candidates. Service responses, parsed records, access limits, and unreachable endpoints remain separate outcomes.
 
 Contact scope, date precision, reserved or restricted results, IDN identities, DNSSEC, and protocol-fallback boundaries receive synthetic regression coverage. Developer response bodies remain under ignored `test/whois` and `test/rdap`; runtime does not retain queries or responses.
+
+The 26.10.22.13 generic-registry audit inventoried all **632** RDAP-primary generic suffixes with published WHOIS services, including **71** IDN suffixes. It retained **778** WHOIS responses: **337** registration records, **327** explicit negative replies, and **114** recognized service errors. Every retained response is classified; connection failures, empty responses, and probes stopped after service failures are recorded separately.
+
+Format handling includes thin registry records, full registrant contacts and redactions, IANA `.int` owner addresses, DS data, registry-specific absence phrases, and service retirement, rate-limit and query-syntax notices. A retired WHOIS service remains an operational failure; URLs in its notice are never followed. [ICANN's WHOIS transition announcement](https://www.icann.org/en/announcements/details/icann-update-launching-rdap-sunsetting-whois-27-01-2025-en) explains the gTLD transition to RDAP.
 
 ## Suffixes without an advertised service
 

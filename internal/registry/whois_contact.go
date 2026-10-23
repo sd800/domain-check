@@ -82,6 +82,7 @@ func readWHOISRegistrantContact(domain string, lines []whoisLine, owner string, 
 	if embedded {
 		scope = "registrant"
 	}
+	ianaOwner := strings.HasSuffix(domain, ".int")
 	start := func() {
 		current = &RegistrantContact{}
 		candidates = append(candidates, current)
@@ -105,9 +106,16 @@ func readWHOISRegistrantContact(domain string, lines []whoisLine, owner string, 
 			name, err := normalizeWHOISDomain(value)
 			active = err == nil && name == domain
 			pending, scope = "", "domain"
+			if ianaOwner && active {
+				scope = "registrant"
+			}
 			continue
 		}
 		if !active {
+			continue
+		}
+		if ianaOwner && (key == "contact" || key == "remarks" || key == "source") {
+			scope, pending, plainName = "other-contact", "", false
 			continue
 		}
 		indent := len(token.raw) - len(strings.TrimLeft(token.raw, " \t"))

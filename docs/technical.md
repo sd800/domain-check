@@ -43,6 +43,10 @@ Detailed registrant contacts retain separate name and organization fields: RDAP 
 
 Both languages place Postal Code between State/Province and Country. Simplified Chinese uses the concise labels 邮编, 电话, and 邮箱 for postal code, phone, and email in the detailed view.
 
+Generic registry WHOIS handling covers both thin records and full registrant contacts. Thin records retain only the fields actually supplied; a WHOIS database refresh never fills a missing domain date. IANA `.int` owner organizations and repeated address lines form one disclosed owner block, ending before administrative and technical contacts. `DNSSEC DS Data` uses the same validated key-data handling as other DS labels.
+
+Registry absence dialects include explicit no-information and queried-object-does-not-exist replies. Rate limits, unsupported interfaces, invalid query syntax, empty responses, and service retirement remain operational failures. A retirement notice does not imply domain availability or select a different endpoint.
+
 RDAP parsing consumes domain events and embedded jCard entities. WHOIS parsing tokenizes labeled and multiline records once, identifies object and contact scopes, and applies shared field aliases plus observed registry-family syntax rules. Registry-operated names may have exceptional minimal records, so format verification also uses ordinary benign domains and explicit negative replies.
 
 Dates retain source precision: English uses `YYYY-MM-DD` for dates and `YYYY-MM-DD HH:MM:SS` for timestamps; Chinese uses `YYYY 年 M 月 D 日` with the supplied time appended. The CLI and web interface share the same date presentation function. Explicitly zoned timestamps are converted to UTC and gain ` UTC`; unzoned timestamps retain their wall time. Approximate or unrecognized date text retains the registry's original wording.

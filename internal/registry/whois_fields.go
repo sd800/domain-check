@@ -45,7 +45,7 @@ var whoisKeys = func() map[string]string {
 		"email":        {"registrant email", "registrant e mail", "registrant contact email", "registrant contact e mail", "holder email", "owner email"},
 		"nameserver":   {"name server", "name servers", "nameserver", "nameservers", "nserver", "nservers", "hostname", "host name", "dns", "dns servers", "domain servers", "domain nameservers", "domain name servers", "domain servers in listed order", "name servers information", "name server information", "name server (db)", "primary server", "secondary server"},
 		"dnssec":       {"dnssec", "dnssec signed", "signed", "domain signed"},
-		"ds":           {"ds", "ds record", "ds rdata", "dnskey", "signing key"},
+		"ds":           {"ds", "ds record", "ds rdata", "dnssec ds data", "dnskey", "signing key"},
 	}
 	keys := make(map[string]string)
 	for field, labels := range groups {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.13
+
+- Improve WHOIS compatibility and service-response handling across registry fallback services.
+
 ## 26.10.22.12
 
 - Expand disclosed registrant contact details while preserving established registry-specific layouts.

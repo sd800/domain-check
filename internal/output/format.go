@@ -74,6 +74,11 @@ func Format(w io.Writer, record registry.Record, lang Language, width int) error
 		label := names[index]
 		padding := column - uniseg.StringWidth(label) - 1
 		prefix := label + ":" + strings.Repeat(" ", padding)
+		if index == 6 && registry.Clean(value) == "" {
+			b.WriteString(prefix)
+			b.WriteByte('\n')
+			return
+		}
 		lines := []string{value}
 		if index == 6 || index == 12 || index == 24 { // Registrant and postal lines share one content column.
 			lines = strings.Split(value, "\n")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.23.1
+
+- Refine registrant information layout in Terminal and local browser results.
+
 ## 26.10.22.13
 
 - Improve WHOIS compatibility and service-response handling across registry fallback services.

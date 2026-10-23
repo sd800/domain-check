@@ -63,12 +63,13 @@
       const results = { 'eligibility-restricted': text.eligibilityRestricted, 'usage-restricted': text.usageRestricted, 'not-provided': text.notProvided, 'no-record': record.tld ? text.noTLDRecord : text.noRecord, 'not-registered': text.notRegistered, reserved: text.reserved, 'not-allowed': text.notAllowed, 'registration-restricted': text.restricted, 'not-available': text.notAvailable };
       for (const keys of groups) {
         const dl = document.createElement('dl'); dl.className = 'record-group';
+        const keepRegistrant = keys.includes('registrant') && keys.some(key => key !== 'registrant' && (Array.isArray(record[key]) ? record[key].some(Boolean) : record[key]));
         for (const key of keys) {
           const raw = key === 'result' ? results[record.result] || text.noRecord : language === 'zh' && record.dates_zh && key in record.dates_zh ? record.dates_zh[key] : record[key];
           for (const value of Array.isArray(raw) ? raw : [raw]) {
-            if (!value) continue;
+            if (!value && !(key === 'registrant' && keepRegistrant)) continue;
             const field = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
-            field.className = 'field'; dt.textContent = text[key]; dd.textContent = value;
+            field.className = 'field'; dt.textContent = text[key]; dd.textContent = value || '';
             if (key === 'idn') dd.className = 'idn';
             if (key === 'address' || key === 'street') dd.className = 'address';
             if (key === 'registrant') dd.className = 'registrant';

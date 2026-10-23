@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.10
+
+- Refine README guidance for product usage, browser setup, and privacy.
+
 ## 26.10.22.9
 
 - Add registry WHOIS fallback for country-code domains and expand special-namespace normalization.

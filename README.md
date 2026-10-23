@@ -7,11 +7,11 @@ domain example.com
 domain https://www.example.com/path
 ```
 
-Type a domain name or paste a full URL straight from the browser. The command picks out the domain and prints its key registration details in one aligned view. It supports [1,367 top-level domains](docs/domains.md).
+Type a domain name or paste a full URL copied from your browser. The command picks out the domain and prints its key registration details in one aligned view. An optional [local web interface](#local-web-interface) brings the same lookups to your browser. Domain Check supports [1,367 top-level domains](docs/domains.md).
 
 ## Product statement
 
-Domain Check from Registries is built around a simple principle: **a domain lookup should go straight to the source and come back easy to read.** It works right in the macOS Terminal, from query out to answer back.
+Domain Check from Registries is built around a simple principle: **a domain lookup should go straight to the source and come back easy to read.** It works right on your Mac, in Terminal or your browser, from query out to answer back.
 
 **Send the query straight to the registry.** Searching through commercial domain websites or following registrar referrals exposes interest in a domain name to tracking, giving others a signal to front-run it or hold onto it. Domain Check queries the registry's own RDAP and WHOIS services and never follows registrar referrals. Whether the input is a domain name or a full URL, every lookup goes directly to the registry and nowhere else.
 
@@ -193,13 +193,13 @@ By default, an RDAP `404` is displayed as `No registry record`; for a TLD query,
 
 ## Local web interface
 
-Query from your browser with the same registry-only engine:
+Enable the optional local web interface through the setup menu:
 
 ```sh
 domain setup
 ```
 
-Choose **1 Enable** to start the interface and open [domain-check.localhost:20771](http://domain-check.localhost:20771). Choose **3 Next** to configure automatic startup when you log in to macOS, then **3 Finish**. Both options show their current status. Automatic startup is off initially; disabling it keeps the interface available for the current login session. Disabling the web interface also disables automatic startup.
+On the first screen, choose **1 Enable** to start the interface and open [domain-check.localhost:20771](http://domain-check.localhost:20771), then choose **3 Next**. On the second screen, choose **1 Enable** to start the interface automatically when you log in to macOS, then **3 Finish**. To turn automatic startup off, choose **2 Disable**, then **3 Finish**. Both options show their current status. Automatic startup is off initially; disabling it keeps the interface available for the current login session. Disabling the web interface also disables automatic startup.
 
 The menu also accepts `domain -setup` and `domain --setup`. It uses your account's LaunchAgent and requires no administrator privileges, additional runtime, or hosts-file changes. Run it again to change either setting. Install the executable before enabling the interface so its path remains available.
 
@@ -284,9 +284,9 @@ Domain Check from Registries is designed to keep your domain lookups private.
 
 **Lookups are processed on your Mac.** Domain Check has no remote servers, accounts, or analytics. It prepares each query, formats the registry's response, and displays the result in your Terminal or optional local browser interface. The browser interface runs only on your Mac. When you paste a URL, Domain Check reduces it to its registrable domain on your Mac before sending a query.
 
-**Minimal data is stored.** Domain Check stores your CLI language preference, two complete IANA service-discovery datasets, and settings for the optional local web service. The browser stores only your theme and language choices. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. The local web service keeps no access logs. Your shell and browser may keep their own command or navigation history, according to their settings.
+**Minimal data is stored.** Domain Check stores only your CLI language preference, two complete IANA service-discovery datasets, and settings for the optional local web service. The browser stores only your theme and language choices. Queried domains, pasted URLs, and registry responses are held in memory for the current lookup only and are not saved by Domain Check. The local web service keeps no access logs. Your shell and browser may keep their own command or navigation history, according to their settings.
 
-**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. For ordinary domain lookups, IANA's service-discovery datasets are downloaded in full without disclosing the queried domain or suffix to IANA. When you query a TLD itself, IANA acts as its root registry and receives that TLD query directly. RDAP connections prefer HTTPS when advertised by the registry; `.tw` domain lookups use the registry's WHOIS service.
+**Queries go directly to registries.** Except as described below for `.edu.cn`, the queried domain is sent only to the registry responsible for it. Domain Check does not contact registrars or follow registrar referrals. Registries receive the queried domain and standard connection information, such as your IP address. For ordinary domain lookups, IANA's service-discovery datasets are downloaded in full without disclosing the queried domain or suffix to IANA. When you query a TLD itself, IANA acts as its root registry and receives that TLD query directly. Queries use the registry's RDAP or WHOIS service, preferring HTTPS for RDAP when advertised by the registry.
 
 **Third-party services.** Registries, IANA, GitHub, and DNS providers are independent services, and their own privacy policies govern how they handle your information. Domain Check does not control their practices. Installing or updating Domain Check downloads files from GitHub. As with any internet connection, network operators along the path may be able to observe some traffic, including WHOIS queries, which use a standard protocol without encryption.
 

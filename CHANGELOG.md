@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.22.11
+
+- Clarify registry attribution in lookup results and documentation.
+
 ## 26.10.22.10
 
 - Refine README guidance for product usage, browser setup, and privacy.

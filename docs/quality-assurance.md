@@ -44,7 +44,7 @@ make dist
 | Special namespaces | Keep parent delegations separate from child registrations, reject unrelated or contradictory identities, parse Jisc fields and date-only ordinals, retain JPRS category reservations, recognize exact usage restrictions, and decode NIC Senegal's bounded HTTPS WHOIS envelope without secondary requests. |
 | Contact attribution | Prefer a disclosed registrant organization; do not substitute administrative, technical, billing, or registrar contact values. |
 | Dates | Preserve date precision, normalize recognized formats, use Chinese year/month/day presentation only for Chinese output, convert only explicit zones to UTC, and exclude contact/database timestamps from domain events. |
-| Output | Omit undisclosed fields; align English and Chinese by display cells; preserve grapheme clusters and safe local IDN display; neutralize terminal controls in fields and errors. |
+| Output | Attribute non-disclosure results explicitly to the registry; omit fields absent from or redacted in its response; align English and Chinese by display cells; preserve grapheme clusters and safe local IDN display; neutralize terminal controls in fields and errors. |
 | Availability | Keep no record, not registered, reserved, restricted, unavailable, and operational failure distinct. |
 | Local web API | Accept only loopback clients, allowlisted Hosts, same-origin metadata, JSON and the session token; enforce body, rate, concurrency and time limits; preserve the registry-only engine. |
 | Web rendering | Render remote fields as text, omit missing values, preserve dates and IDN identities, retain the old record while pending, and keep queries out of storage and logs. |

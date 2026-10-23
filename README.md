@@ -154,7 +154,7 @@ The standardized layout with Simplified Chinese labels:
 DNSSEC:       unsigned
 ```
 
-Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language. For ordinary domain RDAP results, a two-letter country code disclosed in the selected registrar's address is appended with one space and square brackets, such as `Example Registrar [US]`. No country is inferred, and TLD allocation results receive no country annotation. For `.edu` WHOIS records, the Registrant row also includes the disclosed department and postal lines, with each continuation aligned beneath the institution name.
+Only fields supplied by the registry are shown. Missing, empty, or explicitly redacted values in the registry's response are omitted. A registry may disclose no registrant name or email; the command does not contact a registrar to fill those gaps. Registry status values and names retain their source language. For ordinary domain RDAP results, a two-letter country code disclosed in the selected registrar's address is appended with one space and square brackets, such as `Example Registrar [US]`. No country is inferred, and TLD allocation results receive no country annotation. For `.edu` WHOIS records, the Registrant row also includes the disclosed department and postal lines, with each continuation aligned beneath the institution name.
 
 WHOIS parsing supports registry-specific labels, contact sections, linked contact objects included in the same response, and multiline nameserver and DNSSEC records. Format checks include non-country namespaces such as `.edu` and `.arpa`, and internationalized top-level domains across scripts. Explicit policy notices remain distinct from registered records and service failures. Domain dates remain separate from contact-object dates, and administrative, technical, and registrar email addresses are not substituted for a registrant email. Access restrictions, timeouts, and unrecognized responses are reported as service errors, keeping them distinct from registration results.
 
@@ -180,14 +180,14 @@ Result:              No registry record
 查询结果:     注册局无记录
 ```
 
-`Domain-specific registration data not provided` (`注册局未提供此域名的独立注册信息`) identifies a namespace-only reply or a recognized non-disclosure response, including the observed `.edu.tw`, `.gov.tw`, and `.mil.tw` cases. It makes no availability claim and does not substitute the parent namespace's manager for the queried domain's registrant.
+`Registry did not provide domain-specific registration data` (`注册局未提供此域名的独立注册信息`) identifies a namespace-only reply or a recognized non-disclosure response, including the observed `.edu.tw`, `.gov.tw`, and `.mil.tw` cases. It makes no availability claim and does not substitute the parent namespace's manager for the queried domain's registrant.
 
 By default, an RDAP `404` is displayed as `No registry record`; for a TLD query, it is `No IANA TLD record` (`IANA 无此顶级域名记录` in Chinese). An absent TLD record makes no claim that the name can be registered. Disclosed TLD statuses such as `inactive` or `reserved` remain visible alongside the allocation details. Registration availability and restrictions are reported through distinct results: `Not registered`, `Reserved`, and `Registration not allowed` reflect explicit registry statements. `Not available for registration` preserves a registry availability restriction, while `Registration restricted (online registration unavailable)` identifies an online-registration restriction. `Domain usage restricted` preserves an explicit registry usage restriction. `Registration eligibility restricted` identifies a disclosed qualification requirement. Timeouts, access denials, rate limits, unsupported suffixes, and malformed responses are reported as errors on stderr.
 
 | Exit code | Meaning |
 | --- | --- |
 | `0` | A registry record was returned, language preferences or IANA data were saved, or setup, the introduction, help, or version finished successfully |
-| `1` | No registry record, registration data not provided, or an explicit registration restriction |
+| `1` | No registry record, the registry did not provide domain-specific data, or an explicit registration restriction |
 | `2` | Invalid arguments or domain |
 | `3` | Discovery, configuration, network, service, response, or output error |
 

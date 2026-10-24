@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.24.2
+
+- Refine product website typography.
+
 ## 26.10.24.1
 
 - Add confirmed uninstallation with scoped application and service cleanup.

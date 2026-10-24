@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.24.3
+
+- Refine the product website's installation visuals.
+
 ## 26.10.24.2
 
 - Refine product website typography.

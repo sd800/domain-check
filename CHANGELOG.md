@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.24.4
+
+- Fix opening the local web interface from external links while preserving API request protections.
+
 ## 26.10.24.3
 
 - Refine the product website's installation visuals.

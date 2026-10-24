@@ -90,6 +90,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Security-Policy", s.csp)
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+	w.Header().Set("Vary", "Origin, Sec-Fetch-Site, Sec-Fetch-Mode, Sec-Fetch-Dest")
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	ip, ipErr := netip.ParseAddr(host)
 	if err != nil || ipErr != nil || !ip.IsLoopback() || !allowedHost(r.Host) {
@@ -101,8 +102,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "none" && site != "same-origin" {
-		http.Error(w, "Cross-origin request rejected", http.StatusForbidden)
-		return
+		if (site != "cross-site" && site != "same-site") || !pageNavigation(r) {
+			http.Error(w, "Cross-origin request rejected", http.StatusForbidden)
+			return
+		}
 	}
 	if r.URL.Path == "/api/lookup" {
 		s.query(w, r)
@@ -166,6 +169,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(s.index)
 		}
 	}
+}
+
+// External links may open the HTML document, but never APIs or embedded resources.
+func pageNavigation(r *http.Request) bool {
+	return (r.Method == http.MethodGet || r.Method == http.MethodHead) &&
+		r.Header.Get("Sec-Fetch-Mode") == "navigate" &&
+		r.Header.Get("Sec-Fetch-Dest") == "document" &&
+		r.URL.Path != "/api" && !strings.HasPrefix(r.URL.Path, "/api/") &&
+		r.URL.Path != "/assets" && !strings.HasPrefix(r.URL.Path, "/assets/") &&
+		r.URL.Path != "/favicon.ico"
 }
 
 func allowedHost(host string) bool {

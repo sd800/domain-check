@@ -34,6 +34,9 @@ func TestWebLookupUsesNormalizedDomainAndNoRecordStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := request(s, "POST", "/api/lookup", `{"input":"https://user:password@www.example.com/path?private=1"}`)
+	r.Header.Set("Sec-Fetch-Site", "same-origin")
+	r.Header.Set("Sec-Fetch-Mode", "cors")
+	r.Header.Set("Sec-Fetch-Dest", "empty")
 	w := httptest.NewRecorder()
 	s.ServeHTTP(w, r)
 	if w.Code != 200 || len(inputs) != 1 || inputs[0] != "example.com" {
@@ -78,6 +81,85 @@ func TestWebOriginHostTokenAndRemoteBoundary(t *testing.T) {
 	}
 }
 
+func TestExternalPageNavigationAndProtectedResources(t *testing.T) {
+	s, _ := New("test", func(context.Context, string) (registry.Record, []string, error) {
+		t.Fatal("navigation or a rejected request reached the registry")
+		return registry.Record{}, nil, nil
+	})
+	for _, site := range []string{"cross-site", "same-site"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			for _, path := range []string{"/", "/example.com", "/cn", "/.com", "/https%3A//www.example.com/path"} {
+				r := request(s, method, path, "")
+				r.Header.Set("Sec-Fetch-Site", site)
+				r.Header.Set("Sec-Fetch-Mode", "navigate")
+				r.Header.Set("Sec-Fetch-Dest", "document")
+				r.Header.Set("Sec-Fetch-User", "?1")
+				r.Header.Set("Referer", "https://github.com/sd800/domain-check")
+				w := httptest.NewRecorder()
+				s.ServeHTTP(w, r)
+				if w.Code != 200 || w.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+					t.Fatal("external page link rejected", method, path, site, w.Code, w.Body.String())
+				}
+				if method == "HEAD" && w.Body.Len() != 0 {
+					t.Fatal("HEAD returned a body")
+				}
+				if w.Header().Get("Access-Control-Allow-Origin") != "" || !strings.Contains(w.Header().Get("Content-Security-Policy"), "frame-ancestors 'none'") {
+					t.Fatal("navigation changed cross-origin access")
+				}
+			}
+		}
+	}
+	for _, test := range []struct{ method, path, mode, destination string }{
+		{"GET", "/", "cors", "empty"},
+		{"GET", "/", "no-cors", "image"},
+		{"GET", "/example.com", "navigate", "iframe"},
+		{"GET", "/", "navigate", "frame"},
+		{"GET", "/", "", ""},
+		{"GET", "/", "navigate", ""},
+		{"GET", "/", "", "document"},
+		{"POST", "/", "navigate", "document"},
+		{"OPTIONS", "/", "navigate", "document"},
+		{"POST", "/api/lookup", "navigate", "document"},
+		{"GET", "/api/lookup", "navigate", "document"},
+		{"GET", "/api/session", "navigate", "document"},
+		{"HEAD", "/api/session", "navigate", "document"},
+		{"GET", "/api/health", "navigate", "document"},
+		{"GET", "/api/missing", "navigate", "document"},
+		{"GET", "/assets/app.js", "navigate", "document"},
+		{"GET", "/assets/style.css", "no-cors", "style"},
+		{"GET", "/favicon.ico", "navigate", "document"},
+	} {
+		r := request(s, test.method, test.path, `{"input":"example.com"}`)
+		r.Header.Del("Origin")
+		r.Header.Set("Sec-Fetch-Site", "cross-site")
+		r.Header.Set("Sec-Fetch-Mode", test.mode)
+		r.Header.Set("Sec-Fetch-Dest", test.destination)
+		r.Header.Set("Sec-Fetch-User", "?1")
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, r)
+		if w.Code != 403 || strings.Contains(w.Body.String(), s.token) {
+			t.Fatal("accepted cross-origin resource request", test, w.Code)
+		}
+	}
+	for _, mutate := range []func(*http.Request){
+		func(r *http.Request) { r.Header.Set("Origin", "https://github.com") },
+		func(r *http.Request) { r.Host = "attacker.test:20771" },
+		func(r *http.Request) { r.RemoteAddr = "192.168.1.1:5000" },
+		func(r *http.Request) { r.Header.Set("Sec-Fetch-Site", "unexpected") },
+	} {
+		r := request(s, "GET", "/", "")
+		r.Header.Set("Sec-Fetch-Site", "cross-site")
+		r.Header.Set("Sec-Fetch-Mode", "navigate")
+		r.Header.Set("Sec-Fetch-Dest", "document")
+		mutate(r)
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, r)
+		if w.Code != 403 {
+			t.Fatal("navigation bypassed request boundary", w.Code)
+		}
+	}
+}
+
 func TestWebInvalidAndOversizedInputDoNotQuery(t *testing.T) {
 	s, _ := New("test", func(context.Context, string) (registry.Record, []string, error) {
 		t.Fatal("invalid input reached registry")
@@ -116,6 +198,11 @@ func TestDeepLinksAssetsAndSecurityHeaders(t *testing.T) {
 		s.ServeHTTP(w, request(s, "GET", path, ""))
 		if w.Code != 200 || w.Body.Len() == 0 {
 			t.Fatal(path, w.Code)
+		}
+		for _, header := range []string{"Origin", "Sec-Fetch-Site", "Sec-Fetch-Mode", "Sec-Fetch-Dest"} {
+			if !strings.Contains(w.Header().Get("Vary"), header) {
+				t.Fatal("cached asset does not vary by request policy", path, header)
+			}
 		}
 	}
 	logo, _ := assets.ReadFile("assets/logo.svg")
@@ -164,7 +251,11 @@ func TestSessionAndNegativeResult(t *testing.T) {
 		return registry.Record{Domain: domain, Result: registry.Reserved}, nil, nil
 	})
 	w := httptest.NewRecorder()
-	s.ServeHTTP(w, request(s, "GET", "/api/session", ""))
+	r := request(s, "GET", "/api/session", "")
+	r.Header.Set("Sec-Fetch-Site", "same-origin")
+	r.Header.Set("Sec-Fetch-Mode", "cors")
+	r.Header.Set("Sec-Fetch-Dest", "empty")
+	s.ServeHTTP(w, r)
 	var session map[string]string
 	_ = json.Unmarshal(w.Body.Bytes(), &session)
 	if session["token"] != s.token || len(session["token"]) != 64 {

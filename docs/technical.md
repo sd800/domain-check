@@ -1,6 +1,6 @@
 # Technical details
 
-Domain Check from Registries is a macOS CLI written in Go, with an optional local browser interface. Its executable is `domain`. Both interfaces share IANA service discovery, local response parsing, and English or Simplified Chinese presentation.
+Domain Check from Registries is a macOS CLI written in Go, with an optional local browser interface. Its Terminal command is `domain`, backed by the `domain-check` executable. Both interfaces share IANA service discovery, local response parsing, and English or Simplified Chinese presentation.
 
 ## Lookup flow
 
@@ -95,7 +95,13 @@ IANA HTTP 404 produces No IANA TLD record, without inferring registration availa
 
 Label width is measured in terminal display cells. The content column follows the longest label's colon by three spaces. `DNSSEC` does not determine the Chinese column. Continuations begin at the same content column; wrapping preserves grapheme clusters. Terminal dimensions take precedence over `COLUMNS`, with an 80-column fallback.
 
-`en`, `zh`, and `auto-lang` accept zero, one, or two leading hyphens. A standalone language command saves and confirms the default. With a domain, URL, help, version, update, or setup, the selection applies only to that invocation and bypasses reading the saved language. The last selector wins. The stored automatic-language value remains `auto` for compatibility; the command is `auto-lang`, and bare `auto` queries the `.auto` TLD. Device language supplies the initial default; explicit locale overrides and fallback behavior are documented in [Usage](../README.md#usage).
+`en`, `zh`, and `auto-lang` accept zero, one, or two leading hyphens. A standalone language command saves and confirms the default. With a domain, URL, help, version, update, setup, or uninstall, the selection applies only to that invocation and bypasses reading the saved language. The last selector wins. The stored automatic-language value remains `auto` for compatibility; the command is `auto-lang`, and bare `auto` queries the `.auto` TLD. Device language supplies the initial default; explicit locale overrides and fallback behavior are documented in [Usage](../README.md#usage).
+
+## Uninstallation
+
+`domain uninstall` and its one- or two-hyphen forms request explicit confirmation with a default of cancel. A complete affirmative line is required. Empty, negative, incomplete, oversized, failed, or interrupted input never authorizes removal. Language selection for this command is temporary, and no registry discovery is performed.
+
+The command validates the resolved `domain-check` executable and its optional sibling `domain` link before changing the installation. It uses the current user's fixed launchd job, distinguishes an absent job from a failed service inspection, and stops a loaded job before deleting known service files. Malformed saved settings do not block removal. Cleanup uses directory-scoped filesystem handles and exact filenames, unlinks file symlinks without following their targets, preserves unknown entries and containing directories, and rechecks executable and command identities before removal. It never recursively removes configuration or cache directories. `make uninstall` invokes the same confirmed command through the installed executable. Source files, private development samples, shell PATH settings, and browser-stored display choices are retained.
 
 ## Local browser interface
 

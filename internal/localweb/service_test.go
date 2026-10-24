@@ -26,7 +26,7 @@ func fakeManager(t *testing.T) (*Manager, *bool, *[]string) {
 		switch args[0] {
 		case "print":
 			if !loaded {
-				return errors.New("not loaded")
+				return errJobNotLoaded
 			}
 		case "bootout":
 			running = false
@@ -40,6 +40,76 @@ func fakeManager(t *testing.T) (*Manager, *bool, *[]string) {
 		return nil
 	}
 	return m, &running, &commands
+}
+
+func TestRemoveUnloadsServiceAndOnlyRemovesItsFiles(t *testing.T) {
+	for _, running := range []bool{false, true} {
+		t.Run(fmt.Sprint(running), func(t *testing.T) {
+			m, active, commands := fakeManager(t)
+			ctx := context.Background()
+			if running {
+				if err := m.SetLogin(ctx, true); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, path := range []string{m.agentPath(false), m.agentPath(true), m.settingsPath()} {
+				if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, []byte("malformed settings are removable"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			other := filepath.Join(filepath.Dir(m.agentPath(true)), "other.plist")
+			if err := os.WriteFile(other, []byte("keep"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			*commands = nil
+			if err := m.Remove(ctx); err != nil {
+				t.Fatal(err)
+			}
+			want := []string{"print " + m.job()}
+			if running {
+				want = append(want, "bootout "+m.job())
+			}
+			if strings.Join(*commands, "|") != strings.Join(want, "|") || *active {
+				t.Fatal("unexpected service actions", *commands, *active)
+			}
+			for _, path := range []string{m.agentPath(false), m.agentPath(true), m.settingsPath()} {
+				if _, err := os.Lstat(path); !os.IsNotExist(err) {
+					t.Fatal("left service file", path, err)
+				}
+			}
+			if data, err := os.ReadFile(other); err != nil || string(data) != "keep" {
+				t.Fatal("changed another job", err)
+			}
+		})
+	}
+}
+
+func TestRemovePreservesFilesWhenServiceCannotStop(t *testing.T) {
+	for _, denied := range []string{"print", "bootout"} {
+		m, _, commands := fakeManager(t)
+		if err := m.SetLogin(context.Background(), true); err != nil {
+			t.Fatal(err)
+		}
+		m.Command = func(_ context.Context, args ...string) error {
+			*commands = append(*commands, strings.Join(args, " "))
+			if args[0] == denied {
+				return os.ErrPermission
+			}
+			return nil
+		}
+		*commands = nil
+		if err := m.Remove(context.Background()); !errors.Is(err, os.ErrPermission) {
+			t.Fatal("ignored service failure", denied, err)
+		}
+		for _, path := range []string{m.agentPath(true), m.settingsPath()} {
+			if _, err := os.Stat(path); err != nil {
+				t.Fatal("removed files after failure", path, err)
+			}
+		}
+	}
 }
 
 func TestWebServiceLifecycleAndNoLoginByDefault(t *testing.T) {

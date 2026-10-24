@@ -26,7 +26,7 @@ install: build
 	@if [ -z "$(DESTDIR)" ]; then "$(PREFIX)/bin/domain" --web-refresh; fi
 
 uninstall:
-	rm -f "$(DESTDIR)$(PREFIX)/bin/domain" "$(DESTDIR)$(PREFIX)/bin/domain-check"
+	"$(DESTDIR)$(PREFIX)/bin/domain-check" uninstall
 
 dist:
 	sh scripts/dist.sh

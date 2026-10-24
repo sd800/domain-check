@@ -33,13 +33,13 @@ func TestLanguageSelectors(t *testing.T) {
 }
 
 func TestCommandNamesTakePrecedenceAndLeadingDotForcesLookup(t *testing.T) {
-	for _, name := range []string{"setup", "update", "help", "version", "en", "zh", "auto-lang"} {
+	for _, name := range []string{"setup", "update", "uninstall", "help", "version", "en", "zh", "auto-lang"} {
 		command, err := parseArgs([]string{name}, output.English)
 		if err != nil || command.domain != "" {
 			t.Fatal(name, command, err)
 		}
 		query, err := parseArgs([]string{"." + name}, output.English)
-		if err != nil || query.domain != name || query.setup || query.update || query.help || query.version || query.preference != "" {
+		if err != nil || query.domain != name || query.setup || query.update || query.uninstall || query.help || query.version || query.preference != "" {
 			t.Fatal("leading dot did not force a TLD lookup", name, query, err)
 		}
 	}

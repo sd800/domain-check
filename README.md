@@ -84,6 +84,7 @@ domain auto-lang                 # Restore device-language detection
 domain update                    # Refresh IANA RDAP and WHOIS data immediately
 domain --update                  # Same explicit refresh
 domain setup                     # Configure the optional local web interface
+domain uninstall                 # Uninstall after an explicit confirmation
 domain 例子.中国                  # Internationalized domain name
 domain 'https://www.example.com/path?item=1&lang=zh'
 domain --help
@@ -102,9 +103,9 @@ Language selectors accept zero, one, or two leading hyphens:
 | Simplified Chinese | `zh`, `-zh`, `--zh` |
 | Device language | `auto-lang`, `-auto-lang`, `--auto-lang` |
 
-The `update`, `setup`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update` and `setup` without a domain or URL.
+The `update`, `setup`, `uninstall`, `help`, and `version` commands also accept zero, one, or two leading hyphens. For example, `domain update`, `domain -update`, and `domain --update` perform the same refresh. `-h` and `-v` remain available as shortcuts for help and version. Language selectors work with these commands, such as `domain zh update`. Run `update`, `setup`, and `uninstall` without a domain or URL.
 
-The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, `update`, or `setup`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto-lang` commands save the default language. With no saved selection, or after standalone `domain auto-lang`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
+The last language selector wins for the current invocation. When supplied with a domain, URL, `help`, `version`, `update`, `setup`, or `uninstall`, it applies only to that invocation and does not change the saved default. Only standalone `domain en`, `domain zh`, or `domain auto-lang` commands save the default language. With no saved selection, or after standalone `domain auto-lang`, the command uses the Mac's first preferred language, with Chinese mapped to Simplified Chinese and other languages mapped to English. In automatic mode, explicit `LC_ALL` or `LC_MESSAGES` values override the device preference; `LANG` is the fallback when the preference cannot be read.
 
 Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. If reading a saved preference fails, other commands can continue in the device language with a warning. An explicit language selector bypasses reading the saved preference.
 
@@ -220,7 +221,13 @@ http://domain-check.localhost:20771/https%3A//www.google.com
 
 The interface follows your device's light or dark appearance and browser language initially. The controls at the top switch between system, light, and dark themes, and between English and Simplified Chinese. These browser preferences are saved independently of the CLI language. All assets are served locally, and text uses system fonts without remote font requests. Long results scroll naturally with the page, and existing results stay visible while the next query runs.
 
-The service listens only on your Mac's loopback addresses. It does not expose the interface to your local network or store lookup history. Updates through the installer or `make install` refresh a loaded interface through its existing LaunchAgent, preserving its settings and startup registration. Repeating an enabled setup option keeps that registration intact. To remove the tool, first disable the interface in `domain setup`.
+The service listens only on your Mac's loopback addresses. It does not expose the interface to your local network or store lookup history. Updates through the installer or `make install` refresh a loaded interface through its existing LaunchAgent, preserving its settings and startup registration. Repeating an enabled setup option keeps that registration intact. Run `domain uninstall` to remove the tool; it stops the interface and removes the login registration after confirmation.
+
+## Uninstall
+
+Run `domain uninstall`, `domain -uninstall`, or `domain --uninstall`. The command asks for confirmation and defaults to cancel. Enter `y` or `yes` and press Return to proceed; a blank answer, a negative answer, end-of-input, or an interrupt cancels without changing the installation. Language selectors remain temporary, for example `domain zh uninstall`.
+
+After confirmation, Domain Check stops its current-user web service and removes its login registration, this installation's executable and command link, CLI and web settings, and IANA cache files. It requires no administrator access. Source files, developer samples, unrelated files, containing directories, and the standard shell PATH entry are preserved. Browser appearance and language preferences remain in the browser. If a service or filesystem operation fails, the command reports the failure; it does not request elevated access.
 
 ## Registry-only queries
 

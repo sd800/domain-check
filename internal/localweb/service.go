@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -22,6 +23,8 @@ import (
 )
 
 const serviceLabel = "localhost.domain-check.web"
+
+var errJobNotLoaded = errors.New("web service is not loaded")
 
 type Settings struct {
 	Enabled bool `json:"enabled"`
@@ -81,6 +84,10 @@ func NewManager(version string) (*Manager, error) {
 		defer cancel()
 		cmd := exec.CommandContext(ctx, "/bin/launchctl", args...)
 		if err := cmd.Run(); err != nil {
+			var exit *exec.ExitError
+			if args[0] == "print" && errors.As(err, &exit) && exit.ExitCode() == 113 {
+				return errJobNotLoaded
+			}
 			return fmt.Errorf("launchctl %s failed: %w", args[0], err)
 		}
 		return nil
@@ -346,6 +353,27 @@ func (m *Manager) SetEnabled(ctx context.Context, on bool) error {
 	}
 	settings.Enabled = on
 	return m.Apply(ctx, settings)
+}
+
+// Remove stops this user's job before removing its known registration files.
+// It works even when saved settings are malformed and never registers a job.
+func (m *Manager) Remove(ctx context.Context) error {
+	if m.Platform != "darwin" {
+		return fmt.Errorf("uninstall requires macOS")
+	}
+	err := m.Command(ctx, "print", m.job())
+	if err != nil && !errors.Is(err, errJobNotLoaded) {
+		return err
+	}
+	if err == nil {
+		if err := m.Command(ctx, "bootout", m.job()); err != nil {
+			return err
+		}
+	}
+	if err := safeio.RemoveFiles(filepath.Dir(m.agentPath(true)), filepath.Base(m.agentPath(true))); err != nil {
+		return err
+	}
+	return safeio.RemoveFiles(m.ConfigDir, "web-agent.plist", "web.json")
 }
 func (m *Manager) SetLogin(ctx context.Context, on bool) error {
 	settings, err := m.Load()

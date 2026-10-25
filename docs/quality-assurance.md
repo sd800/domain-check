@@ -7,7 +7,8 @@ This document defines the checks required to change, build, and release Domain C
 - Go 1.27.3 or newer, with dependency versions and checksums from `go.mod` and `go.sum`.
 - macOS 13 (Ventura) or later for the CLI and native installation; releases include Apple Silicon and Intel executables. The installer must reject older systems before replacing an existing executable.
 - macOS and Linux GitHub runners for portable Go regression tests. Linux installer tests simulate macOS system responses and use isolated paths; macOS tests exercise the actual system archive utilities.
-- Python 3 for the offline installer security suite.
+- Python 3 for the offline installer security suite and static website checks.
+- Node.js for the website redirect checks, using only built-in modules.
 - Network access for the official vulnerability database and optional live checks. Core regression tests use synthetic responses and injected transports.
 
 CI reads the release toolchain from `go.mod` and runs vulnerability scanning with that toolchain. Toolchain changes receive the same validation before release.
@@ -64,7 +65,7 @@ On macOS, test the actual two-step setup menu with web enable/disable and login 
 
 ## Public website verification
 
-Run `python3 scripts/check_website.py` after changing `web/` or the README installation block. It checks local assets, relative paths, anchor targets, classic offline scripts, and exact agreement between the website's copyable command and the README. The Pages workflow runs this check before publication and uploads only `web/`.
+Run `python3 scripts/check_website.py` and `node scripts/test_website_redirects.mjs` after changing `web/` or the README installation block. It checks local assets, relative paths, anchor targets, classic offline scripts, and exact agreement between the website's copyable command and the README. Redirect checks exercise the actual startup script with root, alias, query/fragment, preview, and local-file URLs, and verify that redirects stay on the same origin. The Pages workflow runs both checks before publication and uploads only `web/`.
 
 Inspect the public site at desktop and phone widths, in both languages and system/light/dark appearance. Verify heading proportions, readable text, no horizontal page overflow, keyboard focus, section links, preference persistence on reload, and both copy buttons. Confirm that illustrative output is identified as such and no lookup form or analytics is introduced. Open `web/index.html` directly where the browser permits local-file navigation; local assets and clipboard fallback must work without a development server. Browser environments that prohibit `file://` navigation can verify HTTP behavior and the relative-asset contract separately.
 

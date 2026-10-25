@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.25.1
+
+- Normalize hosted homepage URLs while preserving local browsing support.
+
 ## 26.10.24.4
 
 - Fix opening the local web interface from external links while preserving API request protections.

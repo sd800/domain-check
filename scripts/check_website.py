@@ -38,7 +38,7 @@ class Page(HTMLParser):
             assert "alt" in attrs, "Images need an alt attribute"
         for key in ("src", "href"):
             if key in attrs:
-                resource = tag != "a"
+                resource = tag != "a" and not (tag == "link" and attrs.get("rel") == "canonical")
                 self.references.append((attrs[key], resource))
         assert "srcset" not in attrs, "Check all responsive asset references explicitly"
 

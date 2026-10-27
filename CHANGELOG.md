@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.27.1
+
+- Improve the visibility of local browser query notices while preserving previous results.
+
 ## 26.10.25.1
 
 - Normalize hosted homepage URLs while preserving local browsing support.

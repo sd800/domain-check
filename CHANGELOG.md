@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.31.1
+
+- Refine system font preferences in the local web interface.
+
 ## 26.10.27.1
 
 - Improve the visibility of local browser query notices while preserving previous results.

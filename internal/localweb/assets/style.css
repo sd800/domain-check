@@ -11,3 +11,6 @@
 
 .field dd.address,.field dd.registrant{white-space:pre-line}
 #record a{color:inherit;text-decoration:none;pointer-events:none}
+.date-calendar{display:inline-grid;width:calc(8ch + 4em);max-width:100%;grid-template-columns:4ch 1em 2ch 1em 2ch 1em;justify-content:space-between;white-space:nowrap;vertical-align:baseline}
+.date-calendar>span:nth-child(odd){text-align:center}
+.date-clock{white-space:nowrap}

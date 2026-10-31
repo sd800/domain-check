@@ -35,6 +35,26 @@
     if (code === 'unavailable') return t().unavailable;
     return t().failed;
   };
+  function alignChineseDate(target, value) {
+    const parts = /^(\d{4}) 年 (\d{1,2}) 月 (\d{1,2}) 日(?: (\d{2}:\d{2}:\d{2})( UTC)?)?$/.exec(value);
+    if (!parts) return;
+    const calendar = document.createElement('span');
+    calendar.className = 'date-calendar';
+    for (const part of [parts[1], '年', parts[2], '月', parts[3], '日']) {
+      const span = document.createElement('span');
+      span.textContent = part;
+      // Keep the original text and spaces when copying or reading the date.
+      if (calendar.children.length) calendar.append(' ');
+      calendar.append(span);
+    }
+    target.replaceChildren(calendar);
+    if (parts[4]) {
+      const clock = document.createElement('span');
+      clock.className = 'date-clock';
+      clock.textContent = parts[4] + (parts[5] || '');
+      target.append(' ', clock);
+    }
+  }
   function render() {
     const text = t();
     root.lang = language === 'zh' ? 'zh-CN' : 'en';
@@ -73,6 +93,7 @@
             if (key === 'idn') dd.className = 'idn';
             if (key === 'address' || key === 'street') dd.className = 'address';
             if (key === 'registrant') dd.className = 'registrant';
+            if (language === 'zh' && ['registration', 'expiration', 'changed'].includes(key)) alignChineseDate(dd, value);
             field.append(dt, dd); dl.append(field);
           }
         }

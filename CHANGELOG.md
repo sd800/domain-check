@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.10.31.2
+
+- Refine Chinese date alignment in local browser results.
+
 ## 26.10.31.1
 
 - Refine system font preferences in the local web interface.

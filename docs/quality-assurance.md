@@ -110,7 +110,7 @@ cd build/dist
 shasum -a 256 -c "checksums_$(cat ../../VERSION).txt"
 ```
 
-Archives must contain one regular `domain-check` executable, the root release documents, and only the expected public documentation paths. Verify that installation creates the `domain` command as a relative link to `domain-check`, replaces either destination's symlink without following it, and rejects ambiguous archives containing both executable names. LaunchAgents must reference the resolved `domain-check` executable. Failed verification must not replace an installed executable.
+Release archive names must use `apple-silicon` for arm64 builds and `intel` for amd64 builds. Verify automatic selection for both Mac architectures, preference for readable names, compatibility with earlier archive names, and refusal when no matching asset is present. Archives must contain one regular `domain-check` executable, the root release documents, and only the expected public documentation paths. Verify that installation creates the `domain` command as a relative link to `domain-check`, replaces either destination's symlink without following it, and rejects ambiguous archives containing both executable names. LaunchAgents must reference the resolved `domain-check` executable. Failed verification must not replace an installed executable.
 
 ## Release gate
 

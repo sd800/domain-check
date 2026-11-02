@@ -44,7 +44,7 @@ SH
 
 The [commented installer](scripts/install.sh) puts the executable in `~/.local/bin` and adds a standard `PATH` entry to `${ZDOTDIR:-$HOME}/.zshrc` only once. The block above also sets `PATH` in the current terminal and prints the installed version; no restart is needed. Run the same block again to install the latest release.
 
-Archives and checksum files are also available on the [Releases page](https://github.com/sd800/domain-check/releases).
+Archives and checksum files are also available on the [Releases page](https://github.com/sd800/domain-check/releases). Choose an `apple-silicon` archive for a Mac with an Apple chip, or an `intel` archive for an Intel-based Mac.
 
 <details>
 <summary>Build and install from source</summary>

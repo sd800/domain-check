@@ -30,7 +30,7 @@ class InstallerSecurityTests(unittest.TestCase):
         self.fixture = self.root / "downloads"
         self.fixture.mkdir()
         self.version = "26.10.21.26"
-        self.archive = f"domain-check_{self.version}_darwin_arm64.tar.gz"
+        self.archive = f"domain-check_{self.version}_darwin_apple-silicon.tar.gz"
         self.python_tool("uname", 'print("Darwin" if sys.argv[1] == "-s" else "arm64")')
         self.python_tool("sw_vers", 'print("13.0")')
         self.python_tool("plutil", 'value=json.loads(Path(sys.argv[-1]).read_text())[sys.argv[2]]; print(json.dumps(value) if isinstance(value, (list, dict)) else value)')
@@ -67,9 +67,11 @@ destination.write_bytes(source.read_bytes())
         tool.write_text(f"#!{sys.executable}\nimport sys, os, json\nfrom pathlib import Path\n" + code + "\n")
         tool.chmod(0o755)
 
-    def make_archive(self, attack=None):
+    def make_archive(self, attack=None, architecture=None):
         entry = 'domain' if attack == 'legacy-flat' else 'domain-check'
-        self.archive = f"{entry}_{self.version}_darwin_arm64.tar.gz"
+        if architecture is None:
+            architecture = 'arm64' if attack == 'legacy-flat' else 'apple-silicon'
+        self.archive = f"{entry}_{self.version}_darwin_{architecture}.tar.gz"
         (self.fixture / "release.json").write_text(json.dumps({"tag_name": "v" + self.version, 'assets': [{'name': self.archive}]}))
         with tarfile.open(self.fixture / self.archive, "w:gz") as archive:
             names = [entry, "README.md", "CHANGELOG.md", "LICENSE", "VERSION"]
@@ -116,9 +118,51 @@ destination.write_bytes(source.read_bytes())
         self.assertEqual(self.profile.read_text().count('export PATH="$HOME/.local/bin:$PATH"'), 1)
 
     def test_previous_flat_release_remains_installable(self):
-        self.make_archive("legacy-flat")
-        self.run_installer()
-        self.assertEqual((self.target / "domain").read_bytes(), b"synthetic executable")
+        for machine, label in [('arm64', 'arm64'), ('x86_64', 'amd64')]:
+            with self.subTest(machine=machine):
+                self.python_tool('uname', f'print("Darwin" if sys.argv[1] == "-s" else {machine!r})')
+                self.make_archive('legacy-flat', architecture=label)
+                result = self.run_installer()
+                self.assertIn(self.archive + ': OK', result.stdout)
+                self.assertEqual((self.target / "domain").read_bytes(), b"synthetic executable")
+
+    def test_readable_and_previous_architecture_names(self):
+        for machine, label in [('arm64', 'apple-silicon'), ('x86_64', 'intel'),
+                               ('arm64', 'arm64'), ('x86_64', 'amd64')]:
+            with self.subTest(machine=machine, label=label):
+                self.python_tool('uname', f'print("Darwin" if sys.argv[1] == "-s" else {machine!r})')
+                self.make_archive(architecture=label)
+                result = self.run_installer()
+                self.assertIn(self.archive + ': OK', result.stdout)
+                self.assertEqual((self.target / 'domain').read_bytes(), b'synthetic executable')
+
+    def test_readable_architecture_name_is_preferred(self):
+        for machine, previous, current in [('arm64', 'arm64', 'apple-silicon'),
+                                           ('x86_64', 'amd64', 'intel')]:
+            with self.subTest(machine=machine):
+                self.python_tool('uname', f'print("Darwin" if sys.argv[1] == "-s" else {machine!r})')
+                self.make_archive(architecture=previous)
+                previous_name = self.archive
+                self.make_archive(architecture=current)
+                (self.fixture / 'release.json').write_text(json.dumps({
+                    'tag_name': 'v' + self.version,
+                    'assets': [{'name': previous_name}, {'name': self.archive}],
+                }))
+                result = self.run_installer()
+                self.assertIn(self.archive + ': OK', result.stdout)
+
+    def test_missing_matching_architecture_preserves_installation(self):
+        previous = self.target / 'domain'
+        previous.write_bytes(b'previous executable')
+        for assets in [[], [{'name': f'domain-check_{self.version}_darwin_intel.tar.gz'}]]:
+            with self.subTest(assets=assets):
+                (self.fixture / 'release.json').write_text(json.dumps({
+                    'tag_name': 'v' + self.version, 'assets': assets,
+                }))
+                result = self.run_installer(success=False)
+                self.assertIn('No release archive', result.stderr)
+                self.assertEqual(previous.read_bytes(), b'previous executable')
+                self.assertFalse(self.profile.exists())
 
     def test_installed_executable_refreshes_its_own_web_service(self):
         source = self.root / "source"

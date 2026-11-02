@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.11.2.3
+
+- Use clearer Mac chip names for release downloads and automatic installation.
+
 ## 26.11.2.2
 
 - Refine product website installation instructions.

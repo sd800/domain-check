@@ -49,8 +49,8 @@ if [ "$binary_only" = true ]; then
 elif [ "$#" -eq 0 ]; then
   # Match the release architecture to the Mac running this installer.
   case "$(uname -m)" in
-    arm64) arch=arm64 ;;
-    x86_64) arch=amd64 ;;
+    arm64) arch=apple-silicon; previous_arch=arm64 ;;
+    x86_64) arch=intel; previous_arch=amd64 ;;
     *) printf '%s\n' 'Unsupported Mac architecture.' >&2; exit 1 ;;
   esac
 
@@ -64,10 +64,20 @@ elif [ "$#" -eq 0 ]; then
     exit 1
   fi
   version=${tag#v}
-  archive="domain-check_${version}_darwin_${arch}.tar.gz"
-  # The latest published release may still precede the executable rename.
-  if ! /usr/bin/plutil -extract assets json -o - "$work/release.json" 2>/dev/null | grep -Fq "\"$archive\""; then
-    archive="domain_${version}_darwin_${arch}.tar.gz"
+  /usr/bin/plutil -extract assets json -o - "$work/release.json" > "$work/assets.json"
+  archive=
+  # Prefer readable chip names, while also accepting earlier release naming.
+  for candidate in "domain-check_${version}_darwin_${arch}.tar.gz" \
+    "domain-check_${version}_darwin_${previous_arch}.tar.gz" \
+    "domain_${version}_darwin_${previous_arch}.tar.gz"; do
+    if grep -Fq "\"$candidate\"" "$work/assets.json"; then
+      archive=$candidate
+      break
+    fi
+  done
+  if [ -z "$archive" ]; then
+    printf '%s\n' 'No release archive is available for this Mac architecture.' >&2
+    exit 1
   fi
   base="https://github.com/sd800/domain-check/releases/download/$tag"
   download "$work/$archive" "$base/$archive"

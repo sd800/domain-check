@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.11.2.1
+
+- Ignore whitespace in local browser lookup input.
+
 ## 26.10.31.2
 
 - Refine Chinese date alignment in local browser results.

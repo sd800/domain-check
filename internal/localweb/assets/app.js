@@ -115,7 +115,8 @@
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (theme === 'auto') updateTheme('auto'); });
   $('language').addEventListener('click', () => { language = language === 'en' ? 'zh' : 'en'; persist('domain-check.language', language); render(); });
   async function lookup(input) {
-    input = input.trim();
+    input = input.replace(/[\s\p{White_Space}]/gu, '');
+    $('domain').value = input;
     if (!input) {
       ++requestID;
       if (controller) controller.abort();

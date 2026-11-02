@@ -154,7 +154,6 @@ h3 { font-size: 18px; font-weight: 400; margin-top: 14px; }
 .install-code { min-width: 0; background: var(--background); border-radius: 7px; border: 1px solid var(--line); overflow: hidden; }
 .install-code-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding: 13px 19px; font-size: 10px; color: var(--muted); }
 .install-code pre { margin: 0; padding: 21px 19px 18px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10.5px; line-height: 1.8; color: var(--ink); }
-.install-code > p { font-size: 10px; color: var(--muted); padding: 0 19px 17px; }
 .site-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 26px; padding: 45px 0 39px; color: var(--muted); font-size: 11px; }
 .footer-brand { display: flex; align-items: center; gap: 9px; }
 .footer-links { display: flex; align-items: center; gap: 24px; margin-left: auto; }
@@ -277,7 +276,6 @@ h3 { font-size: 18px; font-weight: 400; margin-top: 14px; }
   .install-section h2 { font-size: 32px; }
   .install-code-header { padding: 12px; font-size: 9px; }
   .install-code pre { padding: 16px 12px; font-size: 9px; line-height: 1.9; }
-  .install-code > p { padding: 0 12px 14px; font-size: 9px; }
   .site-footer { gap: 20px; padding: 33px 0; }
   .footer-brand { width: 100%; }
   .footer-links { gap: 20px; font-size: 10px; }

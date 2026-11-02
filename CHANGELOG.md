@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.11.2.2
+
+- Refine product website installation instructions.
+
 ## 26.11.2.1
 
 - Ignore whitespace in local browser lookup input.

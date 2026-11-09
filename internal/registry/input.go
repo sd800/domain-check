@@ -19,16 +19,20 @@ func NormalizeInput(input string) (string, error) {
 	if strings.ContainsAny(input, "\r\n\t") {
 		return "", fmt.Errorf("expected one domain or URL")
 	}
-	isURL := strings.Contains(input, "://") || strings.ContainsAny(input, "/?#:")
-	if !isURL {
+	if prefix, target, ok := strings.Cut(input, ":"); ok && strings.EqualFold(prefix, "site") {
+		input = strings.TrimSpace(target)
+	}
+	if !strings.ContainsAny(input, "/?#:@") {
 		return normalizeQueryIdentity(input)
 	}
 	value := input
-	if !strings.Contains(value, "://") {
-		// Scheme-less web addresses are accepted; email addresses are not URLs.
-		if strings.Contains(strings.SplitN(value, "/", 2)[0], "@") {
-			return "", fmt.Errorf("expected a domain or URL with a hostname")
+	scheme, afterColon, _ := strings.Cut(input, ":")
+	if !strings.HasPrefix(afterColon, "//") || strings.ContainsAny(scheme, "/?#@") {
+		// Keep mail links distinct from scheme-less credentials.
+		if strings.EqualFold(scheme, "mailto") {
+			return "", fmt.Errorf("invalid URL hostname")
 		}
+		// Force authority parsing so a user:password pair is not mistaken for a scheme.
 		value = "//" + strings.TrimPrefix(value, "//")
 	}
 	u, err := url.Parse(value)

@@ -40,6 +40,14 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"https://user.blogspot.co.uk/post":               "blogspot.co.uk",
 		"https://user:password@www.example.com/private":  "example.com",
 		"https://www.example.com./":                      "example.com",
+
+		"hello@example.com":                                    "example.com",
+		"alice:123456@example.com":                             "example.com",
+		"//alice:123456@www.example.com:8443/private":          "example.com",
+		"alice:p%40ss@www.例子.中国/path?next=https://example.com": "xn--fsqu00a.xn--fiqs8s",
+		"site:example.com":                                     "example.com",
+		" SITE: www.example.com ":                              "www.example.com",
+		"site:https://www.example.com/":                        "example.com",
 	} {
 		t.Run(input, func(t *testing.T) {
 			got, err := NormalizeInput(input)
@@ -53,6 +61,8 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"https:///missing-host", "mailto:user@example.com",
 		"file:///etc/passwd", "https://example.com:invalid/", "https://user:secret@/path",
 		"https://-bad.com/", "https://exa\nmple.com/", "example.com\nother.com",
+		"alice:secret@/path", "alice:secret@127.0.0.1", "alice:secret@\nexample.com",
+		"alice:p%ZZ@www.example.com", "MAILTO:user@example.com", "site:", "site:example.com other",
 		"..github.io", "..cn", ".", "123", "-cn",
 	} {
 		if _, err := NormalizeInput(input); err == nil {
@@ -71,7 +81,7 @@ func TestTLDInputDoesNotRelaxServiceOrWHOISValidation(t *testing.T) {
 }
 
 func TestURLLookupOnlyContactsRegistry(t *testing.T) {
-	domain, err := NormalizeInput("https://user:secret@www.example.com/private?token=secret#section")
+	domain, err := NormalizeInput("site:user:secret@www.example.com/private?token=secret#section")
 	if err != nil {
 		t.Fatal(err)
 	}

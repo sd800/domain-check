@@ -33,7 +33,7 @@ func TestWebLookupUsesNormalizedDomainAndNoRecordStorage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := request(s, "POST", "/api/lookup", `{"input":"https://user:password@www.example.com/path?private=1"}`)
+	r := request(s, "POST", "/api/lookup", `{"input":"site:user:password@www.example.com/path?private=1"}`)
 	r.Header.Set("Sec-Fetch-Site", "same-origin")
 	r.Header.Set("Sec-Fetch-Mode", "cors")
 	r.Header.Set("Sec-Fetch-Dest", "empty")

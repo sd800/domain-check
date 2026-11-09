@@ -1,5 +1,9 @@
 # Changelog
 
+## 26.11.9.1
+
+- Accept scheme-less URLs with user information and inputs with a leading `site:` prefix.
+
 ## 26.11.2.3
 
 - Use clearer Mac chip names for release downloads and automatic installation.

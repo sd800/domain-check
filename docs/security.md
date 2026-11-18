@@ -48,7 +48,7 @@ Quote pasted URLs containing shell metacharacters so the shell passes the comple
 
 ## Verification
 
-With Go 1.27.3 or newer, Python 3, and network access for the public vulnerability database:
+With Go 1.27.4 or newer, Python 3, and network access for the public vulnerability database:
 
 ```sh
 make check

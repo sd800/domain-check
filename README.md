@@ -49,7 +49,7 @@ Archives and checksum files are also available on the [Releases page](https://gi
 <details>
 <summary>Build and install from source</summary>
 
-Requires Go 1.27.3 or newer and Git. Run this block from the directory where you want the checkout. It builds the executable, uses the same installer for installation and future zsh sessions, then enables `domain` in the current terminal:
+Requires Go 1.27.4 or newer and Git. Run this block from the directory where you want the checkout. It builds the executable, uses the same installer for installation and future zsh sessions, then enables `domain` in the current terminal:
 
 ```sh
 git clone https://github.com/sd800/domain-check.git &&
@@ -109,11 +109,11 @@ The last language selector wins for the current invocation. When supplied with a
 
 Preferences are stored at `~/Library/Application Support/domain-check/config.json` on macOS. Set `DOMAIN_CONFIG_DIR` to use another configuration directory. Preferences are separate from the IANA cache, so deleting cached bootstrap data does not reset the language. Invalid arguments do not change the saved preference. If a standalone language command cannot save its preference, it reports the failure and returns exit code `3`. If reading a saved preference fails, other commands can continue in the device language with a warning. An explicit language selector bypasses reading the saved preference.
 
-Pass one domain or URL per invocation. URLs are automatically reduced to their registrable domain: `https://www.example.com:8443/path?item=1` queries `example.com`, and `https://www.example.co.uk/` queries `example.co.uk`. Both interfaces accept addresses without a scheme, including `www.example.com/path`, `hello@example.com`, and `alice:123456@example.com`. Both interfaces ignore a leading `site:` prefix, so `site:example.com` queries `example.com`. The URL's scheme, credentials, port, path, query, and fragment are not sent to the registry, and the URL itself is never fetched. Private hosting suffixes are reduced to the registry-level domain; for example, `https://user.github.io/` queries `github.io`.
+Pass one domain, hostname, or URL per invocation. Inputs are automatically reduced to their registrable domain: `https://www.example.com:8443/path?item=1` queries `example.com`, and `https://www.example.co.uk/` queries `example.co.uk`. Both interfaces accept addresses without a scheme, including `www.example.com/path`, `hello@example.com`, and `alice:123456@example.com`. Both interfaces ignore a leading `site:` prefix, so `site:example.com` queries `example.com`. The URL's scheme, credentials, port, path, query, and fragment are not sent to the registry, and the URL itself is never fetched. Private hosting suffixes are reduced to the registry-level domain; for example, `https://user.github.io/` queries `github.io`.
 
 Quote URLs containing shell-special characters such as `?`, `&`, `*`, or parentheses, as shown above, so the shell passes the complete URL to `domain`.
 
-Direct domain inputs retain their normalized identity. One leading dot is ignored, so `domain .github.io` queries `github.io`; a trailing dot is also accepted. Single-label names query the TLD itself: `domain cn` and `domain .cn` both retrieve its allocation record directly from IANA RDAP. Bare command names take priority, so `domain setup` opens settings while `domain .setup` queries that TLD name. `auto` now queries the `.auto` TLD; use `auto-lang` for device-language detection. Internationalized names, including emoji and joined emoji sequences, are converted to ASCII/Punycode for querying. The domain line shows that ASCII name, with a separate Unicode display name when it can be decoded and validated.
+Bare hostnames use the same registry-level domain as URLs. For example, `www.example.com` queries `example.com`, and `www.example.org.cn` queries `example.org.cn`. One leading dot is ignored, so `domain .github.io` queries `github.io`; a trailing dot is also accepted. Single-label names query the TLD itself: `domain cn` and `domain .cn` both retrieve its allocation record directly from IANA RDAP. Bare command names take priority, so `domain setup` opens settings while `domain .setup` queries that TLD name. `auto` now queries the `.auto` TLD; use `auto-lang` for device-language detection. Internationalized names, including emoji and joined emoji sequences, are converted to ASCII/Punycode for querying. The domain line shows that ASCII name, with a separate Unicode display name when it can be decoded and validated.
 
 ## Output
 

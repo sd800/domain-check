@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.11.18.1
+
+- Normalize bare hostnames and URLs consistently to their registry-level domains.
+- Update the release toolchain with current security fixes.
+
 ## 26.11.9.1
 
 - Accept scheme-less URLs with user information and inputs with a leading `site:` prefix.

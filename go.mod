@@ -1,6 +1,6 @@
 module github.com/sd800/domain-check
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/rivo/uniseg v0.4.7

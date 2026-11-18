@@ -81,6 +81,33 @@ func TestWebOriginHostTokenAndRemoteBoundary(t *testing.T) {
 	}
 }
 
+func TestWebBareHostnamesUseRegistryDomain(t *testing.T) {
+	var queried string
+	s, err := New("test", func(_ context.Context, domain string) (registry.Record, []string, error) {
+		queried = domain
+		return registry.Record{Domain: domain}, nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for input, want := range map[string]string{
+		"www.example.org":            "example.org",
+		"www.example.org.cn":         "example.org.cn",
+		"site:mail.example.co.uk":    "example.co.uk",
+		"user:secret@www.example.cn": "example.cn",
+	} {
+		body, _ := json.Marshal(map[string]string{"input": input})
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, request(s, "POST", "/api/lookup", string(body)))
+		var result struct {
+			Record struct{ Domain string } `json:"record"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil || w.Code != 200 || queried != want || result.Record.Domain != want {
+			t.Fatalf("input %q: status %d, query %q, result %+v, error %v", input, w.Code, queried, result, err)
+		}
+	}
+}
+
 func TestExternalPageNavigationAndProtectedResources(t *testing.T) {
 	s, _ := New("test", func(context.Context, string) (registry.Record, []string, error) {
 		t.Fatal("navigation or a rejected request reached the registry")

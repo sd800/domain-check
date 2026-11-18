@@ -3,6 +3,7 @@ package registry
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"net.cn":           "net.cn",
 		"home.cn":          "home.cn",
 		"example.net.cn":   "example.net.cn",
-		"WWW.EXAMPLE.COM.": "www.example.com",
+		"WWW.EXAMPLE.COM.": "example.com",
 		"https://www.example.com:8443/path?item=1&lang=zh#section": "example.com",
 		"http://mail.example.com/":                                 "example.com",
 		"ftp://files.example.com/pub/":                             "example.com",
@@ -46,8 +47,12 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"//alice:123456@www.example.com:8443/private":          "example.com",
 		"alice:p%40ss@www.例子.中国/path?next=https://example.com": "xn--fsqu00a.xn--fiqs8s",
 		"site:example.com":                                     "example.com",
-		" SITE: www.example.com ":                              "www.example.com",
+		" SITE: www.example.com ":                              "example.com",
 		"site:https://www.example.com/":                        "example.com",
+		"www.example.com/path?next=https://other.test":         "example.com",
+		"www.example.com?next=https://other.test":              "example.com",
+		"www.example.com#https://other.test":                   "example.com",
+		"。中国":                                                  "xn--fiqs8s",
 	} {
 		t.Run(input, func(t *testing.T) {
 			got, err := NormalizeInput(input)
@@ -63,10 +68,57 @@ func TestDomainAndURLInputs(t *testing.T) {
 		"https://-bad.com/", "https://exa\nmple.com/", "example.com\nother.com",
 		"alice:secret@/path", "alice:secret@127.0.0.1", "alice:secret@\nexample.com",
 		"alice:p%ZZ@www.example.com", "MAILTO:user@example.com", "site:", "site:example.com other",
+		"www..example.com", "-bad.example.com", "bad_.example.com",
+		strings.Repeat("a", 64) + ".example.com",
+		"https://[www.example.com]/", "//[example.com]:443/", "owner:secret@[example.com]",
+		"。．example.com", ".。example.com", "https://。．example.com/",
 		"..github.io", "..cn", ".", "123", "-cn",
 	} {
 		if _, err := NormalizeInput(input); err == nil {
 			t.Errorf("accepted invalid input %q", input)
+		}
+	}
+}
+
+func TestBareHostsAndURLsUseTheSameRegistryDomain(t *testing.T) {
+	for host, want := range map[string]string{
+		"www.example.org":               "example.org",
+		"www.example.org.cn":            "example.org.cn",
+		"www2.mail.example.co.uk":       "example.co.uk",
+		"api.department.example.edu.cn": "example.edu.cn",
+		"www.example。org．cn.":           "example.org.cn",
+		"www.例子.中国":                     "xn--fsqu00a.xn--fiqs8s",
+		"www.👩‍💻.ws":                    "xn--1ug1855pcha.ws",
+		"www.user.github.io":            "github.io",
+		"mail.user.blogspot.co.uk":      "blogspot.co.uk",
+		"a.b.example.unknown-tld":       "example.unknown-tld",
+		"a.b.example.ck":                "b.example.ck",
+		"www.www.ck":                    "www.ck",
+		"www.city.kawasaki.jp":          "city.kawasaki.jp",
+		"www.gov.uk":                    "www.gov.uk",
+		"www.com":                       "www.com",
+		"www.example.com.other.test":    "other.test",
+		"net.cn":                        "net.cn",
+		"co.uk":                         "co.uk",
+		"github.io":                     "github.io",
+	} {
+		for _, input := range []string{host, "." + host, "。" + host, "．" + host, "｡" + host, "site:" + host,
+			"https://" + host + "/private", "//" + host,
+			"user:secret@" + host + ":8443/path", "site:https://" + host + "/"} {
+			t.Run(input, func(t *testing.T) {
+				got, err := NormalizeInput(input)
+				if err != nil || got != want {
+					t.Fatalf("got %q, %v; want %q", got, err, want)
+				}
+			})
+		}
+	}
+	for input, want := range map[string]string{
+		"www.example.com@other.test":         "other.test",
+		"https://example.com@www.other.test": "other.test",
+	} {
+		if got, err := NormalizeInput(input); err != nil || got != want {
+			t.Fatalf("userinfo changed host selection: %q became %q, %v", input, got, err)
 		}
 	}
 }

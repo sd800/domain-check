@@ -68,6 +68,8 @@ func TestURLArgumentsWithLanguageSelectors(t *testing.T) {
 		{"--zh", "https://www.example.com:8443/path#section"},
 		{"zh", "alice:123456@www.example.com"},
 		{"site:example.com", "zh"},
+		{"www.example.com", "zh"},
+		{"--zh", "site:www2.mail.example.com"},
 	} {
 		o, err := parseArgs(args, output.English)
 		if err != nil || o.domain != "example.com" || o.lang != output.Chinese {

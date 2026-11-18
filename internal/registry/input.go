@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/net/publicsuffix"
 )
@@ -23,7 +24,11 @@ func NormalizeInput(input string) (string, error) {
 		input = strings.TrimSpace(target)
 	}
 	if !strings.ContainsAny(input, "/?#:@") {
-		return normalizeQueryIdentity(input)
+		host, err := normalizeQueryIdentity(input)
+		if err != nil {
+			return "", err
+		}
+		return registryDomain(host), nil
 	}
 	value := input
 	scheme, afterColon, _ := strings.Cut(input, ":")
@@ -44,10 +49,18 @@ func NormalizeInput(input string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("URL must contain a valid public domain name")
 	}
-	suffix, icann := publicsuffix.PublicSuffix(host)
-	if !strings.Contains(host, ".") && !icann {
-		return "", fmt.Errorf("URL must contain a valid public domain name")
+	if !strings.Contains(host, ".") {
+		if _, icann := publicsuffix.PublicSuffix(host); !icann {
+			return "", fmt.Errorf("URL must contain a valid public domain name")
+		}
 	}
+	return registryDomain(host), nil
+}
+
+// registryDomain selects the same registry boundary for bare hosts and URLs.
+// Its caller validates the complete host before any subdomain is removed.
+func registryDomain(host string) string {
+	suffix, icann := publicsuffix.PublicSuffix(host)
 	// Private hosting suffixes describe tenancy, not registry registrations.
 	// For example, a URL on user.github.io is a query for github.io at .io.
 	for !icann && strings.Contains(suffix, ".") {
@@ -55,13 +68,13 @@ func NormalizeInput(input string) (string, error) {
 		suffix, icann = publicsuffix.PublicSuffix(suffix)
 	}
 	if host == suffix {
-		return host, nil // A multi-label namespace such as net.cn can itself be queried.
+		return host // A multi-label namespace such as net.cn can itself be queried.
 	}
 	parent := strings.TrimSuffix(host, "."+suffix)
 	if index := strings.LastIndexByte(parent, '.'); index >= 0 {
 		parent = parent[index+1:]
 	}
-	return parent + "." + suffix, nil
+	return parent + "." + suffix
 }
 
 // Single-label queries address the root registry. Service hosts and ordinary
@@ -70,7 +83,12 @@ func normalizeQueryIdentity(input string) (string, error) {
 	if len(input) > 4096 || strings.ContainsFunc(input, unicode.IsControl) {
 		return "", fmt.Errorf("invalid domain length or control character")
 	}
-	input = strings.TrimPrefix(strings.TrimSpace(input), ".")
+	input = strings.TrimSpace(input)
+	// IDNA recognizes these four dot separators. Ignore exactly one leading dot.
+	first, width := utf8.DecodeRuneInString(input)
+	if strings.ContainsRune(".。．｡", first) {
+		input = input[width:]
+	}
 	if domain, err := NormalizeDomain(input); err == nil {
 		return domain, nil
 	}

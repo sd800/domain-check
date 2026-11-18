@@ -4,7 +4,7 @@ This document defines the checks required to change, build, and release Domain C
 
 ## Supported build and verification environments
 
-- Go 1.27.3 or newer, with dependency versions and checksums from `go.mod` and `go.sum`.
+- Go 1.27.4 or newer, with dependency versions and checksums from `go.mod` and `go.sum`.
 - macOS 13 (Ventura) or later for the CLI and native installation; releases include Apple Silicon and Intel executables. The installer must reject older systems before replacing an existing executable.
 - macOS and Linux GitHub runners for portable Go regression tests. Linux installer tests simulate macOS system responses and use isolated paths; macOS tests exercise the actual system archive utilities.
 - Python 3 for the offline installer security suite and static website checks.
@@ -32,7 +32,7 @@ make dist
 
 | Area | Required behavior |
 | --- | --- |
-| Domain / URL input | Validate label boundaries and ASCII identity; normalize IDNs and allowed emoji; discard URL secrets locally; never fetch a pasted URL. |
+| Domain / URL input | Validate the complete hostname before reducing bare and URL inputs to the same registry-level domain; cover multi-label suffixes, wildcards, exceptions, private hosting suffixes, IDNs, emoji, leading/trailing dots, user information, and the `site:` prefix; discard URL secrets locally; never fetch a pasted URL. |
 | Command selection | Accept zero-to-two-hyphen selectors; save language only when standalone; keep temporary selectors temporary; show an offline introduction successfully. |
 | Discovery | Use longest-suffix IANA RDAP routing, prefer HTTPS, verify the explicit `.tw` WHOIS route and fixed `.ac.uk` / `.gov.uk` namespace registry routes, and verify active IANA suffixes and published registry services for WHOIS fallback across country-code and generic TLDs. |
 | Registry boundary | Never follow registrar referrals, linked entities, or unresolved handles; constrain redirects to the same query at listed registry endpoints. |
